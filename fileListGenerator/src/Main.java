@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 public class Main {
     public static void main(String[] args) {
         List<String> musicFiles = new ArrayList<>();
-        Map<String, AtomicInteger> extenstionCounts = new HashMap<>();
+        Map<String, AtomicInteger> extensionCounts = new HashMap<>();
         try (Stream<Path> stream = Files.walk(Paths.get(args[0]))) {
             stream.filter(Files::isRegularFile)
                     .map(Path::toString)
@@ -26,6 +26,7 @@ public class Main {
                     .filter(s -> !s.contains("Thumbs.db"))
                     .map(s -> s.substring(args[0].length() + 1))
                     .forEach(musicFiles::add);
+            Collections.shuffle(musicFiles);
             for (int i = 0; i < 7; ++i) {
                 try (FileWriter fileWriter = new FileWriter(args[0] + File.separator+i+".m3u")) {
                     fileWriter.write("#EXTM3U\n");
@@ -45,9 +46,9 @@ public class Main {
             }
             int lastFullStop = s.lastIndexOf('.');
             String extension = lastFullStop > 0 ? s.substring(lastFullStop + 1) : "";
-            extenstionCounts.computeIfAbsent(extension, k -> new AtomicInteger()).incrementAndGet();
+            extensionCounts.computeIfAbsent(extension, k -> new AtomicInteger()).incrementAndGet();
         });
-        extenstionCounts.forEach((e,c) -> System.out.println(e + " " + c));
+        extensionCounts.forEach((e,c) -> System.out.println(e + " " + c));
         musicFiles.stream().filter(s -> !s.contains(".")).forEach(System.out::println);
     }
 }
