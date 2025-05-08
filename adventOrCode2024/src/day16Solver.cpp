@@ -58,39 +58,79 @@ static coordinate move(const coordinate &from, const Direction &direction) {
 
 struct CellCost {
 	bool m_endCell;
-	solveResult m_baseCost;
-	set<Direction> m_baseDirections;
+	map<Direction, solveResult> m_baseCosts;
 	bool m_inBestPath;
 
-	CellCost() : m_endCell(false), m_baseCost(LLONG_MAX), m_inBestPath(false) {}
+	CellCost() : m_endCell(false), m_inBestPath(false) {}
 	
 	bool adjustBaseCost(solveResult cost, Direction direction) {
-		if (!m_endCell && cost < m_baseCost) {
-			m_baseCost = cost;
-			m_baseDirections.clear();
-			m_baseDirections.insert(direction);
+		if (m_endCell || cost == LLONG_MAX) {
+			return false;
+		}
+		map < Direction, solveResult>::const_iterator opposing(m_baseCosts.find(opposite(direction)));
+		if (opposing != m_baseCosts.cend()) {
+			if (opposing->second < cost) {
+				return false;
+			} else {
+				m_baseCosts.erase(opposing->first);
+			}
+		}
+		map<Direction, solveResult>::const_iterator fnd(m_baseCosts.find(direction));
+
+		if (fnd == m_baseCosts.cend() || fnd->second > cost) {
+			m_baseCosts[direction] = cost;
 			return true;
-		} else if (cost == m_baseCost) {
-			m_baseDirections.insert(direction);
 		}
 		return false;
+	}
+
+	set<Direction> getDirections() const { 
+		set<Direction> r;
+		for (const auto c : m_baseCosts) {
+			r.insert(c.first);
+		}
+		return r;
 	}
 
 	solveResult getCost(const Direction &entry) const {
 		if (m_endCell) {
 			return 1;
 		}
-		return m_baseCost +
-			   (m_baseDirections.find(entry) != m_baseDirections.end() ? 1LL : 1001LL);
+		map<Direction, solveResult>::const_iterator fnd(m_baseCosts.find(entry));
+
+		if (fnd != m_baseCosts.cend()) {
+			return fnd->second + 1LL;
+		}
+		solveResult cost(LLONG_MAX);
+		switch (entry) {
+		case NORTH: 
+		case SOUTH:
+			for (const Direction turn : {EAST, WEST}) {
+				fnd = m_baseCosts.find(turn);
+				if (fnd != m_baseCosts.cend()) {
+					cost = min(cost, fnd->second + 1001LL);
+				}
+			}
+			break;
+		case EAST:
+		case WEST:
+			for (const Direction turn : {NORTH, SOUTH}) {
+				fnd = m_baseCosts.find(turn);
+				if (fnd != m_baseCosts.cend()) {
+					cost = min(cost, fnd->second + 1001LL);
+				}
+			}
+			break;
+		}
+		return cost;
 	}
 
 	static friend ostream &operator<<(ostream &os, CellCost const &cellCost) {
 		if (cellCost.m_endCell) {
 			os << "end cell";
 		} else {
-			os << cellCost.m_baseCost << " exiting ";
-			for (const Direction &e : cellCost.m_baseDirections) {
-				os << ToString(e) << ',';
+			for (const auto c : cellCost.m_baseCosts) {
+				os << c.second << " exiting " << ToString(c.first) << ',';
 			}
 		}
 		
@@ -103,9 +143,10 @@ struct PathFinder {
 	const coordinate &m_end;
 	map<coordinate, CellCost> m_cellCosts;
 	const vector<string> &m_data;
-
+	vector<coordinate> path;
+	int pathCount;
 	PathFinder(const day16Solver &problem) :
-		m_start(problem.m_start), m_end(problem.m_end), m_data(problem.m_data) {
+		m_start(problem.m_start), m_end(problem.m_end), m_data(problem.m_data), pathCount(0) {
 		for (size_t r = 0; r < problem.m_data.size(); ++r) {
 			const string &line(problem.m_data[r]);
 			for (size_t c = 0; c < line.size(); ++c) {
@@ -142,13 +183,16 @@ struct PathFinder {
 			processing.clear();
 			processing.insert(followers.begin(), followers.end());
 		}
-		//for (const auto &t : m_cellCosts) {
-		//	cout << t.first.first << '/' << t.first.second << ' ' << t.second
-		//		 << endl;
-		//}
+		logCosts();
 		const auto &startCost(m_cellCosts[m_start]);
-		return startCost.m_baseCost +
-			   (startCost.m_baseDirections.find(EAST) != startCost.m_baseDirections.cend() ? 0 : 1000LL);
+		solveResult r(LLONG_MAX);
+		for (const auto& c : startCost.m_baseCosts) {
+			if (c.first == EAST) {
+				return c.second;
+			}
+			r = min(r, c.second);
+		}
+		return r + 1000LL;
 	}
 
 	void calc(const coordinate &from, function<void(coordinate)> follow);
@@ -156,6 +200,8 @@ struct PathFinder {
 	solveResult countCellsInBestPath();
 
 	solveResult markBestPathCells(const coordinate &from, const set<Direction> &directions);
+
+	void logCosts() const;
 };
 
 void PathFinder::calc(const coordinate &from, function<void(coordinate)> follow) {
@@ -176,7 +222,7 @@ void PathFinder::calc(const coordinate &from, function<void(coordinate)> follow)
 solveResult PathFinder::countCellsInBestPath() {
 	const map<coordinate, CellCost>::iterator startCost(m_cellCosts.find(m_start));
 	startCost->second.m_inBestPath = true;
-	return markBestPathCells(m_start, startCost->second.m_baseDirections);
+	return markBestPathCells(m_start, startCost->second.getDirections());
 }
 
 solveResult PathFinder::markBestPathCells(const coordinate &from, const set<Direction> &directions) {
@@ -185,46 +231,102 @@ solveResult PathFinder::markBestPathCells(const coordinate &from, const set<Dire
 	for (const Direction &direction : directions) {
 		coordinate next(move(from, opposite(direction)));
 		const map<coordinate, CellCost>::iterator nextCost(m_cellCosts.find(next));
+		path.push_back(next);
 
 		if (!nextCost->second.m_inBestPath) {
 			nextCost->second.m_inBestPath = true;
-			result += 1 + markBestPathCells(next, nextCost->second.m_baseDirections);
+			result += 1 + markBestPathCells(next, nextCost->second.getDirections());
 		}
+		path.pop_back();
 	}
 
 	if (from == m_start) {
-		vector<string> now(m_data);
-		solveResult count(0);
-		for (const auto f : m_cellCosts) {
-			if (f.second.m_inBestPath) {
-				now[COORD_ROW(f.first)][COORD_COL(f.first)] = '0';
-				++count;
-			}
-		}
-		for (const auto l : now) {
-			cout << l << endl;
-		}
-		cout << count << endl;
-		int r(0);
-		int c(0);
-		for (const auto f : m_cellCosts) {
-			int cellRow(COORD_ROW(f.first));
-			if (cellRow > r) {
-				cout << endl;
-				r = cellRow;
-				c = 0;
-			}
-			int cellCol(COORD_COL(f.first));
-			for (; c + 1 < cellCol; ++c) {
-				cout << "    ,";
-			}
-			c = cellCol;
+		//for (const auto &c : m_cellCosts) {
+		//	if (c.second.m_inBestPath) {
+		//		cout << COORD_ROW(c.first) << '/' << COORD_COL(c.first);
+		//		if (c.second.m_endCell) {
+		//			cout << "(0),";
+		//		} else {
+		//			cout << '(';
+		//			for (map<Direction, solveResult>::const_iterator d =
+		//					 c.second.m_baseCosts.cbegin();
+		//				 d != c.second.m_baseCosts.cend(); ++d) {
+		//				if (d != c.second.m_baseCosts.cbegin()) {
+		//					cout << ';';
+		//				}
+		//				cout << ToString(d->first) << ':' << d->second;
+		//			}
+		//			cout << ')';
+		//		}
 
-			cout << setw(4) << (f.second.m_endCell ? 0 : f.second.m_baseCost) << ',';
+		//		cout << endl;
+		//	}
+		//}
+		//vector<string> now(m_data);
+		//solveResult count(0);
+		//for (const auto f : m_cellCosts) {
+		//	if (f.second.m_inBestPath) {
+		//		now[COORD_ROW(f.first)][COORD_COL(f.first)] = '0';
+		//		++count;
+		//	}
+		//}
+		//for (const auto l : now) {
+		//	cout << l << endl;
+		//}
+		//cout << count << endl;
+	}
+	if (directions.empty() && from == m_end) {
+		cout << "Path " << pathCount << endl;
+		for (const auto &c : path) {
+			cout << c.first << '/' << c.second << ' ';
+			cout << '(';
+			const auto &cc(m_cellCosts.find(c));
+			for (map<Direction, solveResult>::const_iterator d =
+					 cc->second.m_baseCosts.cbegin();
+				 d != cc->second.m_baseCosts.cend(); ++d) {
+				if (d != cc->second.m_baseCosts.cbegin()) {
+					cout << ';';
+				}
+				cout << ToString(d->first) << ':' << d->second;
+			}
+			cout << ')' << endl;
 		}
-		cout << endl;
+		cout << "End " << pathCount++ << ' ' << path.size() << endl;
 	}
 	return result;
+}
+
+void PathFinder::logCosts() const {
+	int r(0);
+	int c(0);
+	for (const auto f : m_cellCosts) {
+		int cellRow(COORD_ROW(f.first));
+		if (cellRow > r) {
+			cout << endl;
+			r = cellRow;
+			c = 0;
+		}
+		int cellCol(COORD_COL(f.first));
+		for (; c + 1 < cellCol; ++c) {
+			cout << "    ,";
+		}
+		c = cellCol;
+
+		if (f.second.m_endCell) {
+			cout << "    ,";
+		} else {
+			for (map<Direction, solveResult>::const_iterator c =
+					 f.second.m_baseCosts.cbegin();
+				 c != f.second.m_baseCosts.cend(); ++c) {
+				if (c != f.second.m_baseCosts.cbegin()) {
+					cout << ';';
+				}
+				cout << ToString(c->first) << ':' << c->second;
+			}
+			cout << ',';
+		}
+	}
+	cout << endl;
 }
 
 day16Solver::day16Solver(const string &testFile) :
@@ -269,6 +371,26 @@ void day16Solver::loadTestData() {
 	loadData("#####");
 
 	assertEquals(compute(), m_part1 ? 4010 : 11, "Small one");
+
+	loadData("#################");
+	loadData("#...#...#...#..E#");
+	loadData("#.#.#.#.#.#.#.#.#");
+	loadData("#.#.#.#...#...#.#");
+	loadData("#.#.#.#.###.#.#.#");
+	loadData("#...#.#.#.....#.#");
+	loadData("#.#.#.#.#.#####.#");
+	loadData("#.#...#.#.#.....#");
+	loadData("#.#.#####.#.###.#");
+	loadData("#.#.#.......#...#");
+	loadData("#.#.###.#####.###");
+	loadData("#.#.#...#.....#.#");
+	loadData("#.#.#.#####.###.#");
+	loadData("#.#.#.........#.#");
+	loadData("#.#.#.#########.#");
+	loadData("#S#.............#");
+	loadData("#################");
+
+	assertEquals(compute(), m_part1 ? 11048 : 11, "Second case");
 
 	loadData("###############");
 	loadData("#.......#....E#");
