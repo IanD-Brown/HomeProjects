@@ -19,6 +19,7 @@
 #include "day14Solver.h"
 #include "day15Solver.h"
 #include "day16Solver.h"
+#include "day17Solver.h"
 
 using namespace std;
 
@@ -44,6 +45,28 @@ void invoke(solver* day, solveResult t, function<bool(solveResult)> pt1, solveRe
 		std::cout << day->getDay() << "b " << c2 << std::endl;
 		assert(pt2(c2) && " wrong day value b");
 	}
+}
+
+void invoke(solver *day, string t, string pt1, string t2, string pt2) {
+	day->loadTestData();
+	string t1 = day->computeString();
+	cout << day->getDay() << " Test " << t1 << endl;
+	assert(t1 == t && " wrong test value");
+
+	day->loadFromFile();
+	string c = day->computeString();
+	std::cout << day->getDay() << " " << c << std::endl;
+	assert(pt1 == c && " wrong day value");
+
+		day->loadTestData();
+	string x = day->computeString2();
+	cout << day->getDay() << " Test2 " << x << endl;
+	assert(x == t2 && " wrong test2 value");
+
+	day->loadFromFile();
+	string c2 = day->computeString2();
+	std::cout << day->getDay() << "b " << c2 << std::endl;
+	assert(pt2 == c2 && " wrong day value b");
 }
 
 struct lt {
@@ -102,7 +125,9 @@ int main() {
 //invoke(new day13Solver("day13\\data.txt"), 480, eq(26810), 875318608908LL, eq(108713182988244LL));
 //invoke(new day14Solver("day14\\data.txt"), 12, eq(230436441LL), 0, eq(8270));
 //invoke(new day15Solver("day15\\data.txt"), 10092, eq(1495147LL), 9021, eq(1524905LL));
-invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
+//invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
+invoke(new day17Solver("day17\\data.txt"), "4,6,3,5,6,3,5,2,1,0",
+	   "eq(104516LL)", "45", "eq(545LL)");
 
   return 0;
 }

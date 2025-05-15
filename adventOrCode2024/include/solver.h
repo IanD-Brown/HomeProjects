@@ -38,4 +38,7 @@ class solver  {
         virtual void loadTestData() = 0;
 
         std::string getDay();
+
+		std::string computeString() { return ""; }
+		std::string computeString2() { return ""; }
 };
