@@ -46,6 +46,14 @@ void invoke(solver* day, solveResult t, function<bool(solveResult)> pt1, solveRe
 	}
 }
 
+struct lt {
+	solveResult m_compare;
+	lt(solveResult v) :
+		m_compare(v) {}
+
+	bool operator()(solveResult t) { return t < m_compare; }
+};
+
 struct gt {
 	solveResult m_compare;
 	gt(solveResult v) : m_compare(v) {
@@ -94,8 +102,7 @@ int main() {
 //invoke(new day13Solver("day13\\data.txt"), 480, eq(26810), 875318608908LL, eq(108713182988244LL));
 //invoke(new day14Solver("day14\\data.txt"), 12, eq(230436441LL), 0, eq(8270));
 //invoke(new day15Solver("day15\\data.txt"), 10092, eq(1495147LL), 9021, eq(1524905LL));
-invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45,
-	   eq(1524905LL));
+invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
 
   return 0;
 }
