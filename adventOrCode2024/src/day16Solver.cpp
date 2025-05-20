@@ -1,13 +1,6 @@
 #include "day16Solver.h"
 
-#include <cassert>
-#include <climits>
-#include <iomanip>
-#include <iostream>
-#include <functional>
 #include <map>
-#include <queue>
-#include <sstream>
 
 enum Direction { NORTH, SOUTH, EAST, WEST, NONE };
 

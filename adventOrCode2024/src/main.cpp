@@ -58,7 +58,7 @@ void invoke(solver *day, string t, string pt1, string t2, string pt2) {
 	std::cout << day->getDay() << " " << c << std::endl;
 	assert(pt1 == c && " wrong day value");
 
-		day->loadTestData();
+	day->loadTestData();
 	string x = day->computeString2();
 	cout << day->getDay() << " Test2 " << x << endl;
 	assert(x == t2 && " wrong test2 value");
@@ -127,7 +127,7 @@ int main() {
 //invoke(new day15Solver("day15\\data.txt"), 10092, eq(1495147LL), 9021, eq(1524905LL));
 //invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
 invoke(new day17Solver("day17\\data.txt"), "4,6,3,5,6,3,5,2,1,0",
-	   "eq(104516LL)", "45", "eq(545LL)");
+	   "1,7,2,1,4,1,5,4,0", "45", "eq(545LL)");
 
   return 0;
 }

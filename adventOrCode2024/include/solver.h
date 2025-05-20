@@ -39,6 +39,10 @@ class solver  {
 
         std::string getDay();
 
-		std::string computeString() { return ""; }
-		std::string computeString2() { return ""; }
+		virtual std::string computeString() { return ""; }
+		virtual std::string computeString2() {
+			m_part1 = false;
+
+			return computeString(); 
+		}
 };
