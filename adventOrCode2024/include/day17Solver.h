@@ -4,7 +4,6 @@
 
 class day17Solver : public solver {
 private:
-	friend struct ReverseProcessor;
 	struct Processor {
 		solveResult m_a;
 		solveResult m_b;

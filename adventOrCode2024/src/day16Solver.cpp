@@ -1,6 +1,7 @@
 #include "day16Solver.h"
 
 #include <map>
+#include "grid.h"
 
 enum Direction { NORTH, SOUTH, EAST, WEST, NONE };
 
@@ -40,30 +41,6 @@ static Direction opposite(const Direction &from) {
 	}
 	return NONE;
 }
-
-struct Grid {
-	const vector<string>& m_data;
-	const size_t m_rowCount;
-	const size_t m_colCount;
-
-	Grid(const vector<string> &data) : m_data(data), m_rowCount(data.size()), m_colCount(data[0].size()) {}
-
-	size_t index(size_t row, size_t col) const {
-		return row * m_colCount + col;
-	}
-
-	size_t size() const { 
-		return m_rowCount * m_colCount;
-	}
-
-	size_t row(size_t ravelIndex) const {
-		return (ravelIndex - col(ravelIndex)) / m_colCount;
-	}
-
-	size_t col(size_t ravelIndex) const {
-		return ravelIndex % m_colCount;
-	}
-};
 
 struct MazeGrid : public Grid {
 	CostMap m_cellCost;
