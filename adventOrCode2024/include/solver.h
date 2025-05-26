@@ -45,4 +45,6 @@ class solver  {
 
 			return computeString(); 
 		}
+
+		void setPart2() { m_part1 = false; }
 };

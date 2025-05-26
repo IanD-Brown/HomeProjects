@@ -4,7 +4,6 @@
 #include <functional>
 #include <iostream>
 
-
 using namespace std;
 
 day17Solver::Processor::Processor() : m_a(0), m_b(0), m_c(0) {}
@@ -73,69 +72,6 @@ string day17Solver::Processor::run() {
 	return result;
 }
 
-struct ReverseProcessor : day17Solver::Processor {
-
-	ReverseProcessor(const day17Solver::Processor &src) {
-		m_a = 0;
-		m_b = src.m_b;
-		m_c = src.m_c;
-		m_program = src.m_program;
-	}
-
-	string run();
-};
-
-string ReverseProcessor::run() {
-	string result;
-	solveResult t(0);
-	for (int p : m_program) {
-		t = (t << 3) | p;
-	}
-	cout << t << endl;
-	result = to_string(t);
-	for (solveResult pc = m_program.size() - 2; pc >= 0; pc -= 2) {
-		switch (m_program[pc]) {
-		case 0:
-			cout << "adv " << value(m_program[pc + 1]) << endl;
-			m_a *= pow(2, value(m_program[pc + 1]));
-			break;
-		case 1:
-			m_b ^= value(m_program[pc + 1]);
-			break;
-		case 2:
-			cout << "bxl " << value(m_program[pc + 1]) % 8 << endl;
-			break;
-		case 3:
-			if (m_a != 666) {
-				m_a = 666;
-				cout << "jnz " << m_program[pc + 1] << endl;
-				pc = m_program.size() - m_program[pc + 1];
-			}
-			break;
-		case 4:
-			cout << "bxc " << m_c << endl;
-//			m_b ^= m_c;
-			break;
-		case 5:
-			cout << "out " << (value(m_program[pc + 1]) % 8) << endl;
-			//if (!result.empty()) {
-			//	result += ',';
-			//}
-			//result += '0' + (value(m_program[pc + 1]) % 8);
-			break;
-		case 6:
-			cout << "bdv " << value(m_program[pc + 1]) << endl;
-			//m_b = m_a / pow(2, value(m_program[pc + 1]));
-			break;
-		case 7:
-			cout << "cdv " << value(m_program[pc + 1]) << endl;
-			//m_c = m_a / pow(2, value(m_program[pc + 1]));
-			break;
-		}
-	}
-	return result;
-}
-
 day17Solver::day17Solver(const string &testFile) :
 	solver(testFile) {}
 
@@ -161,37 +97,74 @@ void day17Solver::clearData() {
 	m_program.clear();
 }
 
+static solveResult getReverse(const vector<int> &program, size_t digit, vector<solveResult> prior, function<string(solveResult)> process) {
+	int instruction(program[digit]);
+	string requiredOutput;
+	for (int i = digit; i < program.size(); ++i) {
+		if (i != digit) {
+			requiredOutput += ',';
+		}
+		requiredOutput += '0' + program[i];
+	}
+	vector<solveResult> possibles;
+	for (solveResult p : prior) {
+		for (int i = 0; i < 8; ++i) {
+			solveResult a(p << 3 | i);
+			if (process(a) == requiredOutput) {
+				possibles.push_back(a);
+			}
+		}
+	}
+	if (digit > 0) {
+		return getReverse(program, digit - 1, possibles, process);
+	}
+	solveResult v(LLONG_MAX);
+	for (solveResult p : possibles) {
+		if (p < v) {
+			v = p;
+		}
+	}
+	return v;
+}
+
 string day17Solver::computeString() {
 	if (m_part1) {
 		return m_processor.run();
 	}
-	ReverseProcessor reverse(m_processor);
-	return reverse.run();
-	//// brute force???
-	//solveResult a(0);
-	//solveResult b(m_processor.m_b);
-	//solveResult c(m_processor.m_c);
-	//for (;;) {
-	//	if (m_processor.run() == m_program) {
-	//		return to_string(m_processor.m_a);
-	//	}
-	//	++a;
-	//	m_processor.m_a = a;
-	//	m_processor.m_b = b;
-	//	m_processor.m_c = c;
-	//	if ((a % 100000) == 0) {
-	//		cout << a << endl;
-	//	}
-	//}
+
+	vector<solveResult> seed({0LL});
+	return to_string(getReverse(m_processor.m_program, m_processor.m_program.size() - 1, seed, [&](solveResult a) {
+		m_processor.m_a = a;
+		m_processor.m_b = 0;
+		m_processor.m_c = 0;
+		return m_processor.run();
+	}));
 }
 
 void day17Solver::loadTestData() {
 	bool state(m_part1);
 	clearData();
 
+	m_part1 = true;
+	loadData("Register A: 37221261688308");
+	loadData("Register B: 0");
+	loadData("Register C: 0");
+	loadData("");
+	loadData("Program: 2,4,1,2,7,5,4,1,1,3,5,5,0,3,3,0");
+
+	string output(computeString());
+	cout << output << endl;
+	assert(output == "2,4,1,2,7,5,4,1,1,3,5,5,0,3,3,0");
+	m_part1 = state;
+	clearData();
+
 	loadData("Register A: 729");
 	loadData("Register B: 0");
 	loadData("Register C: 0");
 	loadData("");
-	loadData("Program: 0,1,5,4,3,0");
+	if (m_part1) {
+		loadData("Program: 0,1,5,4,3,0");
+	} else {
+		loadData("Program: 0,3,5,4,3,0");
+	}
 }
