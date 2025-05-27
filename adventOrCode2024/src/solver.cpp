@@ -10,11 +10,10 @@ solver::solver(const string& testFile) : m_testFile {testFile}, m_part1(true), m
 };
 
 void solver::loadFromFile() {
-	clearData();
 	m_test = false;
+	clearData();
     loadFromFile(m_testFile);
 }
-
 
 void solver::loadFromFile(const string& file) {
     ifstream myfile;

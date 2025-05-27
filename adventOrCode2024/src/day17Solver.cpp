@@ -3,6 +3,7 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
+#include <set>
 
 using namespace std;
 
@@ -97,7 +98,10 @@ void day17Solver::clearData() {
 	m_program.clear();
 }
 
-static solveResult getReverse(const vector<int> &program, size_t digit, vector<solveResult> prior, function<string(solveResult)> process) {
+static void getReverse(const vector<int> &program, 
+	                          size_t digit, set<solveResult> prior, 
+	                          function<string(solveResult)> process,
+	                          set<solveResult> &destination) {
 	int instruction(program[digit]);
 	string requiredOutput;
 	for (int i = digit; i < program.size(); ++i) {
@@ -106,25 +110,20 @@ static solveResult getReverse(const vector<int> &program, size_t digit, vector<s
 		}
 		requiredOutput += '0' + program[i];
 	}
-	vector<solveResult> possibles;
+	set<solveResult> possibles;
 	for (solveResult p : prior) {
 		for (int i = 0; i < 8; ++i) {
 			solveResult a(p << 3 | i);
 			if (process(a) == requiredOutput) {
-				possibles.push_back(a);
+				possibles.insert(a);
 			}
 		}
 	}
 	if (digit > 0) {
-		return getReverse(program, digit - 1, possibles, process);
+		getReverse(program, digit - 1, possibles, process, destination);
+	} else {
+		destination.insert(possibles.cbegin(), possibles.end());
 	}
-	solveResult v(LLONG_MAX);
-	for (solveResult p : possibles) {
-		if (p < v) {
-			v = p;
-		}
-	}
-	return v;
 }
 
 string day17Solver::computeString() {
@@ -132,13 +131,18 @@ string day17Solver::computeString() {
 		return m_processor.run();
 	}
 
-	vector<solveResult> seed({0LL});
-	return to_string(getReverse(m_processor.m_program, m_processor.m_program.size() - 1, seed, [&](solveResult a) {
-		m_processor.m_a = a;
-		m_processor.m_b = 0;
-		m_processor.m_c = 0;
-		return m_processor.run();
-	}));
+	set<solveResult> seed({0LL});
+	set<solveResult> destination;
+	getReverse(
+		m_processor.m_program, m_processor.m_program.size() - 1, seed,
+		[&](solveResult a) {
+			m_processor.m_a = a;
+			m_processor.m_b = 0;
+			m_processor.m_c = 0;
+			return m_processor.run();
+		},
+		destination);
+	return to_string(*destination.begin());
 }
 
 void day17Solver::loadTestData() {
