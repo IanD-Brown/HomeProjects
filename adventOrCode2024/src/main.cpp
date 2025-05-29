@@ -36,6 +36,7 @@ void invoke(solver* day, solveResult t, function<bool(solveResult)> pt1, solveRe
 	assert(pt1(c) && " wrong day value");
 
 	if ( t2 >= 0 ) {
+		day->setPart2();
 		day->loadTestData();
 		solveResult x = day->compute2();
 		cout << day->getDay() << " Test2 " << x << endl;
@@ -99,6 +100,15 @@ struct gt {
 	}
 };
 
+struct ne {
+	 solveResult m_compare;
+	 ne(solveResult v) :
+		 m_compare(v) {}
+
+	 bool operator()(solveResult t) { return t != m_compare; }
+};
+
+
  struct between {
 	 solveResult m_greater;
 	 solveResult m_less;
@@ -129,7 +139,7 @@ int main() {
 //invoke(new day15Solver("day15\\data.txt"), 10092, eq(1495147LL), 9021, eq(1524905LL));
 //invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
 //invoke(new day17Solver("day17\\data.txt"), "4,6,3,5,6,3,5,2,1,0", "1,7,2,1,4,1,5,4,0", "117440", "37221261688308");
-invoke(new day18Solver("day18\\data.txt"), 22, eq(316LL), 13, eq(545LL));
+invoke(new day18Solver("day18\\data.txt"), 22, eq(316LL), 13, eq(1323LL));
 
   return 0;
 }
