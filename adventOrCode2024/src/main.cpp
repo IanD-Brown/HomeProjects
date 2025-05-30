@@ -22,6 +22,7 @@
 #include "day17Solver.h"
 #include "day18Solver.h"
 #include "day19Solver.h"
+#include "day20Solver.h"
 
 using namespace std;
 
@@ -141,7 +142,8 @@ int main() {
 //invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
 //invoke(new day17Solver("day17\\data.txt"), "4,6,3,5,6,3,5,2,1,0", "1,7,2,1,4,1,5,4,0", "117440", "37221261688308");
 //invoke(new day18Solver("day18\\data.txt"), 22, eq(316LL), 13, eq(1323LL));
-invoke(new day19Solver("day19\\data.txt"), 6, eq(363LL), 16,
+//invoke(new day19Solver("day19\\data.txt"), 6, eq(363LL), 16, eq(642535800868438LL));
+invoke(new day20Solver("day20\\data.txt"), 45, eq(363LL), 16,
 	   eq(642535800868438LL));
 
   return 0;
