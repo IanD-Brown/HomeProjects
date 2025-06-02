@@ -1,64 +1,42 @@
 #include "day16Solver.h"
 
-#include <map>
 #include "grid.h"
-
-enum Direction { NORTH, SOUTH, EAST, WEST, NONE };
 
 using namespace std;
 
-using Step = pair<size_t, Direction>;
-using CostMap = map<pair<size_t, bool>, solveResult>;
+using CostKey = pair<size_t, bool>;
+using MazeCostMap = map<CostKey, solveResult>;
 
-static const char WALL('#');
-
-static const Direction ALL_DIRECTIONS[] = {NORTH, SOUTH, EAST, WEST};
-
-static const char *ToString(const Direction &v) {
-	switch(v) {
-	case NORTH:
-		return "N";
-	case SOUTH:
-		return "S";
-	case EAST:
-		return "E";
-	case WEST:
-		return "W";
-	}
-	return NULL;
+static CostKey makeCostKey(size_t c, Direction d) {
+	return make_pair(c, d == EAST || d == WEST);
 }
 
-static Direction opposite(const Direction &from) {
-	switch (from) {
-	case NORTH:
-		return SOUTH;
-	case SOUTH:
-		return NORTH;
-	case EAST:
-		return WEST;
-	case WEST:
-		return EAST;
+static solveResult getMoveCost(const map<CostKey, solveResult> &cellCost, const CostKey &key) {
+	map<CostKey, solveResult>::const_iterator fnd(cellCost.find(key));
+	solveResult stepCost(LLONG_MAX);
+	if (fnd != cellCost.cend()) {
+		stepCost = fnd->second + 1LL;
 	}
-	return NONE;
+	fnd = cellCost.find(make_pair(key.first, !key.second));
+	if (fnd != cellCost.cend()) {
+		stepCost = min(stepCost, fnd->second + 1001LL);
+	}
+	return stepCost;
 }
 
-struct MazeGrid : public Grid {
-	CostMap m_cellCost;
-	size_t m_start;
+
+struct MazeGrid : public Grid<CostKey> {
 	size_t m_end;
 	solveResult m_pathTotal;
 
-	MazeGrid(const vector<string> &data);
+	MazeGrid(const vector<string> &data) :
+		Grid(data, &makeCostKey, &getMoveCost),
+		m_end(0),
+		m_pathTotal(0) {}
 
-	void calc(size_t start, bool isEnd);
-
-	void calc(set<Step> &next, Step from);
-
-	size_t move(size_t from, const Direction &direction) const;
-
-	bool isPath(size_t row, size_t col, Direction move) const;
-
-	bool isPath(size_t from, Direction move) const;
+	solveResult getCellCost(const CostKey &k) {
+		return getCellCost(k.first, k.second);
+	}
 
 	solveResult getCost(size_t cell, int verticalCost) const;
 
@@ -66,15 +44,10 @@ struct MazeGrid : public Grid {
 
 	string toString(size_t cell) const;
 
-	solveResult getMoveCost(size_t from, bool horizontal) const;
-
 	solveResult getCellCost(size_t of, bool horizontal) const;
 
 	void bestPathRecurse(set<Step> &bestPathCells, vector<Step> &from, solveResult pathCost) const;
 };
-
-MazeGrid::MazeGrid(const vector<string> &data) : Grid(data), m_start(0), m_end(0), m_pathTotal(0) {
-}
 
 solveResult MazeGrid::countCellsInBestPath(size_t end) {
 	m_end = end;
@@ -92,7 +65,9 @@ solveResult MazeGrid::countCellsInBestPath(size_t end) {
 	return cellIndices.size();
 }
 
-void MazeGrid::bestPathRecurse(set<Step> &bestPathCells, vector<Step> &from, solveResult pathCost) const {
+void MazeGrid::bestPathRecurse(set<Step> &bestPathCells,
+										vector<Step> &from,
+										solveResult pathCost) const {
 	Direction blocked(opposite(from.back().second));
 	size_t fromCell(from.back().first);
 	solveResult trueCost(getCellCost(fromCell, true));
@@ -139,15 +114,15 @@ void MazeGrid::bestPathRecurse(set<Step> &bestPathCells, vector<Step> &from, sol
 	}
 }
 
-solveResult MazeGrid::getCellCost(size_t cell,bool horizontal) const {
-	CostMap::const_iterator fnd(m_cellCost.find(make_pair(cell, horizontal)));
+solveResult MazeGrid::getCellCost(size_t cell, bool horizontal) const {
+	MazeCostMap::const_iterator fnd(m_cellCost.find(make_pair(cell, horizontal)));
 
 	return fnd != m_cellCost.cend() ? fnd->second : LLONG_MAX;
 }
 
 solveResult MazeGrid::getCost(size_t cell, int verticalCost) const {
-	CostMap::const_iterator fndTrue(m_cellCost.find(make_pair(cell, true)));
-	CostMap::const_iterator fndFalse(m_cellCost.find(make_pair(cell, false)));
+	MazeCostMap::const_iterator fndTrue(m_cellCost.find(make_pair(cell, true)));
+	MazeCostMap::const_iterator fndFalse(m_cellCost.find(make_pair(cell, false)));
 
 	if (fndTrue != m_cellCost.cend()) {
 		if (fndFalse != m_cellCost.cend()) {
@@ -160,8 +135,8 @@ solveResult MazeGrid::getCost(size_t cell, int verticalCost) const {
 }
 
 string MazeGrid::toString(size_t cell) const {
-	CostMap::const_iterator fndTrue(m_cellCost.find(make_pair(cell, true)));
-	CostMap::const_iterator fndFalse(m_cellCost.find(make_pair(cell, false)));
+	MazeCostMap::const_iterator fndTrue(m_cellCost.find(make_pair(cell, true)));
+	MazeCostMap::const_iterator fndFalse(m_cellCost.find(make_pair(cell, false)));
 
 	if (fndTrue != m_cellCost.cend()) {
 		if (fndFalse != m_cellCost.cend()) {
@@ -176,92 +151,6 @@ string MazeGrid::toString(size_t cell) const {
 	return "";
 }
 
-void MazeGrid::calc(size_t start, bool isEnd) {
-	m_start = start;
-	m_cellCost[make_pair(start, true)] = 0;
-	if (isEnd)
-		m_cellCost[make_pair(start, false)] = 0;
-
-	set<Step> processing({make_pair(start, NONE)});
-
-	while (!processing.empty()) {
-		set<Step> next;
-		for (const Step &p : processing) {
-			calc(next, p);
-		}
-		processing = next;
-	}
-}
-
-void MazeGrid::calc(set<Step> &next, Step from) {
-	Direction blocked(opposite(from.second));
-	for (const Direction &d : ALL_DIRECTIONS) {
-		if (d != blocked && isPath(from.first, d)) {
-			bool horizontal(d == EAST || d == WEST);
-			solveResult stepCost(getMoveCost(from.first, horizontal));
-			
-			pair<size_t, bool> nextCostKey(
-				make_pair(move(from.first, d), horizontal));
-			CostMap::iterator nextCost(m_cellCost.find(nextCostKey));
-			if (nextCost != m_cellCost.end()) {
-				// existing
-				if (nextCost->second > stepCost) {
-					nextCost->second = stepCost;
-					next.insert(make_pair(nextCostKey.first, d));
-				}
-			} else {
-				m_cellCost[nextCostKey] = stepCost;
-				next.insert(make_pair(nextCostKey.first, d));
-			}
-		}
-	}
-}
-
-solveResult MazeGrid::getMoveCost(size_t from, bool horizontal) const {
-	CostMap::const_iterator fnd(m_cellCost.find(make_pair(from, horizontal)));
-	solveResult stepCost(LLONG_MAX);
-	if (fnd != m_cellCost.cend()) {
-		stepCost = fnd->second + 1LL;
-	}
-	fnd = m_cellCost.find(make_pair(from, !horizontal));
-	if (fnd != m_cellCost.cend()) {
-		stepCost = min(stepCost, fnd->second + 1001LL);
-	}
-	return stepCost;
-}
-
-size_t MazeGrid::move(size_t from, const Direction &direction) const {
-		switch (direction) {
-		case NORTH:
-			return index(row(from) - 1, col(from));
-		case SOUTH:
-			return index(row(from) + 1, col(from));
-		case EAST:
-			return index(row(from), col(from) + 1);
-		case WEST:
-			return index(row(from), col(from) - 1);
-		}
-		return from;
-	}
-
-bool MazeGrid::isPath(size_t row, size_t col, const Direction move) const {
-	switch (move) {
-	case NORTH:
-		return row > 0 && m_data[row - 1][col] != WALL;
-	case SOUTH:
-		return m_data[row + 1][col] != WALL;
-	case EAST:
-		return m_data[row][col + 1] != WALL;
-	case WEST:
-		return col > 0 && m_data[row][col - 1] != WALL;
-	}
-	return m_data[row][col] != WALL;
-}
-
-bool MazeGrid::isPath(size_t from, const Direction move) const {
-	return isPath(row(from), col(from), move);
-}
-	
 day16Solver::day16Solver(const string &testFile) :
 	solver(testFile) {}
 

@@ -11,6 +11,16 @@ day20Solver::day20Solver(const string &testFile):
 	solver(testFile) {}
 
 void day20Solver::loadData(const string &line) {
+	size_t pos(line.find('S'));
+	if (pos != string::npos) {
+		m_start = make_pair(m_data.size(), pos);
+	} else {
+		pos = line.find('E');
+		if (pos != string::npos) {
+			m_end = make_pair(m_data.size(), pos);
+		}
+	}
+	m_data.push_back(line);
 }
 
 void day20Solver::clearData() {

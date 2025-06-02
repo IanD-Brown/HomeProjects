@@ -6,6 +6,9 @@
 class day20Solver : public solver {
 private:
 	std::vector<std::string> m_data;
+	coordinate m_start;
+	coordinate m_end;
+
 public:
 	day20Solver(const std::string& testFile);
 

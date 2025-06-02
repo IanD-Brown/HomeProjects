@@ -10,7 +10,6 @@ private:
 	coordinate m_start;
 	coordinate m_end;
 
-
 public:
 	day16Solver(const std::string& testFile);
 
