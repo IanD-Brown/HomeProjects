@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
@@ -40,19 +41,25 @@ static const char *ToString(const Direction &v) {
 }
 
 template <typename K> struct Grid {
+	using keyFactory = std::function<K(size_t, Direction)>;
+	using cellMoveCost = std::function<solveResult(const std::map<K, solveResult> &, const K &)>;
 	const std::vector<std::string>& m_data;
 	const size_t m_rowCount;
 	const size_t m_colCount;
 	std::map<K, solveResult> m_cellCost;
-	K(*m_keyFactory)(size_t, Direction);
-	solveResult (*m_cellMoveCost)(const std::map<K, solveResult> &, const K&);
+	keyFactory m_keyFactory;
+	cellMoveCost m_cellMoveCost;
 	size_t m_start;
 
-	Grid(const std::vector<std::string> &data, 
-		 K(*keyFactory)(size_t, Direction),
-		 solveResult (*cellMoveCost)(const std::map<K, solveResult>&, const K&)) 
-	: m_start(0), m_data(data), m_rowCount(data.size()), m_colCount(data[0].size()), m_keyFactory(keyFactory),
-		m_cellMoveCost(cellMoveCost) {}
+	Grid(const std::vector<std::string> &data,
+		 keyFactory p_keyFactory,
+		 cellMoveCost p_cellMoveCost) :
+		m_start(0),
+		m_data(data),
+		m_rowCount(data.size()),
+		m_colCount(data[0].size()),
+		m_keyFactory(p_keyFactory),
+		m_cellMoveCost(p_cellMoveCost) {}
 
 	size_t index(size_t row, size_t col) const {
 		return row * m_colCount + col;

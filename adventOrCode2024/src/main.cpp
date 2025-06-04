@@ -139,12 +139,15 @@ int main() {
 //invoke(new day13Solver("day13\\data.txt"), 480, eq(26810), 875318608908LL, eq(108713182988244LL));
 //invoke(new day14Solver("day14\\data.txt"), 12, eq(230436441LL), 0, eq(8270));
 //invoke(new day15Solver("day15\\data.txt"), 10092, eq(1495147LL), 9021, eq(1524905LL));
-// invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
+//invoke(new day16Solver("day16\\data.txt"), 7036, eq(104516LL), 45, eq(545LL));
 //invoke(new day17Solver("day17\\data.txt"), "4,6,3,5,6,3,5,2,1,0", "1,7,2,1,4,1,5,4,0", "117440", "37221261688308");
-invoke(new day18Solver("day18\\data.txt"), 22, eq(316LL), 13, eq(1323LL));
+//invoke(new day18Solver("day18\\data.txt"), 22, eq(316LL), 13, eq(1323LL));
 //invoke(new day19Solver("day19\\data.txt"), 6, eq(363LL), 16, eq(642535800868438LL));
-invoke(new day20Solver("day20\\data.txt"), 45, eq(363LL), 16,
+invoke(new day20Solver("day20\\data.txt"), 44, eq(1369LL), 
+	32 + 31 + 29 + 39 + 25 + 23 + 20 + 19 + 12 + 14 + 12 + 22 + 4 + 3,
 	   eq(642535800868438LL));
 
   return 0;
 }
+
+ 

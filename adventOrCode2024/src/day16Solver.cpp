@@ -30,7 +30,9 @@ struct MazeGrid : public Grid<CostKey> {
 	solveResult m_pathTotal;
 
 	MazeGrid(const vector<string> &data) :
-		Grid(data, &makeCostKey, &getMoveCost),
+		Grid(data, 
+		&makeCostKey, 
+		&getMoveCost),
 		m_end(0),
 		m_pathTotal(0) {}
 
