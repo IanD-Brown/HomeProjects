@@ -77,6 +77,20 @@ template <typename K> struct Grid {
 		return ravelIndex % m_colCount;
 	}
 
+	bool isCell(size_t from,Direction direction) const {
+		switch (direction) {
+		case NORTH:
+			return row(from) > 0;
+		case SOUTH:
+			return row(from) < m_rowCount - 1;
+		case EAST:
+			return col(from) < m_colCount - 1;
+		case WEST:
+			return col(from) > 0;
+		}
+		return from;
+	}
+
 	size_t move(size_t from, const Direction &direction) const {
 		switch (direction) {
 		case NORTH:
@@ -152,5 +166,8 @@ template <typename K> struct Grid {
 		}
 	}
 
+	std::string toString(size_t cell) const {
+		return std::to_string(row(cell)) + '/' + std::to_string(col(cell));
+	}
 };
 

@@ -41,7 +41,7 @@ void invoke(solver* day, solveResult t, function<bool(solveResult)> pt1, solveRe
 		day->setPart2();
 		day->loadTestData();
 		solveResult x = day->compute2();
-		cout << day->getDay() << " Test2 " << x << endl;
+		cout << day->getDay() << " Test2 " << x << " vs " << t2 << endl;
 		assert(x == t2 && " wrong test2 value");
 
 		day->loadFromFile();
@@ -145,9 +145,7 @@ int main() {
 //invoke(new day19Solver("day19\\data.txt"), 6, eq(363LL), 16, eq(642535800868438LL));
 invoke(new day20Solver("day20\\data.txt"), 44, eq(1369LL), 
 	32 + 31 + 29 + 39 + 25 + 23 + 20 + 19 + 12 + 14 + 12 + 22 + 4 + 3,
-	   eq(642535800868438LL));
+	   eq(979012LL));
 
   return 0;
 }
-
- 
