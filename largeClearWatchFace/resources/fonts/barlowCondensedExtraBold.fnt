@@ -1,0 +1,27 @@
+info face="Barlow Condensed ExtraBold" size=160 bold=1 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0
+common lineHeight=160 base=125 scaleW=256 scaleH=256 pages=2 packed=0 alphaChnl=1 redChnl=0 greenChnl=0 blueChnl=0
+page id=0 file="barlowCondensedExtraBold_0.png"
+page id=1 file="barlowCondensedExtraBold_1.png"
+chars count=12
+char id=32   x=249   y=0     width=1     height=1     xoffset=0     yoffset=0     xadvance=26    page=0  chnl=15
+char id=48   x=0     y=0     width=53    height=91    xoffset=2     yoffset=35    xadvance=58    page=0  chnl=15
+char id=49   x=216   y=0     width=32    height=89    xoffset=1     yoffset=36    xadvance=36    page=0  chnl=15
+char id=50   x=0     y=92    width=55    height=90    xoffset=2     yoffset=35    xadvance=58    page=0  chnl=15
+char id=51   x=56    y=92    width=54    height=90    xoffset=2     yoffset=36    xadvance=58    page=0  chnl=15
+char id=52   x=165   y=92    width=63    height=89    xoffset=1     yoffset=36    xadvance=65    page=0  chnl=15
+char id=53   x=111   y=92    width=53    height=90    xoffset=3     yoffset=36    xadvance=58    page=0  chnl=15
+char id=54   x=54    y=0     width=53    height=91    xoffset=3     yoffset=35    xadvance=58    page=0  chnl=15
+char id=55   x=0     y=0     width=52    height=89    xoffset=1     yoffset=36    xadvance=54    page=1  chnl=15
+char id=56   x=108   y=0     width=53    height=91    xoffset=2     yoffset=35    xadvance=57    page=0  chnl=15
+char id=57   x=162   y=0     width=53    height=91    xoffset=1     yoffset=35    xadvance=57    page=0  chnl=15
+char id=58   x=229   y=90    width=26    height=66    xoffset=6     yoffset=59    xadvance=38    page=0  chnl=15
+kernings count=9
+kerning first=49  second=49  amount=-1  
+kerning first=49  second=50  amount=1   
+kerning first=50  second=49  amount=-1  
+kerning first=51  second=49  amount=-1  
+kerning first=52  second=49  amount=-2  
+kerning first=53  second=49  amount=-1  
+kerning first=54  second=49  amount=-1  
+kerning first=56  second=49  amount=-1  
+kerning first=57  second=49  amount=-1  

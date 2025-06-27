@@ -1,0 +1,23 @@
+<layout id="WatchFace">
+	<drawable class="Background" />
+	
+	<!-- top -->
+	<label id="DateLabel" x="18%" y="30"
+		font="Graphics.FONT_MEDIUM"
+		justification="Graphics.TEXT_JUSTIFY_LEFT"
+		color="Graphics.COLOR_WHITE" />
+	<label id="StepIcon" x="55%" y="30" font="@Fonts.id_symbols" color="Graphics.COLOR_WHITE" text="s" justification="Graphics.TEXT_JUSTIFY_RIGHT"/>
+	<label id="StepLabel" x="57%" y="30"
+		font="Graphics.FONT_MEDIUM"
+		justification="Graphics.TEXT_JUSTIFY_LEFT"
+		color="Graphics.COLOR_WHITE" />
+		
+    <label id="TimeLabel" x="center" y="center" justification="Graphics.TEXT_JUSTIFY_CENTER"/>
+
+	<!-- bottom -->
+	<label id="BatteryIcon" x="40%" y="202" font="@Fonts.id_symbols" color="Graphics.COLOR_WHITE"/>
+	<label id="BatteryLabel" x="47%" y="200"
+		font="Graphics.FONT_LARGE"
+		justification="Graphics.TEXT_JUSTIFY_LEFT"
+		color="Graphics.COLOR_WHITE" />
+</layout>
