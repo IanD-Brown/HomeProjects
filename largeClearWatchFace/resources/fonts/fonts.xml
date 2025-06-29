@@ -1,4 +1,4 @@
 <fonts>
     <font id="id_symbols" filename="symbols.fnt" />
-    <font id="id_extraBold" filename="barlowCondensedExtraBold.fnt" />
+    <font id="id_extraBold" filename="barlowCondensedBold.fnt" />
 </fonts>

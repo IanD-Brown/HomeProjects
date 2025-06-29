@@ -2,8 +2,8 @@
 fileVersion=1
 
 # font settings
-fontName=Barlow Condensed ExtraBold
-fontFile=../../../../Downloads/Barlow-Condensed-ExtraBold/barlowcondensed/BarlowCondensed-ExtraBold.ttf
+fontName=Barlow Condensed
+fontFile=barlow-condensed.bold.ttf
 charSet=0
 fontSize=160
 aa=1
