@@ -147,7 +147,8 @@ int main() {
 //invoke(new day20Solver("day20\\data.txt"), 44, eq(1369LL), 
 //	32 + 31 + 29 + 39 + 25 + 23 + 20 + 19 + 12 + 14 + 12 + 22 + 4 + 3,
 //	   eq(979012LL));
-invoke(new day19Solver("day21\\data.txt"), 126384, eq(363LL), 16, eq(642535800868438LL));
+invoke(new day21Solver("day21\\data.txt"), 126384, eq(109758LL), 16,
+	   eq(642535800868438LL));
 
   return 0;
 }
