@@ -152,6 +152,31 @@ struct NumericPad {
 			moves.insert({s.length(), s});
 		}
 		m_graph.dijkstra(index);
+		if (moves.size() > 1) {
+			size_t shortest(moves.begin()->first);
+			size_t minChanges(SIZE_MAX);
+
+			for (auto it(moves.begin()); it != moves.end();) {
+				if (it->first > shortest) {
+					it = moves.erase(it);
+				} else {
+					char previous(' ');
+					size_t changeCount(0);
+					for (char c : it->second) {
+						if (c != previous) {
+							++changeCount;
+							previous = c;
+						}
+					}
+					if (changeCount <= minChanges) {
+						minChanges = changeCount;
+						++it;
+					} else {
+						it = moves.erase(it);
+					}
+				}
+			}
+		}
 
 		return moves;
 	}
@@ -172,112 +197,139 @@ struct NumericPad {
 	}
 };
 
+struct ControlLevel {
+	char m_currentPosition;
+	map<pair<char, char>, solveResult> m_moveCountCache;
+	size_t m_cachHits;
+
+	ControlLevel() : m_currentPosition('A'), m_cachHits(0) {}
+};
+
 struct ControlPad {
-	Graph<size_t> m_graph;
+	vector<ControlLevel> m_levels;
 
-	ControlPad(): m_graph(5) {
-		m_graph.addEdge(0, 1, 1);
-		m_graph.addEdge(0, 3, 1);
-		m_graph.addEdge(1, 4, 1);
-		m_graph.addEdge(2, 3, 1);
-		m_graph.addEdge(3, 4, 1);
-
-		m_graph.dijkstra(1);
+	ControlPad(size_t levelCount) : m_levels(levelCount) {
 	}
 
-	size_t indexOf(char c) {
-		switch(c) {
+	string bestMoves(char f, char currentPosition) {
+		switch (currentPosition) {
 		case '^':
-			return 0;
+			switch (f) {
+			case '^':
+				return "A";
+			case 'A':
+				return ">A";
+			case '<':
+				return "v<A";
+			case 'v':
+				return "vA";
+			case '>':
+				return "v>A";
+			}
+			exit(600);
 		case 'A':
-			return 1;
+			switch (f) {
+			case '^':
+				return "<A";
+			case 'A':
+				return "A";
+			case '<':
+				return "v<<A";
+			case 'v':
+				return "<vA";
+			case '>':
+				return "vA";
+			}
+			exit(601);
 		case '<':
-			return 2;
+			switch (f) {
+			case '^':
+				return ">^A";
+			case 'A':
+				return ">>^A";
+			case '<':
+				return "A";
+			case 'v':
+				return ">A";
+			case '>':
+				return ">>A";
+			}
+			exit(602);
 		case 'v':
-			return 3;
+			switch (f) {
+			case '^':
+				return "^A";
+			case 'A':
+				return "^>A";
+			case '<':
+				return "<A";
+			case 'v':
+				return "A";
+			case '>':
+				return ">A";
+			}
+			exit(603);
 		case '>':
-			return 4;
+			switch (f) {
+			case '^':
+				return "<^A";
+			case 'A':
+				return "^A";
+			case '<':
+				return "<<A";
+			case 'v':
+				return "<A";
+			case '>':
+				return "A";
+			}
+			exit(604);
 		}
-		exit(666);
+		exit(605);
 	}
 
-	void addMove(string &s, int i, const vector<size_t> &path) const {
-		size_t b(path[i - 1]);
-		switch (path[i]) {
-		case 0:
-			s += b == 1 ? '>' : 'v';
-			break;
-		case 1:
-			s += b == 0 ? '<' : 'v';
-			break;
-		case 2:
-			s += '>';
-			break;
-		case 3:
-			if (b == 0) {
-				s += '^';
-			} else if (b == 2) {
-				s += '<';
-			} else {
-				s += '>';
-			}
-			break;
-		case 4:
-			s += b == 1 ? '^' : '<';
-			break;
+	solveResult moveCount(char destination, size_t level) {
+		if (level == 1) {
+			string m(bestMoves(destination, m_levels[0].m_currentPosition));
+			return m.size();
 		}
+		ControlLevel &controlLevel(m_levels[level - 1]);
+		auto key(make_pair(controlLevel.m_currentPosition, destination));
+		auto fnd(controlLevel.m_moveCountCache.find(key));
+
+		if (fnd == controlLevel.m_moveCountCache.cend()) {
+			string levelMoves(bestMoves(destination, controlLevel.m_currentPosition));
+			ControlLevel &nextLevelControl(m_levels[level - 2]);
+			solveResult totalMoves(0);
+			char savedPosition(nextLevelControl.m_currentPosition);
+			for (char m : levelMoves) {
+				totalMoves += moveCount(m, level - 1);
+				nextLevelControl.m_currentPosition = m;
+			}
+			nextLevelControl.m_currentPosition = savedPosition;
+			fnd = controlLevel.m_moveCountCache.emplace(key, totalMoves).first;
+		} else {
+			++controlLevel.m_cachHits;
+		}
+		controlLevel.m_currentPosition = destination;
+		return fnd->second;
 	}
 
-	string bestMoves(size_t index) {
-		vector<vector<size_t>> paths(m_graph.pathsTo(index));
-		size_t minChanges(SIZE_MAX);
-		string result;
+	solveResult moveCount(const multimap<size_t, string> &source, size_t level) {
+		solveResult result(LLONG_MAX);
 
-		for (const vector<size_t> &path : paths) {
-			string s;
-			for (int i = path.size() - 1; i > 0; --i) {
-				addMove(s, i, path);
-			}
-			s += 'A';
-
-			char previous(' ');
-			size_t changeCount(0);
-			for (char c : s) {
-				if (c != previous) {
-					++changeCount;
-					previous = c;
-				}
-			}
-			if (changeCount < minChanges) {
-				minChanges = changeCount;
-				result = s;
-			}
-		}
-		return result;
-	}
-
-	multimap<size_t, string> moves(const multimap<size_t, string> &source) {
-		multimap<size_t, string> result;
-
-		if (source.empty()) {
-			result.insert({1, "A"});
-			return result;
-		}
-		size_t startSource(m_graph.m_src);
-
+		ControlLevel &controlLevel(m_levels[level - 1]);
 		size_t start(source.begin()->first);
+		char startPosition(controlLevel.m_currentPosition);
 		for (auto it(source.begin()); it != source.end() && it->first == start; ++it) {
-			string s;
-			for (char f : it->second) {
-				size_t index(indexOf(f));
-				s += bestMoves(index);
-				m_graph.dijkstra(index);
+			solveResult itCount(0);
+			for (char t : it->second) {
+				itCount += moveCount(t, level);
 			}
-
-			result.insert({s.length(), s});
-
-			m_graph.dijkstra(startSource);
+			if (itCount < result) {
+				result = itCount;
+			}
 		}
+		controlLevel.m_currentPosition = startPosition;
 
 		return result;
 	}
@@ -297,43 +349,26 @@ void day21Solver::clearData() {
 solveResult day21Solver::compute() {
 	solveResult r(0);
 	const size_t controlCount(m_part1 ? 2 : 25);
+	NumericPad numericPad;
+	ControlPad controlPads(controlCount);
 
 	for (const string &l : m_data) {
-		NumericPad numericPad;
-		vector<ControlPad> controlPads(controlCount);
-		string t;
+		solveResult moveCount(0);
 
 		for (char c : l) {
 			multimap<size_t, string> moves(numericPad.moves(c - '0'));
 
-			for (auto &i : controlPads) {
-				moves = i.moves(moves);
-			}
-
-			cout << "compute (" << c << ") " << moves.begin()->second << endl;
-			t += moves.begin()->second;
-
-			r += stol(l) * moves.begin()->first;
+			moveCount += controlPads.moveCount(moves, controlCount); 
 		}
-		cout << "compute (" << l << ") " << t << endl;
+		r += stoll(l) * moveCount;
 	}
 	return r;
 }
 
 void day21Solver::loadTestData() {
-	//NumericPad numericPad;
-	//ControlPad controlPad;
-	//multimap<size_t, string> moves(numericPad.moves(0));
-	//moves = controlPad.moves(moves);
-	//cout << "test moves " << moves << endl;
-
 	m_test = true;
 
 	clearData();
-
-	//loadData("1");
-
-	//assertEquals(compute(), string("<v<A>>^A<vA<A>>^AAvAA<^A").length(), "single 1 (<v<A>>^A<vA<A>>^AAvAA<^A)");
 
 	loadData("029A");
 	loadData("980A");
