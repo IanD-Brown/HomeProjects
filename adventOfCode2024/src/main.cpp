@@ -1,17 +1,11 @@
 #include <cassert>
-#include <typeinfo>
-#include <iostream>
 #include <functional>
+#include <iostream>
+#include <typeinfo>
+#include <cassert>
+#include <iostream>
+#include <typeinfo>
 
-#include "day1Solver.h"
-#include "day2Solver.h"
-#include "day3Solver.h"
-#include "day4Solver.h"
-#include "day5Solver.h"
-#include "day6Solver.h"
-#include "day7Solver.h"
-#include "day8Solver.h"
-#include "day9Solver.h"
 #include "day10Solver.h"
 #include "day11Solver.h"
 #include "day12Solver.h"
@@ -22,9 +16,19 @@
 #include "day17Solver.h"
 #include "day18Solver.h"
 #include "day19Solver.h"
+#include "day1Solver.h"
 #include "day20Solver.h"
 #include "day21Solver.h"
 #include "day22Solver.h"
+#include "day23Solver.h"
+#include "day2Solver.h"
+#include "day3Solver.h"
+#include "day4Solver.h"
+#include "day5Solver.h"
+#include "day6Solver.h"
+#include "day7Solver.h"
+#include "day8Solver.h"
+#include "day9Solver.h"
 
 using namespace std;
 
@@ -150,7 +154,9 @@ int main() {
 //	   eq(979012LL));
 //invoke(new day21Solver("day21\\data.txt"), 126384, eq(109758LL),
 //	   154115708116294LL, eq(134341709499296LL));
-invoke(new day22Solver("day22\\data.txt"), 37327623, eq(15613157363LL), 23LL,
+//invoke(new day22Solver("day22\\data.txt"), 37327623, eq(15613157363LL), 23LL,
+//       eq(1784LL));
+invoke(new day23Solver("day23\\data.txt"), 12, eq(15613157363LL), 23LL,
        eq(1784LL));
 
   return 0;
