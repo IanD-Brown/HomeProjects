@@ -1,10 +1,23 @@
 #pragma once
 
 #include "solver.h"
+#include <cstdint>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
+using NodeKey = int16_t;
+using NodeLinks = std::map<NodeKey, std::set<NodeKey>>;
+using NodeTriple = std::set<NodeKey>;
+using NodeTripleSet = std::set<NodeTriple>;
 
 class day23Solver : public solver {
 private:
 	std::vector<std::string> m_data;
+
+    void getTripleSet(NodeTripleSet& dest, NodeKey start, const NodeLinks &forward,
+                                   const NodeLinks &reverse, NodeKey second = 0, NodeKey third = 0);
 
 public:
 	day23Solver(const std::string& testFile);
@@ -16,4 +29,5 @@ public:
     virtual void loadTestData();
 
     virtual void loadData(const std::string& line);
+    virtual std::string day23Solver::computeString();
 };

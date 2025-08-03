@@ -1,38 +1,15 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
-#include <typeinfo>
-#include <cassert>
-#include <iostream>
-#include <typeinfo>
 
-#include "day10Solver.h"
-#include "day11Solver.h"
-#include "day12Solver.h"
-#include "day13Solver.h"
-#include "day14Solver.h"
-#include "day15Solver.h"
-#include "day16Solver.h"
-#include "day17Solver.h"
-#include "day18Solver.h"
-#include "day19Solver.h"
-#include "day1Solver.h"
-#include "day20Solver.h"
-#include "day21Solver.h"
-#include "day22Solver.h"
 #include "day23Solver.h"
-#include "day2Solver.h"
-#include "day3Solver.h"
-#include "day4Solver.h"
-#include "day5Solver.h"
-#include "day6Solver.h"
-#include "day7Solver.h"
-#include "day8Solver.h"
-#include "day9Solver.h"
+#include <string>
+#include <solver.h>
 
 using namespace std;
 
-void invoke(solver* day, solveResult t, function<bool(solveResult)> pt1, solveResult t2, function<bool(solveResult) > pt2) {
+static void invoke(solver *day, solveResult t, function<bool(solveResult)> pt1,
+                   solveResult t2, function<bool(solveResult)> pt2) {
 	day->loadTestData();
 	solveResult t1 = day->compute();
 	cout << day->getDay() << " Test " << t1 << endl;
@@ -57,7 +34,7 @@ void invoke(solver* day, solveResult t, function<bool(solveResult)> pt1, solveRe
 	}
 }
 
-void invoke(solver *day, string t, string pt1, string t2, string pt2) {
+static void invoke(solver *day, string t, string pt1, string t2, string pt2) {
 	day->loadTestData();
 	string t1 = day->computeString();
 	cout << day->getDay() << " Test " << t1 << endl;
@@ -78,6 +55,30 @@ void invoke(solver *day, string t, string pt1, string t2, string pt2) {
 	string c2 = day->computeString2();
 	std::cout << day->getDay() << "b " << c2 << std::endl;
 	assert(pt2 == c2 && " wrong day value b");
+}
+
+static void invoke(solver *day, solveResult t, function<bool(solveResult)> pt1,
+                   string t2, string pt2) {
+  day->loadTestData();
+  solveResult t1 = day->compute();
+  cout << day->getDay() << " Test " << t1 << endl;
+  assert(t1 == t && " wrong test value");
+
+  day->loadFromFile();
+  solveResult c = day->compute();
+  std::cout << day->getDay() << " " << c << std::endl;
+  assert(pt1(c) && " wrong day value");
+
+  day->setPart2();
+  day->loadTestData();
+  string x = day->computeString2();
+  cout << day->getDay() << " Test2 " << x << endl;
+  assert(x == t2 && " wrong test2 value");
+
+  day->loadFromFile();
+  string c2 = day->computeString2();
+  std::cout << day->getDay() << "b " << c2 << std::endl;
+  assert(pt2 == c2 && " wrong day value b");
 }
 
 struct lt {
@@ -156,8 +157,8 @@ int main() {
 //	   154115708116294LL, eq(134341709499296LL));
 //invoke(new day22Solver("day22\\data.txt"), 37327623, eq(15613157363LL), 23LL,
 //       eq(1784LL));
-invoke(new day23Solver("day23\\data.txt"), 12, eq(15613157363LL), 23LL,
-       eq(1784LL));
+invoke(new day23Solver("day23\\data.txt"), 7, eq(1054LL), "co,de,ka,ta",
+       "eq(1784LL)");
 
   return 0;
 }
