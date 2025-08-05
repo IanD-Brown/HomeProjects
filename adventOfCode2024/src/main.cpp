@@ -158,7 +158,7 @@ int main() {
 //invoke(new day22Solver("day22\\data.txt"), 37327623, eq(15613157363LL), 23LL,
 //       eq(1784LL));
 invoke(new day23Solver("day23\\data.txt"), 7, eq(1054LL), "co,de,ka,ta",
-       "eq(1784LL)");
+       "ch,cz,di,gb,ht,ku,lu,tw,vf,vt,wo,xz,zk");
 
   return 0;
 }
