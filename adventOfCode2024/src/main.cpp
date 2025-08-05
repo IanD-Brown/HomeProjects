@@ -2,7 +2,7 @@
 #include <functional>
 #include <iostream>
 
-#include "day23Solver.h"
+#include "day24Solver.h"
 #include <string>
 #include <solver.h>
 
@@ -157,7 +157,9 @@ int main() {
 //	   154115708116294LL, eq(134341709499296LL));
 //invoke(new day22Solver("day22\\data.txt"), 37327623, eq(15613157363LL), 23LL,
 //       eq(1784LL));
-invoke(new day23Solver("day23\\data.txt"), 7, eq(1054LL), "co,de,ka,ta",
+//invoke(new day23Solver("day23\\data.txt"), 7, eq(1054LL), "co,de,ka,ta",
+//       "ch,cz,di,gb,ht,ku,lu,tw,vf,vt,wo,xz,zk");
+invoke(new day24Solver("day24\\data.txt"), 2024, eq(1054LL), "co,de,ka,ta",
        "ch,cz,di,gb,ht,ku,lu,tw,vf,vt,wo,xz,zk");
 
   return 0;
