@@ -29,5 +29,5 @@ public:
     virtual void loadTestData();
 
     virtual void loadData(const std::string& line);
-    virtual std::string day23Solver::computeString();
+    virtual std::string computeString();
 };
