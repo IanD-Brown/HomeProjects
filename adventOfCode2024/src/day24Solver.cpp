@@ -184,7 +184,7 @@ void WireStore::setState(size_t index, bool state) {
   }
 }
 
-  struct Calculator {
+struct Calculator {
   WireStore m_wireStore;
   vector<Gate> m_gates;
 
@@ -393,144 +393,6 @@ solveResult day24Solver::compute() {
   return calculator.getResult();
 }
 
-static void log(const vector<vector<size_t>> &paths, const Calculator &calculator, bool first, bool carry) {
-  bool err(false);
-  for (auto &a : paths) {
-    for (size_t i(1); i < a.size(); ++i) {
-      size_t key(a[i]);
-      for (Gate gate : calculator.m_gates) {
-        if (gate.m_output == key) {
-          if (!carry) {
-            if (gate.m_operation != XOR) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-          } else {
-            Operation expected(XOR);
-            switch (i) {
-            case 1:
-              expected = AND;
-              break;
-            case 2:
-              expected = OR;
-              break;
-            case 3:
-              break;
-            }
-            if (gate.m_operation != expected) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-          }
-          break;
-        }
-      }
-    }
-  }
-  if (!err) {
-    return;
-  }
-  cout << (carry ? "carry " : "match ") << ' ' << paths.size() << endl;
-  for (auto &a : paths) {
-    for (size_t key : a) {
-      bool done(false);
-      for (Gate gate : calculator.m_gates) {
-        if (gate.m_output == key) {
-          cout << calculator.m_wireStore.m_wires[key].m_id << '('
-               << gate.operation() << ')' << ' ';
-          done = true;
-          break;
-        }
-      }
-      if (!done) {
-        cout << calculator.m_wireStore.m_wires[key].m_id << ' ';
-      }
-    }
-    cout << endl;
-  }
-}
-
-    // carry z38(XOR) jkq(OR) mrv(AND) y37
-// match z38(XOR) tsw(XOR) x38 c
-    static void log( const vector<size_t> &paths, const Calculator & calculator, bool first, bool carry) {
-
-  if (paths.empty()) {
-    exit(420);
-  }
-  bool err(false);
-  for (size_t i(paths.size()); i > 0 && !first; --i) {
-    size_t key(paths[i - 1]);
-    for (Gate gate : calculator.m_gates) {
-      if (gate.m_output == key) {
-        if (carry) {
-          switch (i - 1) {
-          case 1:
-            if (gate.m_operation != AND) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-            break;
-          case 2:
-            if (gate.m_operation != OR) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-            break;
-          case 3:
-            if (gate.m_operation != XOR) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-            break;
-          }
-        } else {
-          switch (i - 1) {
-          case 1:
-            if (gate.m_operation != XOR) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-            break;
-          case 0:
-            if (gate.m_operation != XOR) {
-              cout << calculator.m_wireStore.m_wires[key].m_id << endl;
-              err = true;
-            }
-            break;
-          }
-        }
-        break;
-      }
-    }
-  }
-  if (!err) {
-    return;
-  }
-  cout << (carry ? "carry " : "match ");
-    for (size_t key : paths) {
-      bool done(false);
-      for (Gate gate : calculator.m_gates) {
-        if (gate.m_output == key) {
-          cout << calculator.m_wireStore.m_wires[key].m_id << '(' << gate.operation() << ')' << ' ';
-          done = true;
-          break;
-        }
-      }
-      if (!done) {
-        cout << calculator.m_wireStore.m_wires[key].m_id << ' ';
-      }
-    }
-    cout << endl;
-}
-
-static string asKeyString(char prefix, size_t index) {
-  string key;
-  key += prefix;
-  key += '0' + index / 10;
-  key += '0' + index % 10;
-  return key;
-}
-
 string day24Solver::computeString() {
   if (m_test) {
     return ""; 
@@ -552,51 +414,7 @@ string day24Solver::computeString() {
     r += e;
   }
 
-  //Graph<size_t> graph(calculator.m_wireStore.m_wires.size());
-  //string r;
-  //size_t errCount(0);
-
-  //for (const auto &gate : calculator.m_gates) {
-  //  graph.addEdge(gate.m_input1, gate.m_output, 1);
-  //  graph.addEdge(gate.m_input2, gate.m_output, 1);
-  //}
-
-  //size_t srcCount(calculator.m_wireStore.countWires('x'));
-
-  //for (size_t outIndex(0); outIndex < srcCount + 1; ++outIndex) {
-  //  graph.dijkstra(calculator.m_wireStore.getIndex(asKeyString('z', outIndex)));
-  //  if (outIndex < srcCount) {
-  //    log(graph.pathsTo(
-  //            calculator.m_wireStore.getIndex(asKeyString('x', outIndex))),
-  //        calculator, outIndex == 0, false);
-  //    log(graph.pathsTo(
-  //            calculator.m_wireStore.getIndex(asKeyString('y', outIndex))),
-  //        calculator, outIndex == 0, false);
-  //  }
-  //  if (outIndex > 0) {
-  //    log(graph.pathsTo(calculator.m_wireStore.getIndex(
-  //            asKeyString('x', outIndex - 1))),
-  //        calculator, outIndex == 1, true);
-  //    log(graph.pathsTo(calculator.m_wireStore.getIndex(
-  //            asKeyString('y', outIndex - 1))),
-  //        calculator, outIndex == 1, true);
-  //  }
-  //}
-  //for (size_t srcIndex(0); srcIndex < srcCount; ++srcIndex) {
-  //  string x(asKeyString('x', srcIndex));
-  //  string y(asKeyString('y', srcIndex));
-  //  size_t zMatch(calculator.m_wireStore.getIndex(asKeyString('z', srcIndex)));
-  //  size_t zCarry(calculator.m_wireStore.getIndex(asKeyString('z', srcIndex + 1)));
-  //  graph.dijkstra(calculator.m_wireStore.getIndex(x));
-  //  log(graph.getAPathTo(zMatch), calculator, srcIndex == 0, false);
-  //  log(graph.getAPathTo(zCarry), calculator, srcIndex == 0, true);
-  //  graph.dijkstra(calculator.m_wireStore.getIndex(y));
-  //  log(graph.getAPathTo(zMatch), calculator, srcIndex == 0, false);
-  //  log(graph.getAPathTo(zCarry), calculator, srcIndex == 0, true);
-  //}
- 
-  //cout << errCount << " from " << 25 << endl;
-  return r;
+   return r;
 }
 
 void day24Solver::loadTestData() {

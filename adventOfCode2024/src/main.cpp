@@ -1,10 +1,10 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
-
-#include "day24Solver.h"
 #include <string>
-#include <solver.h>
+
+#include "day25Solver.h"
+#include "solver.h"
 
 using namespace std;
 
@@ -159,8 +159,10 @@ int main() {
 //       eq(1784LL));
 //invoke(new day23Solver("day23\\data.txt"), 7, eq(1054LL), "co,de,ka,ta",
 //       "ch,cz,di,gb,ht,ku,lu,tw,vf,vt,wo,xz,zk");
-invoke(new day24Solver("day24\\data.txt"), 2024, eq(36902370467952LL),
-       "", "cvp,mkk,qbw,wcb,wjb,z10,z14,z34");
+//invoke(new day24Solver("day24\\data.txt"), 2024, eq(36902370467952LL),
+//       "", "cvp,mkk,qbw,wcb,wjb,z10,z14,z34");
+invoke(new day25Solver("day25\\data.txt"), 3, eq(36902370467952LL), "",
+       "cvp,mkk,qbw,wcb,wjb,z10,z14,z34");
 
   return 0;
 }
