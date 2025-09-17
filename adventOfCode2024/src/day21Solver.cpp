@@ -2,8 +2,8 @@
 
 #include <iostream>
 #include <map>
-#include <queue>
-#include <set>
+
+#include "graph.h"
 
 using namespace std;
 
@@ -23,74 +23,6 @@ ostream &operator<<(ostream &os,const multimap<K, V> &mm) {
 	return os;
 }
 
-template <typename T> class Graph {
-public:
-	T m_nodeCount;
-	vector<vector<pair<T, int>>> m_edges;
-	map<T, set<T>> m_bestNextNode;
-	T m_src;
-
-	Graph(T nodeCount) : m_edges(nodeCount), m_src(-1) {
-		m_nodeCount = nodeCount;
-	}
-
-	void addEdge(T from, T to, int weight) {
-		addEdge(from, to, weight, weight);
-	}
-
-	void addEdge(T from, T to, int weight, int reverseWeight) {
-		m_edges[from].push_back(make_pair(to, weight));
-		m_edges[to].push_back(make_pair(from, reverseWeight));
-	}
-
-	void dijkstra(T src) {
-		if (m_src != src) {
-			m_src = src;
-			priority_queue<pair<int, T>, vector<pair<int, T>>, greater<pair<int, T>>> pq;
-			vector<int> dist(m_nodeCount, numeric_limits<int>::max());
-
-			pq.push(make_pair(0, src));
-			dist[src] = 0;
-
-			while (!pq.empty()) {
-				T from = pq.top().second;
-				pq.pop();
-
-				for (const auto &it : m_edges[from]) {
-					T to(it.first);
-					int weight(it.second + dist[from]);
-
-					if (weight < dist[to]) {
-						dist[to] = weight;
-						m_bestNextNode[to] = {from};
-						pq.push(make_pair(dist[to], to));
-					} else if(weight == dist[to]) {
-						m_bestNextNode[to].insert(from);
-					}
-				}
-			}
-		}
-	}
-
-	vector<vector<T>> pathsTo(T dest) {
-		vector<vector<T>> paths;
-
-		if (dest == m_src) {
-			paths = {{m_src}};
-		} else {
-			for (T nextNode : m_bestNextNode[dest]) {
-				for (vector<T> nextNodePath : pathsTo(nextNode)) {
-					vector<T> pathToAdd(nextNodePath);
-					pathToAdd.insert(pathToAdd.begin(), dest);
-					paths.push_back(pathToAdd);
-				}
-			}
-		}
-
-		return paths;
-	}
-
-};
 
 struct NumericPad {
 	Graph<size_t> m_graph;
