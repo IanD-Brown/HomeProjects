@@ -24,7 +24,7 @@ class solver  {
         std::vector<int> asVectorInt(const std::string& line,
                                      const std::string& delimiter);
 
-        void loadFromFile(const std::string& file);
+        virtual void loadFromFile(const std::string& file);
 
 		void assertEquals(size_t actual, size_t expected, const std::string& message);
 

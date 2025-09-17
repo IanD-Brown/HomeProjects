@@ -161,7 +161,7 @@ int main() {
 //       "ch,cz,di,gb,ht,ku,lu,tw,vf,vt,wo,xz,zk");
 //invoke(new day24Solver("day24\\data.txt"), 2024, eq(36902370467952LL),
 //       "", "cvp,mkk,qbw,wcb,wjb,z10,z14,z34");
-invoke(new day25Solver("day25\\data.txt"), 3, eq(36902370467952LL), "",
+invoke(new day25Solver("day25\\data.txt"), 3, eq(3196LL), "",
        "cvp,mkk,qbw,wcb,wjb,z10,z14,z34");
 
   return 0;
