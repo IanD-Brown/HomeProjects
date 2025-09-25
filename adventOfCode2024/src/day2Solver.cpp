@@ -58,7 +58,6 @@ static bool validate1(const vector<int>& values) {
 
 solveResult day2Solver::compute() {
     ptrdiff_t t = count_if(m_data.begin(), m_data.end(), [](vector<int> values) { return validate1(values); });
-    cout << "day2 " << t << endl;
 
     return t;
 }
@@ -73,23 +72,16 @@ static bool validate2(const vector<int>& values) {
                 }
             }
             if (validate1(v2)) {
-//                cout << "Validated2 ";
-//                std::copy(values.begin(), values.end(), std::ostream_iterator<int>(std::cout, " "));
-//                cout << endl;
                 return true;
             }
         }
         return false;
     }
-//    cout << "Validated1 ";
-//    std::copy(values.begin(), values.end(), std::ostream_iterator<int>(std::cout, " "));
-//    cout << endl;
     return true;
 }
 
 solveResult day2Solver::compute2() {
     ptrdiff_t t = count_if(m_data.begin(), m_data.end(), [](vector<int> values) { return validate2(values); });
-    cout << "day2b " << t << endl;
 
     return t;
 }

@@ -94,7 +94,6 @@ solveResult day4Solver::compute() {
             }
         }
     }
-    cout << "day4 " << t << endl;
 
     return t;
 }
@@ -143,12 +142,10 @@ solveResult day4Solver::compute2() {
     for (int r = 0; r < m_data.size() - 2; ++r) {
         for (int c = 0; c < m_data[0].size() - 2; ++c) {
             if (isMatch(m_data, r, c, searching1) || isMatch(m_data, r, c, searching2) || isMatch(m_data, r, c, searching3) || isMatch(m_data, r, c, searching4)) {
-                cout << "match " << r << "/" << c << endl;
                 ++t;
             }
         }
     }
-    cout << "day4b " << t << endl;
 
     return t;
 }

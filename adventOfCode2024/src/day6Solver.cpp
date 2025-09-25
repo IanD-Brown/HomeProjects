@@ -128,29 +128,9 @@ solveResult day6Solver::compute2() {
 		s_guard.setStart(startRow, startCol);
 		if ( s_guard.move(m_rowCount, m_colCount, m_blocks) ) {
 			++t;
-			if ( t % 100 == 0 ) {
-				cout << "loop " << t << endl;
-			}
 		}
 		m_blocks.erase(newBlock);
 	}
-	//for ( int r = 0; r < m_rowCount; ++r ) {
-	//	for ( int c = 0; c < m_colCount; ++c ) {
-	//		if ( r == startRow && c == startCol ) {
-	//			continue;
-	//		}
-	//		auto coord = make_pair(r, c);
-
-	//		if ( m_blocks.find(coord) == m_blocks.end() ) {
-	//			m_blocks.insert(coord);
-	//			s_guard.setStart(startRow, startCol);
-	//			if ( s_guard.move(m_rowCount, m_colCount, m_blocks) ) {
-	//				++t;
-	//			}
-	//			m_blocks.erase(coord);
-	//		}
-	//	}
-	// }
 
     return t;
 }

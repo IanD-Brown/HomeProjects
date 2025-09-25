@@ -36,7 +36,6 @@ static long performMul(const string& str) {
     size_t second = str.find(",");
     string a = str.substr(first + 1, second - (first + 1));
     string b = str.substr(second + 1);
-//    cout << a << "*" << b << endl;
     return stoi(a) * stoi(b);
 }
 
@@ -49,7 +48,6 @@ solveResult day3Solver::compute() {
         smatch match = *i;
         t += performMul(match[0]);
     }
-    cout << "day3 " << t << endl;
 
     return t;
 }
@@ -71,12 +69,8 @@ solveResult day3Solver::compute2() {
             adding = false;
         } else if (adding) {
             t += performMul(matched);
-        } else {
-//            cout << "not adding " << matched << endl;
         }
     }
-
-    cout << "day3b " << t << endl;
 
     return t;
 }
@@ -96,3 +90,5 @@ void day3Solver::test2() {
     assert(t == 48 && "test2 count should match");
     clearData();
 }
+
+void day3Solver::loadTestData() {}

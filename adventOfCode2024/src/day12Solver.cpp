@@ -41,13 +41,6 @@ struct WallWalker {
 			m_heading = RIGHT;
 			followRightEdge(edge->first, bottomColIndex);
 		}
-		for ( const auto& m : m_bottomEdges ) {
-			if ( !m.second.empty() ) {
-				for ( auto c : m.second ) {
-					cout << "remaining bottom " << m.first << '/' << c << endl;
-				}
-			}
-		}
 		return m_turnCount;
 	}
 
@@ -68,12 +61,7 @@ struct WallWalker {
 			auto iter = find(fnd->second.begin(), fnd->second.end(), c);
 			if ( iter != fnd->second.end() ) {
 				fnd->second.erase(iter);
-			} else {
-				cout << "missing bottom " << r << '/' << c << endl;
 			}
-		}
-		else {
-			cout << "row missing " << r << '/' << c << endl;
 		}
 		fnd = m_bottomEdges.find(r);
 		if ( fnd != m_bottomEdges.end() && fnd->second.empty() ) {
@@ -169,7 +157,6 @@ void WallWalker::followRightEdge(size_t startRow, size_t colIndex) {
 			return;
 		}
 	}
-	cout << "Over the limit " << limit << endl;
 }
 
 void WallWalker::followOuterEdge(size_t startRow, size_t colIndex) {
@@ -437,7 +424,6 @@ solveResult day12Solver::compute2() {
 
 static void check(size_t actual, size_t expected, const string& message) {
 	if ( actual != expected ) {
-		cout << "actual " << actual << " expected " << expected << ' ' << message << endl;
 		assert(actual == expected);
 	}
 }

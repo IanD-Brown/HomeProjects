@@ -20,4 +20,6 @@ class day3Solver : public solver {
         void clearData();
 
         void loadData(const std::string &line);
+
+        virtual void loadTestData();
 };

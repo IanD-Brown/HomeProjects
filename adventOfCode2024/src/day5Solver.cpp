@@ -49,7 +49,6 @@ static bool isInOrder(const multimap<int, int> orderRules, const vector<int> upd
 }
 
 solveResult day5Solver::compute() {
-    cout << m_orderRules.size() << " pages " << m_updatePages.size() << endl;
     long t = 0;
 
     for (auto const& updatePage : m_updatePages) {
@@ -57,8 +56,6 @@ solveResult day5Solver::compute() {
             t += updatePage[updatePage.size() / 2];
         }
     }
-
-    cout << "day5 " << t << endl;
 
     return t;
 }
@@ -103,8 +100,6 @@ solveResult day5Solver::compute2() {
             t += v[v.size() / 2];
         }
     }
-
-    cout << "day5b " << t << endl;
 
     return t;
 }

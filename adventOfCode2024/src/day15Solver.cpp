@@ -161,14 +161,6 @@ bool day15Solver::changeRow(int adjust, size_t row, const set<size_t>& columns) 
 	if (!recurseColumns.empty() && !changeRow(adjust, row + adjust, recurseColumns)) {
 		return false;
 	}
-	if (!m_part1 && m_test) {
-		cout << "move it " << adjust << " row " << row << " pos "
-				<< COORD_ROW(m_position);
-		for (const auto &c : columns) {
-			cout << " c " << c;
-		}
-		cout << endl;
-	}
 	string &source(m_warehouse[row]);
 	for (const auto c : columns) {
 		line[c] = source[c];
@@ -226,9 +218,6 @@ solveResult day15Solver::compute() {
 	}
 	solveResult t(0);
 	for (int r = 0; r < m_warehouse.size(); ++r) {
-		if (!m_part1 && m_test) {
-			cout << m_warehouse[r] << endl;
-		}
 		for (int c = 0; c < m_warehouse[r].size(); ++c) {
 			if (m_warehouse[r][c] == BOX) {
 				t += 100 * r + c;
