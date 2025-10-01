@@ -154,7 +154,7 @@ struct ne {
  };
 
 int main() {
-	new day1Solver("day1\\data");
+   invoke(new day1Solver("day1\\data"), 11, eq(1590491LL), 31, eq(22588371LL));
 	new day2Solver("day2\\data.txt");
 	new day3Solver("day3\\data.txt");
 	new day4Solver("day4\\data.txt");

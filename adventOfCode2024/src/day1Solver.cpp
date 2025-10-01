@@ -10,11 +10,11 @@ using namespace std;
 #include "day1Solver.h"
 
 day1Solver::day1Solver(const std::string& testFile) : solver(testFile) {
-    test();
-    test2();
-    loadFromFile();
-    compute();
-    compute2();
+    //test();
+    //test2();
+    //loadFromFile();
+    //compute();
+    //compute2();
 }
 
 void day1Solver::clearData() {
@@ -62,28 +62,12 @@ solveResult day1Solver::compute2() {
     return t;
 }
 
-void day1Solver::test() {
-    loadTestData();
-	solveResult t  = compute();
-
-    assert(t == 11 && "distance count should match");
+void day1Solver::loadTestData() {
     clearData();
-}
-
-void day1Solver::loadTestData()
-{
     loadData("3   4");
     loadData("4   3");
     loadData("2   5");
     loadData("1   3");
     loadData("3   9");
     loadData("3   3");
-}
-
-void day1Solver::test2() {
-    loadTestData();
-	solveResult t = compute2();
-
-    assert(t == 31 && "test2 count should match");
-    clearData();
 }

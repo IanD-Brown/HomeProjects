@@ -17,7 +17,5 @@ class day1Solver : public solver {
 
         void loadData(const std::string &line);
 
-        void test();
-        void test2();
         void loadTestData();
 };
