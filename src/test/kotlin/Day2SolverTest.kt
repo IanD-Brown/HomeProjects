@@ -4,11 +4,37 @@ import kotlin.test.assertEquals
 
 class Day2SolverTest {
     @Test
-    fun whenMultipleLinesThenPart1ResultsAreDiff() {
+    fun testPart1_whenTestDataLoaded() {
         val it = Day2Solver()
 
         loadTestData(it)
         assertEquals(2, it.calcPart1())
+    }
+
+    @Test
+    fun testPart1_whenResourceDataLoaded() {
+        val it = Day2Solver()
+
+        it.loadFromResource()
+
+        assertEquals(490, it.calcPart1())
+    }
+
+    @Test
+    fun testPart2_whenTestDataLoaded() {
+        val it = Day2Solver()
+
+        loadTestData(it)
+        assertEquals(4, it.calcPart2())
+    }
+
+    @Test
+    fun testPart2_whenResourceDataLoaded() {
+        val it = Day2Solver()
+
+        it.loadFromResource()
+
+        assertEquals(536, it.calcPart2())
     }
 
     private fun loadTestData(it: Day2Solver) {
@@ -21,31 +47,5 @@ class Day2SolverTest {
                 "8 6 4 4 1",
                 "1 3 6 7 9")
         )
-    }
-
-    @Test
-    fun whenPart1IsCalculatedFromFullData() {
-        val it = Day2Solver()
-
-        it.loadFromResource()
-
-        assertEquals(490, it.calcPart1())
-    }
-
-    @Test
-    fun whenMultipleLinesThenPart2ResultIsSimilarity() {
-        val it = Day2Solver()
-
-        loadTestData(it)
-        assertEquals(4, it.calcPart2())
-    }
-
-    @Test
-    fun whenPart2IsCalculatedFromFullData() {
-        val it = Day2Solver()
-
-        it.loadFromResource()
-
-        assertEquals(536, it.calcPart2())
     }
 }
