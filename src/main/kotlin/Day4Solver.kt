@@ -58,7 +58,6 @@ class Day4Solver : DaySolver<Int, Int>(4) {
                 }
                 if (match) {
                     ++count
-                    println("found " + r + "/" + c + ' ' + direction.name)
                 }
             }
         }

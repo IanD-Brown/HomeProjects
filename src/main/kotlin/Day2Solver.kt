@@ -49,7 +49,6 @@ class Day2Solver : DaySolver<Int, Int>(2) {
                 return true
             }
         }
-        println("reject " + list.joinToString(separator = ", "))
         return false
     }
 

@@ -1,44 +1,8 @@
 import org.idb.Day2Solver
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
-class Day2SolverTest {
-    @Test
-    fun testPart1_whenTestDataLoaded() {
-        val it = Day2Solver()
-
-        loadTestData(it)
-        assertEquals(2, it.calcPart1())
-    }
-
-    @Test
-    fun testPart1_whenResourceDataLoaded() {
-        val it = Day2Solver()
-
-        it.loadFromResource()
-
-        assertEquals(490, it.calcPart1())
-    }
-
-    @Test
-    fun testPart2_whenTestDataLoaded() {
-        val it = Day2Solver()
-
-        loadTestData(it)
-        assertEquals(4, it.calcPart2())
-    }
-
-    @Test
-    fun testPart2_whenResourceDataLoaded() {
-        val it = Day2Solver()
-
-        it.loadFromResource()
-
-        assertEquals(536, it.calcPart2())
-    }
-
-    private fun loadTestData(it: Day2Solver) {
-        it.loadData(
+class Day2SolverTest : BaseDaySolverTest<Int, Int>(Day2Solver(), 2, 490, 4, 536) {
+    override fun loadTestData() {
+        solver.loadData(
             sequenceOf(
                 "7 6 4 2 1",
                 "1 2 7 8 9",
