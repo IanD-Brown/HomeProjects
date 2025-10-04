@@ -13,5 +13,4 @@ class Day1SolverTest : BaseDaySolverTest<Long, Long>(Day1Solver(), 11, 1590491L,
             )
         )
     }
-
 }

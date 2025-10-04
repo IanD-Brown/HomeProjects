@@ -2,11 +2,13 @@ import org.idb.DaySolver
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-abstract class BaseDaySolverTest<P1, P2>(val solver : DaySolver<P1, P2>,
-                                         val testData1 : P1,
-                                         val resourceData1 : P1,
-                                         val testData2 : P2,
-                                         val resourceData2 : P2) {
+abstract class BaseDaySolverTest<P1, P2>(
+    val solver: DaySolver<P1, P2>,
+    val testData1: P1,
+    val resourceData1: P1,
+    val testData2: P2,
+    val resourceData2: P2
+) {
     @Test
     fun testPart1_whenTestDataLoaded() {
         loadTestData()
