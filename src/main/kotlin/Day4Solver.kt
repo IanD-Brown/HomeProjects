@@ -1,7 +1,7 @@
 package org.idb
 const val SEARCH = "XMAS"
 
-enum class Direction(val rAdjust : Int, val cAdjust : Int) {
+private enum class Direction(val rAdjust : Int, val cAdjust : Int) {
     UP(-1, 0),
     DOWN(1, 0),
     LEFT(0, -1),
@@ -18,7 +18,7 @@ enum class Direction(val rAdjust : Int, val cAdjust : Int) {
  * .A. or .A. or .A. or .A.
  * M.S    M.M    S.S    S.M
  */
-enum class Star(val tl : Char, val tr : Char, val bl : Char, val br : Char) {
+private enum class Star(val tl : Char, val tr : Char, val bl : Char, val br : Char) {
     MM_TOP('M', 'M', 'S', 'S'),
     SS_TOP('S', 'S', 'M', 'M'),
     SM_TOP('S', 'M', 'S', 'M'),

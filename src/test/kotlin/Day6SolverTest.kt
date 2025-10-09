@@ -1,10 +1,21 @@
-import org.idb.Day00Solver
+import org.idb.Day6Solver
 
-class Day00SolverTest : BaseDaySolverTest<Int, Int>(Day00Solver(), 143, 6951, 123, 4121) {
+class Day6SolverTest : BaseDaySolverTest<Int, Int>(Day6Solver(), 41, 5177, 6, 1686) {
     override fun loadTestData() {
         solver.loadData(
-            sequenceOf(
+            sequenceOf("....#.....",
+                ".........#",
+                "..........",
+                "..#.......",
+                ".......#..",
+                "..........",
+                ".#..^.....",
+                "........#.",
+                "#.........",
+                "......#..."
+
             )
         )
     }
+
 }
