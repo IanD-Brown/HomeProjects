@@ -3,9 +3,19 @@ package org.idb
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 fun main() {
-    val day1Solver = Day1Solver()
+    val solvers = listOf(Day1Solver(),
+        Day2Solver(),
+        Day3Solver(),
+        Day4Solver(),
+        Day5Solver(),
+        Day6Solver(),
+        Day7Solver(),
+        Day8Solver())
 
-    day1Solver.loadFromResource()
 
-    println("result " + day1Solver.calcPart1())
+    for (daySolver in solvers) {
+        daySolver.loadFromResource()
+        println("Day ${daySolver.day} part1=${daySolver.calcPart1()} part2=${daySolver.calcPart2()}")
+        daySolver.clear()
+    }
 }

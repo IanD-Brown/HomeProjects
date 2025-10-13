@@ -55,4 +55,8 @@ class Day2Solver : DaySolver<Int, Int>(2) {
     override fun calcPart2(): Int {
         return data.count { list -> validate(list) || validateSubList(list) }
     }
+
+    override fun clear() {
+        data = listOf()
+    }
 }

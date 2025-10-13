@@ -85,4 +85,8 @@ class Day4Solver : DaySolver<Int, Int>(4) {
         }
         return result
     }
+
+    override fun clear() {
+        data = listOf()
+    }
 }

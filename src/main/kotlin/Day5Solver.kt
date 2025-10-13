@@ -86,4 +86,8 @@ class Day5Solver : DaySolver<Int, Int>(5) {
     override fun calcPart2(): Int {
         return pageValidator!!.sumMidPages(true)
     }
+
+    override fun clear() {
+        pageValidator = null
+    }
 }

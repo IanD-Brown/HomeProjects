@@ -21,8 +21,8 @@ private enum class Day6Direction(val rAdjust: Int, val cAdjust : Int) {
         }
 }
 
-private fun Pair<Int, Int>.r() : Int = this.first
-private fun Pair<Int, Int>.c() : Int = this.second
+fun Pair<Int, Int>.r() : Int = this.first
+fun Pair<Int, Int>.c() : Int = this.second
 
 private fun Pair<Int, Int>.isOutOfBounds(data : List<String>) : Boolean =
     r() < 0 || c() < 0 || r() >= data.size || c() >= data[r()].length
@@ -90,5 +90,10 @@ class Day6Solver : DaySolver<Int, Int>(6) {
         }
         addedBlock = null
         return result
+    }
+
+    override fun clear() {
+        data = listOf()
+        addedBlock = null
     }
 }

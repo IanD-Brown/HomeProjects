@@ -38,4 +38,8 @@ class Day3Solver : DaySolver<Int, Int>(3) {
             }
         return result
     }
+
+    override fun clear() {
+        data = ""
+    }
 }

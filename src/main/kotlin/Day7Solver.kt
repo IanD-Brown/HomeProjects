@@ -65,4 +65,8 @@ class Day7Solver : DaySolver<Long, Long>(7) {
             .map{ Equation(it) }
             .map { it.calibrate(Operator.entries.toList()) }
             .sum()
+
+    override fun clear() {
+        data = listOf()
+    }
 }

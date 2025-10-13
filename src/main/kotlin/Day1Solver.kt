@@ -41,4 +41,9 @@ class Day1Solver : DaySolver<Long, Long>(1) {
         }
         return result
     }
+
+    override fun clear() {
+        left.clear()
+        right.clear()
+    }
 }
