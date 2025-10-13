@@ -109,36 +109,4 @@ void day8Solver::loadTestData() {
 	loadData("............");
 	loadData("............");
 
-	//vector<string> result = { "##....#....#",
- //                             ".#.#....0...",
-	//						  "..#.#0....#.",
-	//						  "..##...0....",
-	//						  "....0....#..",
-	//						  ".#...#a....#",
-	//						  "...#..#.....",
-	//						  "#....#.#....",
-	//						  "..#.....a...",
-	//						  "....#....a..",
-	//						  ".#........#.",
-	//						  "...#......##", };
- //                         
-	//s_part2 = true;
-	//compute();
-	//int counter = 0;
-	//int a = 0;
-	//set<node> remainder = m_grid.m_visited;
-	//for ( int r = 0; r < result.size(); ++r ) {
-	//	for ( int c = 0; c < result[ r ].size(); ++c ) {
-	//		if ( result[ r ][ c ] != '.' ) {
-	//			if ( m_grid.m_visited.find(make_pair(r, c)) == m_grid.m_visited.end() ) {
-	//				cout << '(' << ( counter++ ) << ") " << r << '/' << c << endl;
-	//			}
-	//			remainder.erase(make_pair(r, c));
-	//			++a;
-	//		}
-	//	}
-	//}
-	//for ( const auto l : remainder )
-	//	cout << l.first << '/' << l.second << endl;
-	//cout << "expected " << a << endl;
 }

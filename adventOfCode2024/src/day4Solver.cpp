@@ -48,11 +48,6 @@ struct SearchPath {
 };
 
 day4Solver::day4Solver(const string& testFile) : solver(testFile) {
-    test();
-    test2();
-    loadFromFile();
-    compute();
-    compute2();
 }
 
 void day4Solver::loadData(const string& line) {
@@ -150,15 +145,8 @@ solveResult day4Solver::compute2() {
     return t;
 }
 
-void day4Solver::test() {
-    loadTestData();
-	solveResult t = compute();
-
-    assert(t == 18 && "distance count should match");
-    clearData();
-}
-
 void day4Solver::loadTestData() {
+  clearData();
     loadData("MMMSXXMASM");
     loadData("MSAMXMSMSA");
     loadData("AMXSXMAAMM");
@@ -169,12 +157,4 @@ void day4Solver::loadTestData() {
     loadData("SAXAMASAAA");
     loadData("MAMMMXMMMM");
     loadData("MXMXAXMASX");
-}
-
-void day4Solver::test2() {
-    loadTestData();
-	solveResult t = compute2();
-
-    assert(t == 9 && "test2 count should match");
-    clearData();
 }

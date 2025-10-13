@@ -9,8 +9,6 @@ private:
     std::vector<std::vector<int>> m_updatePages;
     solveResult compute();
     solveResult compute2();
-    void test();
-    void test2();
 
     void clearData();
 

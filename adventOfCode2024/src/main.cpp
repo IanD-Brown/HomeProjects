@@ -154,11 +154,11 @@ struct ne {
  };
 
 int main() {
-   invoke(new day1Solver("day1\\data"), 11, eq(1590491LL), 31, eq(22588371LL));
-	new day2Solver("day2\\data.txt");
-	new day3Solver("day3\\data.txt");
-	new day4Solver("day4\\data.txt");
-	new day5Solver("day5\\data.txt");
+    invoke(new day1Solver("day1\\data"), 11, eq(1590491LL), 31, eq(22588371LL));
+    invoke(new day2Solver("day2\\data.txt"), 2, eq(490L), 4, eq(536L));
+    invoke(new day3Solver("day3\\data.txt"), 161, eq(170807108LL), 48, eq(74838033LL));
+    invoke(new day4Solver("day4\\data.txt"), 18, eq(2571), 9, eq(1992));
+    invoke(new day5Solver("day5\\data.txt"), 143, eq(6951), 123, eq(4121));
 	invoke(new day6Solver("day6\\data.txt"), 41, eq(5177), 6, eq(1686));
     invoke(new day7Solver("day7\\data.txt"), 3749, eq(303766880536LL), 11387, eq(337041851384440LL));
 

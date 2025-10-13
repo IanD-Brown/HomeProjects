@@ -7,11 +7,6 @@
 using namespace std;
 
 day5Solver::day5Solver(const string& testFile) : solver(testFile) {
-    test();
-    test2();
-    loadFromFile();
-    assert(compute() > 3654 && " thats too low");
-    assert(compute2() == 4121 && " thats wrong");
 }
 
 void day5Solver::loadData(const string& line) {
@@ -104,22 +99,7 @@ solveResult day5Solver::compute2() {
     return t;
 }
 
-void day5Solver::test() {
-    loadTestData();
-	solveResult t = compute();
-
-    assert(t == 143 && "distance count should match");
-    clearData();
-}
-
 void day5Solver::loadTestData() {
-    loadFromFile("day5\\testData.txt");
-}
-
-void day5Solver::test2() {
-    loadTestData();
-	solveResult t = compute2();
-
-    assert(t == 123 && "test2 count should match");
     clearData();
+    loadFromFile("day5\\testData.txt");
 }

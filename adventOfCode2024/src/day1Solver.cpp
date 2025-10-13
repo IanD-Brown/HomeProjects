@@ -10,11 +10,6 @@ using namespace std;
 #include "day1Solver.h"
 
 day1Solver::day1Solver(const std::string& testFile) : solver(testFile) {
-    //test();
-    //test2();
-    //loadFromFile();
-    //compute();
-    //compute2();
 }
 
 void day1Solver::clearData() {
@@ -36,8 +31,6 @@ solveResult day1Solver::compute() {
         t += abs(m_right.at(i) - m_left.at(i));
     }
 
-    fprintf(stdout, "computed % d\n", t);
-
     return t;
 }
 
@@ -56,8 +49,6 @@ solveResult day1Solver::compute2() {
             t += l * counts[l];
         }
     }
-
-    fprintf(stdout, "computed2 % d\n", t);
 
     return t;
 }

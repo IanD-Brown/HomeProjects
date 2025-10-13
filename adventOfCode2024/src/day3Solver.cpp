@@ -1,26 +1,12 @@
 
-#include <vector>
-#include <cstdlib>
-#include <algorithm>
-#include <cassert>
-#include <map>
-#include <iostream>
-#include <iterator>
+#include "day3Solver.h"
 #include <regex>
+#include <solver.h>
+#include <string>
 
 using namespace std;
 
-#include "day3Solver.h"
-
 day3Solver::day3Solver(const string& testFile) : solver(testFile) {
-    test();
-    test2();
-    loadFromFile();
-    compute();
-	solveResult v = compute2();
-	solveResult diff = v - 74838033;
-
-    assert(v == 74838033 && " not as expected");
 }
 
 void day3Solver::clearData() {
@@ -75,20 +61,7 @@ solveResult day3Solver::compute2() {
     return t;
 }
 
-void day3Solver::test() {
-    loadData("xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))");
-	solveResult t  = compute();
-
-    assert(t == 161 && " should match");
+void day3Solver::loadTestData() {
     clearData();
-}
-
-void day3Solver::test2() {
     loadData("xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))");
-	solveResult t = compute2();
-
-    assert(t == 48 && "test2 count should match");
-    clearData();
 }
-
-void day3Solver::loadTestData() {}

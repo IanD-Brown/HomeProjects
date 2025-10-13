@@ -1,22 +1,13 @@
 
-#include <vector>
-#include <stdlib.h>
+#include "day2Solver.h"
 #include <algorithm>
-#include <cassert>
-#include <map>
-#include <iostream>
+#include <solver.h>
+#include <string>
+#include <vector>
 
 using namespace std;
 
-#include "day2Solver.h"
-#include <iterator>
-
 day2Solver::day2Solver(const std::string& testFile) : solver(testFile) {
-    test();
-    test2();
-    loadFromFile();
-    compute();
-    compute2();
 }
 
 void day2Solver::clearData() {
@@ -86,28 +77,12 @@ solveResult day2Solver::compute2() {
     return t;
 }
 
-void day2Solver::test() {
-    loadTestData();
-    ptrdiff_t t  = compute();
-
-    assert(t == 2 && "distance count should match");
+void day2Solver::loadTestData() {
     clearData();
-}
-
-void day2Solver::loadTestData()
-{
     loadData("7 6 4 2 1");
     loadData("1 2 7 8 9");
     loadData("9 7 6 2 1");
     loadData("1 3 2 4 5");
     loadData("8 6 4 4 1");
     loadData("1 3 6 7 9");
-}
-
-void day2Solver::test2() {
-    loadTestData();
-    ptrdiff_t t = compute2();
-
-    assert(t == 4 && "test2 count should match");
-    clearData();
 }
