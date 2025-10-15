@@ -1,14 +1,14 @@
-kotlin/advent_of_code2024k/.gradle
+**/.gradle
 build/
-!kotlin/advent_of_code2024k/gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
 ### IntelliJ IDEA ###
-kotlin/advent_of_code2024k/.idea/modules.xml
-kotlin/advent_of_code2024k/.idea/jarRepositories.xml
-kotlin/advent_of_code2024k/.idea/compiler.xml
-kotlin/advent_of_code2024k/.idea/libraries/
+**/.idea/modules.xml
+**/.idea/jarRepositories.xml
+**/.idea/compiler.xml
+**/.idea/libraries/
 *.iws
 *.iml
 *.ipr
@@ -351,10 +351,6 @@ node_modules/
 # Visual Studio 6 workspace and project file (working project files containing files to include in project)
 *.dsw
 *.dsp
-
-# Visual Studio 6 technical files
-*.ncb
-*.aps
 
 # Visual Studio LightSwitch build output
 **/*.HTMLClient/GeneratedArtifacts
