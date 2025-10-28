@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>android/.github:renovate-config"
+  ],
+  "baseBranches": [
+    "main"
+  ],
+  "packageRules": [
+    {
+      "groupName": "Kotlin Dependencies",
+      "matchPackageNames": [
+        "org.jetbrains.kotlin**",
+        "co.touchlab.skie**",
+        "com.google.devtools.ksp**"
+      ],
+      "automerge": true
+    }
+  ]
+}
