@@ -1,3 +1,5 @@
+package org.idb.ui
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.Flow
@@ -6,10 +8,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import org.idb.database.AppDatabase
+import org.idb.database.Association
 import org.idb.database.AssociationDao
 import org.koin.java.KoinJavaComponent.inject
 
-class AssociationViewModel(/*private val dao : AssociationDao*/) : ViewModel() {
+class AssociationViewModel : ViewModel() {
     private val database : AppDatabase by inject(AppDatabase::class.java)
     private val _associations = MutableStateFlow(AssociationUiState(true))
     val associations = _associations.asStateFlow()

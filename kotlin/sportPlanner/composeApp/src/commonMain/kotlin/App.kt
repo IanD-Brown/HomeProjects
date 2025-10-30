@@ -1,14 +1,15 @@
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.softartdev.theme.material3.PreferableMaterialTheme
 import org.idb.ui.Editors
-import org.idb.ui.addAssociation
-import org.idb.ui.associationEditor
-import org.idb.ui.editAssociation
 import org.idb.ui.homeScreen
+import org.idb.ui.navigateAssociation
+import org.idb.ui.navigateTeamCategory
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -23,18 +24,14 @@ fun App() {
                 homeScreen(navController)
             }
 
-            composable(Editors.ASSOCIATIONS.name) {
-                associationEditor(/*viewModel,*/ navController) {
-                    navController.navigateUp()
-                }
+            composable(Editors.TEAMCATERORIES.name + "/{arg}",
+                listOf(navArgument("arg") { type = NavType.StringType })) {
+                val argument = it.arguments?.read { getString("arg") }
+                navigateTeamCategory(navController, argument)
             }
 
-            composable("addAssociation") {
-                addAssociation(/*viewModel,*/ navController)
-            }
-
-            composable("editAssociation/{name}") {
-                editAssociation(navController, it.arguments?.read { getString("name") }!!)
+            composable(Editors.ASSOCIATIONS.name + "/{arg}") {
+                navigateAssociation(navController, it.arguments?.read { getString("arg") })
             }
         }
     }

@@ -4,25 +4,29 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
-private const val table = "Associations"
+private const val table = "TeamCategories"
 
 @Dao
-interface AssociationDao {
+interface TeamCategoryDao : BaseDao<TeamCategory> {
     @Insert
-    suspend fun insert(association: Association)
+    override suspend fun insert(entity: TeamCategory)
 
     @Query("SELECT * FROM $table")
-    suspend fun getAll(): List<Association>
-
-    @Query("DELETE FROM $table")
-    suspend fun deleteAll()
+    override suspend fun getAll(): List<TeamCategory>
 
     @Query("SELECT count(1) FROM $table")
-    suspend fun count(): Int
+    override suspend fun count(): Int
 
     @Delete
-    suspend fun delete(association: Association)
+    override suspend fun delete(entity: TeamCategory)
+
+    @Query("SELECT * FROM $table WHERE id=:id")
+    override suspend fun getById(id: Long): TeamCategory
+
+    @Update
+    override suspend fun update(entity : TeamCategory)
 
     /**
      * Updating only name by id

@@ -44,7 +44,7 @@ kotlin {
 
             implementation(libs.material.theme)
             implementation(libs.material.theme.prefs)
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+            implementation(libs.kotlin.serialization.json)
 
             // Koin
             api(libs.koin.core)

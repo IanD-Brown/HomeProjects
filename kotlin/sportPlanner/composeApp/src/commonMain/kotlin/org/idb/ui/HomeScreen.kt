@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-enum class Editors(val displayName: String) { ASSOCIATIONS("Associations") }
+enum class Editors(val displayName: String) {
+    TEAMCATERORIES("Team Categories"),
+    ASSOCIATIONS("Associations")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +37,7 @@ fun homeScreen(navController: NavController) {
     }, content = { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues), content = {
             items(items = Editors.entries.toTypedArray(), key = { entry -> entry.ordinal }) { editor ->
-                OutlinedButton( onClick = { navController.navigate(editor.name) },
+                OutlinedButton( onClick = { navController.navigate(editor.name + "/View") },
                     modifier = Modifier.padding(6.dp),
                 ) {
                     Text(
