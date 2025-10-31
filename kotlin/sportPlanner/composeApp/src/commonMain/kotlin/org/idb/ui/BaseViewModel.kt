@@ -12,7 +12,7 @@ import org.idb.database.BaseDao
 import org.koin.java.KoinJavaComponent.inject
 
 abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
-    private val dao : DAO
+    val dao : DAO
     private val _uiState = MutableStateFlow(UiState<ENTITY>(true))
     val uiState = _uiState.asStateFlow()
 
@@ -24,7 +24,7 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
     
     abstract fun getDao(db : AppDatabase) : DAO
 
-    private fun readAll() {
+    fun readAll() {
         _uiState.value = UiState(isLoading = true)
         viewModelScope.launch {
             getAll().collect {
@@ -52,7 +52,6 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
         flow {
             emit(dao.getAll())
         }
-
 }
 
 data class UiState<ENTITY>(

@@ -70,7 +70,7 @@ fun teamCategoryEditor(navController: NavController) {
         Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
             createTopBar(navController, "Team Categories", "Return to home screen")
         }, floatingActionButton = {
-            createFloatingAction(navController, Editors.TEAMCATERORIES.name + "/Add")
+            createFloatingAction(navController, Editors.TEAM_CATEGORIES.name + "/Add")
         }, content = { paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues), content = {
                 val values = state.value.data!!
@@ -91,7 +91,7 @@ fun teamCategoryEditor(navController: NavController) {
                             itemButtons(
                                 editClick = {
                                     navController.navigate(
-                                        Editors.TEAMCATERORIES.name +
+                                        Editors.TEAM_CATEGORIES.name +
                                                 "/${Json.encodeToString(teamCategory)}"
                                     )
                                 },

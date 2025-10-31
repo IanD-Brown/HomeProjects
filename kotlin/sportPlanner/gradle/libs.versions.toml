@@ -10,7 +10,7 @@ androidx-core-ktx = "1.17.0"
 androidx-espresso-core = "3.7.0"
 androidx-material = "1.13.0"
 androidx-test-junit = "1.3.0"
-compose-plugin = "1.8.2"
+compose-plugin = "1.9.2"
 junit = "4.13.2"
 kotlin = "2.2.10"
 coilCompose = "3.3.0"
@@ -20,11 +20,12 @@ navigationCompose = "2.9.0-rc01"
 room = "2.8.0"
 ksp = "2.2.10-2.0.2"
 sqliteBundled = "2.6.0"
-composeHotReload = "1.0.0-beta07"
+composeHotReload = "1.0.0-rc02"
 materialThemePrefs = "0.9.8"
 koin-core = "4.1.1"
 lifecycleViewmodel = "2.9.5"
 kotlin-serialize = "1.9.0"
+dataTable = "1.0.7"
 
 [libraries]
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
@@ -55,6 +56,7 @@ kotlin-serialization-json = {module = "org.jetbrains.kotlinx:kotlinx-serializati
 
 # Lifecycle ViewModel
 androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
+data-table = {module = "com.ryinex.kotlin:compose-data-table", version.ref = "dataTable" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -14,6 +14,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -36,15 +37,17 @@ import androidx.navigation.NavController
 import com.softartdev.theme.material.PreferableMaterialTheme
 import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.idb.database.Season
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
-import java.text.SimpleDateFormat
-import java.util.*
 
+private val editor : Editors = Editors.SEASONS
 
 @Composable
 fun navigateSeason(navController : NavController, argument : String?) {
@@ -71,7 +74,7 @@ fun seasonEditor(navController: NavController) {
         Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
             createTopBar(navController, "Seasons", "Return to home screen")
         }, floatingActionButton = {
-            createFloatingAction(navController, Editors.SEASONS.name + "/Add")
+            createFloatingAction(navController, editor.addRoute())
         }, content = { paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues), content = {
                 val values = state.value.data!!
@@ -93,12 +96,12 @@ fun seasonEditor(navController: NavController) {
                                     ViewText(convertMillisToDate(season.endDate))
                                 })
 
+                            spacedIcon(Icons.Default.Face, "mange teams") {
+                                navController.navigate(Editors.SEASON_TEAMS.viewRoute(season))
+                            }
                             itemButtons(
                                 editClick = {
-                                    navController.navigate(
-                                        Editors.SEASONS.name +
-                                                "/${Json.encodeToString(season)}"
-                                    )
+                                    navController.navigate(editor.editRoute(season))
                                 },
                                 deleteClick = {
                                     coroutineScope.launch {

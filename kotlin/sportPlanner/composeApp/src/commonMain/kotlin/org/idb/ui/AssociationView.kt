@@ -29,17 +29,20 @@ import com.softartdev.theme.material.PreferableMaterialTheme
 import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.idb.database.Association
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
+
+private val editor = Editors.ASSOCIATIONS
 
 @Composable
 fun navigateAssociation(navController: NavController, argument: String?) {
     when (argument) {
         "View" -> associationEditor(navController)
         "Add" -> addAssociation(navController)
-        else -> editAssociation(navController, argument!!)
+        else -> editAssociation(navController, Json.decodeFromString<Association>(argument!!))
     }
 }
 
@@ -49,7 +52,7 @@ fun navigateAssociation(navController: NavController, argument: String?) {
 fun associationEditor(navController: NavController) {
     val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
     val coroutineScope = rememberCoroutineScope()
-    val state = viewModel.associations.collectAsState()
+    val state = viewModel.uiState.collectAsState()
 
     if (state.value.isLoading) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -59,7 +62,7 @@ fun associationEditor(navController: NavController) {
         Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
             createTopBar(navController, "Associations", "Return to home screen")
         }, floatingActionButton = {
-            createFloatingAction(navController, Editors.ASSOCIATIONS.name + "/Add")
+            createFloatingAction(navController, editor.addRoute())
         }, content = { paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues), content = {
                 val values = state.value.data!!
@@ -75,7 +78,7 @@ fun associationEditor(navController: NavController) {
                                     ViewText(association.name)
                                 })
                             itemButtons(editClick = {
-                                navController.navigate("${Editors.ASSOCIATIONS.name}/${association.name}")
+                                navController.navigate(editor.editRoute(association))
                             }, deleteClick = {
                                 coroutineScope.launch {
                                     viewModel.delete(association)
@@ -102,7 +105,7 @@ fun addAssociation(navController: NavController) {
         }, content = { paddingValues ->
             Row(
                 modifier = Modifier.padding(paddingValues), content = {
-                    ViewTextField(value = name, label = "Name :") { name }
+                    ViewTextField(value = name, label = "Name :") { name = it }
                 })
         }, bottomBar = {
             Button(
@@ -120,10 +123,10 @@ fun addAssociation(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun editAssociation(navController: NavController, currentName: String) {
+fun editAssociation(navController: NavController, association: Association) {
     val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
     val coroutineScope = rememberCoroutineScope()
-    var name by remember { mutableStateOf(currentName) }
+    var name by remember { mutableStateOf(association.name) }
 
     PreferableMaterialTheme {
         Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
@@ -137,7 +140,7 @@ fun editAssociation(navController: NavController, currentName: String) {
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        viewModel.rename(currentName, name.trim())
+                        viewModel.update(Association(association.id, name.trim()))
                         navController.popBackStack()
                     }
                 }, enabled = !name.isEmpty()

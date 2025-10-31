@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
@@ -33,13 +34,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
+
+private val fontSize = 16.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +71,7 @@ fun createFloatingAction(navController: NavController, route: String) {
 fun ViewText(value : String) {
     Text(
         text = value,
-        fontSize = 16.sp,
+        fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
@@ -94,6 +99,7 @@ fun ViewTextField(
                 focusedIndicatorColor = Color.Green,
                 unfocusedIndicatorColor = Color.Gray
             ),
+            textStyle = TextStyle.Default.copy(fontSize = fontSize)
         )
         else -> TextField(
             value = value,
@@ -109,26 +115,24 @@ fun ViewTextField(
                 focusedIndicatorColor = Color.Green,
                 unfocusedIndicatorColor = Color.Gray
             ),
+            textStyle = TextStyle.Default.copy(fontSize = fontSize)
         )
     }
 }
 
 @Composable
+fun spacedIcon(imageVector: ImageVector,
+               contentDescription: String?,
+               tint: Color = LocalContentColor.current,
+               onClick : () -> Unit) {
+    Spacer(modifier = Modifier.size(16.dp))
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
+}
+
+@Composable
 fun itemButtons(editClick : () -> Unit, deleteClick : () -> Unit) {
-    Spacer(modifier = Modifier.size(16.dp))
-    Icon(
-        imageVector = Icons.Default.Edit,
-        contentDescription = "edit",
-        tint = Color.Green,
-        modifier = Modifier.clickable(onClick = editClick)
-    )
-    Spacer(modifier = Modifier.size(16.dp))
-    Icon(
-        imageVector = Icons.Default.Delete,
-        contentDescription = "delete",
-        tint = Color.Red,
-        modifier = Modifier.clickable(onClick = deleteClick)
-    )
+    spacedIcon(Icons.Default.Edit, "edit", Color.Green, editClick)
+    spacedIcon(Icons.Default.Delete, "delete", Color.Red, deleteClick)
 }
 
 // Creating a composable to display a drop-down menu
@@ -152,7 +156,6 @@ fun DropdownList(
         Icons.Filled.KeyboardArrowDown
 
     Column(Modifier.padding(20.dp)) {
-
         ViewTextField(
             value = selectedText,
             modifier = Modifier

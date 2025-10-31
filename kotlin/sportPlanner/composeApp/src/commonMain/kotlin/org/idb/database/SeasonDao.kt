@@ -22,8 +22,8 @@ interface SeasonDao : BaseDao<Season> {
     @Delete
     override suspend fun delete(entity: Season)
 
-    @Query("SELECT * FROM $table WHERE id=:id")
-    override suspend fun getById(id: Long): Season
+//    @Query("SELECT * FROM $table WHERE id=:id")
+//    override suspend fun getById(id: Short): Season
 
     @Update
     override suspend fun update(entity : Season)

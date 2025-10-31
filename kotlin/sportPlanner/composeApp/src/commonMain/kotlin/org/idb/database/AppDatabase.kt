@@ -5,11 +5,16 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-@Database(entities = [Association::class, Season::class, TeamCategory::class], version = 6)
+@Database(entities = [
+    Association::class,
+    Season::class,
+    SeasonTeam::class,
+    TeamCategory::class], version = 1)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
     abstract fun getSeasonDao() : SeasonDao
+    abstract fun getSeasonTeamDao() : SeasonTeamDao
     abstract fun getTeamCategoryDao() : TeamCategoryDao
 }
 
@@ -18,4 +23,4 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase
 }
 
-internal const val dbFileName = "sport_db.db"
+internal const val dbFileName = "SportPlanningDb.db"

@@ -22,8 +22,8 @@ interface TeamCategoryDao : BaseDao<TeamCategory> {
     @Delete
     override suspend fun delete(entity: TeamCategory)
 
-    @Query("SELECT * FROM $table WHERE id=:id")
-    override suspend fun getById(id: Long): TeamCategory
+//    @Query("SELECT * FROM $table WHERE id=:id")
+//    override suspend fun getById(id: Short): TeamCategory
 
     @Update
     override suspend fun update(entity : TeamCategory)

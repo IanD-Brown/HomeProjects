@@ -9,7 +9,5 @@ interface BaseDao<ENTITY> {
 
     suspend fun delete(entity: ENTITY)
 
-    suspend fun getById(id : Long) : ENTITY
-
     suspend fun update(entity : ENTITY)
 }

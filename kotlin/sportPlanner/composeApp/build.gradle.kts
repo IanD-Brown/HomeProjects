@@ -53,6 +53,8 @@ kotlin {
 
             // ViewModel support in common code
             implementation(libs.androidx.lifecycle.viewmodel)
+
+            implementation(libs.data.table)
         }
 
         desktopMain.dependencies {

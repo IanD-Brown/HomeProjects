@@ -1,4 +1,5 @@
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -8,6 +9,7 @@ import org.idb.ui.Editors
 import org.idb.ui.homeScreen
 import org.idb.ui.navigateAssociation
 import org.idb.ui.navigateSeason
+import org.idb.ui.navigateSeasonTeam
 import org.idb.ui.navigateTeamCategory
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -23,18 +25,25 @@ fun App() {
                 homeScreen(navController)
             }
 
-            composable(Editors.ASSOCIATIONS.name + "/{arg}") {
-                navigateAssociation(navController, it.arguments?.read { getString("arg") })
+            composable(getRoute(Editors.ASSOCIATIONS)) {
+                navigateAssociation(navController, getArgument(it))
             }
 
-            composable(Editors.SEASONS.name + "/{arg}") {
-                navigateSeason(navController, it.arguments?.read { getString("arg") })
+            composable(getRoute(Editors.SEASONS)) {
+                navigateSeason(navController, getArgument(it))
             }
 
-            composable(Editors.TEAMCATERORIES.name + "/{arg}") {
-                val argument = it.arguments?.read { getString("arg") }
-                navigateTeamCategory(navController, argument)
+            composable(getRoute(Editors.SEASON_TEAMS)) {
+                navigateSeasonTeam(navController, getArgument(it))
+            }
+
+            composable(getRoute(Editors.TEAM_CATEGORIES)) {
+                navigateTeamCategory(navController, getArgument(it))
             }
         }
     }
 }
+
+private fun getRoute(editor : Editors) : String = editor.name + "/{arg}"
+
+private fun getArgument(entry: NavBackStackEntry): String? = entry.arguments?.read { getString("arg") }
