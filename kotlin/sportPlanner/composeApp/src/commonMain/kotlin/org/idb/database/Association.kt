@@ -8,5 +8,5 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["name"], unique = true)])
 data class Association(
     @PrimaryKey(autoGenerate = true)
-    val id : Long = 0,
+    val id : Short = 0,
     var name: String)

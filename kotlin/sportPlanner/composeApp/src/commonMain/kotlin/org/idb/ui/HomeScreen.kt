@@ -20,6 +20,7 @@ import androidx.navigation.NavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 enum class Editors(val displayName: String) {
+    SEASONS("Seasons"),
     TEAMCATERORIES("Team Categories"),
     ASSOCIATIONS("Associations")
 }

@@ -73,20 +73,44 @@ fun ViewText(value : String) {
 }
 
 @Composable
-fun ViewTextField(value : String, modifier : Modifier = Modifier, trailingIcon: @Composable (() -> Unit)? = null, onValueChange : (String) -> Unit) {
-    TextField(
-        value = value,
-        singleLine = true,
-        colors = TextFieldDefaults.textFieldColors(
-            textColor = MaterialTheme.colors.onSurface,
-            cursorColor = MaterialTheme.colors.onSurface,
-            backgroundColor = MaterialTheme.colors.surface,
-            focusedIndicatorColor = Color.Green,
-            unfocusedIndicatorColor = Color.Gray
-        ),
-        onValueChange = onValueChange,
-        modifier = modifier,
-        trailingIcon = trailingIcon)
+fun ViewTextField(
+    value: String,
+    modifier: Modifier = Modifier,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    label: String? = null,
+    onValueChange: (String) -> Unit
+) {
+    when (label) {
+        null -> TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = modifier,
+            singleLine = true,
+            trailingIcon = trailingIcon,
+            colors = TextFieldDefaults.textFieldColors(
+                textColor = MaterialTheme.colors.onSurface,
+                cursorColor = MaterialTheme.colors.onSurface,
+                backgroundColor = MaterialTheme.colors.surface,
+                focusedIndicatorColor = Color.Green,
+                unfocusedIndicatorColor = Color.Gray
+            ),
+        )
+        else -> TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = modifier,
+            singleLine = true,
+            label = { ViewText(label) },
+            trailingIcon = trailingIcon,
+            colors = TextFieldDefaults.textFieldColors(
+                textColor = MaterialTheme.colors.onSurface,
+                cursorColor = MaterialTheme.colors.onSurface,
+                backgroundColor = MaterialTheme.colors.surface,
+                focusedIndicatorColor = Color.Green,
+                unfocusedIndicatorColor = Color.Gray
+            ),
+        )
+    }
 }
 
 @Composable
@@ -129,7 +153,8 @@ fun DropdownList(
 
     Column(Modifier.padding(20.dp)) {
 
-        ViewTextField(value = selectedText,
+        ViewTextField(
+            value = selectedText,
             modifier = Modifier
                 .fillMaxWidth()
                 .onGloballyPositioned { coordinates ->

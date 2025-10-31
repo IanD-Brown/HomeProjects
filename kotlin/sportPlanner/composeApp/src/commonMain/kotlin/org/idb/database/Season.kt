@@ -6,10 +6,11 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-@Entity(tableName = "TeamCategories",
-    indices = [Index(value = ["name"], unique = true)])
-data class TeamCategory (
+@Entity(tableName = "Seasons", indices = [Index(value = ["name"], unique = true)])
+data class Season(
     @PrimaryKey(autoGenerate = true)
-    val id : Short = 0,
+    val id: Short = 0,
     var name: String,
-    var matchDay: Int)
+    var startDate: Long,
+    var endDate: Long
+)

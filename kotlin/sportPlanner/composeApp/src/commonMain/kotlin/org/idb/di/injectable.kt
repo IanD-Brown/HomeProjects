@@ -4,6 +4,7 @@ import org.idb.ui.TeamCategoryViewModel
 import org.idb.database.AppDatabase
 import org.idb.database.DBFactory
 import org.idb.ui.AssociationViewModel
+import org.idb.ui.SeasonViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
@@ -11,6 +12,7 @@ import org.koin.dsl.module
 
 private val injectableModules = module {
     viewModelOf(::AssociationViewModel)
+    viewModelOf(::SeasonViewModel)
     viewModelOf(::TeamCategoryViewModel)
 }
 

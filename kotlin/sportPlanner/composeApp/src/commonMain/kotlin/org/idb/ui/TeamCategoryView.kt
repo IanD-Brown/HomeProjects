@@ -122,15 +122,14 @@ fun addTeamCategory(navController: NavController) {
            content = { paddingValues ->
             Row(
                 modifier = Modifier.padding(paddingValues), content = {
-                    Text("Name:")
-                    ViewTextField(value = name) { name = it.trim() }
+                    ViewTextField(value = name, label = "Name:") { name = it }
                     Text("Match Day:")
                     DropdownList(itemList = Day.entries.map { it.display }, selectedIndex = matchDay) { matchDay = it }
                 })
         }, bottomBar = {
             Button(onClick = {
                     coroutineScope.launch {
-                        viewModel.insert(TeamCategory(name = name, matchDay = matchDay))
+                        viewModel.insert(TeamCategory(name = name.trim(), matchDay = matchDay))
                         navController.popBackStack()
                     }
                 },
@@ -154,15 +153,14 @@ fun editTeamCategory(navController: NavController, editCategory: TeamCategory) {
         }, content = { paddingValues ->
             Row(
                 modifier = Modifier.padding(paddingValues), content = {
-                    Text("Name: ")
-                    ViewTextField(value = name) { name = it.trim() }
+                    ViewTextField(value = name, label = "Name:") { name = it }
                     Text("Match Day:")
                     DropdownList(itemList = Day.entries.map { it.display }, selectedIndex = matchDay) { matchDay = it }
                 })
         }, bottomBar = {
             Button(onClick = {
                 coroutineScope.launch {
-                    viewModel.update(TeamCategory(teamCategory.id, name, matchDay))
+                    viewModel.update(TeamCategory(teamCategory.id, name.trim(), matchDay))
                     navController.popBackStack()
                 }
             },
