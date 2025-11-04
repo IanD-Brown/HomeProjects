@@ -11,7 +11,7 @@ private const val table = "TeamCategories"
 @Dao
 interface TeamCategoryDao : BaseDao<TeamCategory> {
     @Insert
-    override suspend fun insert(entity: TeamCategory)
+    override suspend fun insert(entity: TeamCategory): Long
 
     @Query("SELECT * FROM $table")
     override suspend fun getAll(): List<TeamCategory>
@@ -21,9 +21,6 @@ interface TeamCategoryDao : BaseDao<TeamCategory> {
 
     @Delete
     override suspend fun delete(entity: TeamCategory)
-
-//    @Query("SELECT * FROM $table WHERE id=:id")
-//    override suspend fun getById(id: Short): TeamCategory
 
     @Update
     override suspend fun update(entity : TeamCategory)

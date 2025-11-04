@@ -27,12 +27,15 @@ actual class DBFactory {
                         connection.execSQL("INSERT INTO TeamCategories (name, matchDay) VALUES ('$name Girls', 6)")
                     }
 
+                    connection.execSQL("INSERT INTO Competitions (name, type) VALUES ('League', 0)")
+                    connection.execSQL("INSERT INTO Competitions (name, type) VALUES ('Cup', 1)")
+
                     var date = 1
                     var date2 = 2
                     for (name in listOf("20-21", "21-22", "22-23", "24-25", "25-26")) {
                         val ms1 = GregorianCalendar(2019 + date, 9, 1).toInstant().toEpochMilli()
                         val ms2 = GregorianCalendar(2019 + date2, 4, 1).toInstant().toEpochMilli()
-                        connection.execSQL("INSERT INTO Seasons (name, startDate, endDate) VALUES ('$name', $ms1, $ms2)")
+                        connection.execSQL("INSERT INTO Seasons (name) VALUES ('$name')")
                         ++date
                         ++date2
                     }

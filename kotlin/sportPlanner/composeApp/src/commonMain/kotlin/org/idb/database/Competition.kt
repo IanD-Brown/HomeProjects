@@ -27,7 +27,7 @@ data class Competition(
 @Dao
 interface CompetitionDao : BaseDao<Competition> {
     @Insert
-    override suspend fun insert(entity: Competition)
+    override suspend fun insert(entity: Competition): Long
 
     @Query("SELECT * FROM $table")
     override suspend fun getAll(): List<Competition>

@@ -1,13 +1,12 @@
 package org.idb.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -17,7 +16,6 @@ import com.ryinex.kotlin.datatable.views.DataTableView
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.idb.database.Association
-import org.idb.database.Season
 import org.idb.database.SeasonTeam
 import org.idb.database.TeamCategory
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -26,17 +24,14 @@ import org.koin.compose.koinInject
 @Composable
 fun navigateSeasonTeam(navController : NavController, argument : String?) {
     if (argument != null && argument.startsWith("View&")) {
-        seasonTeamEditor(navController, Json.decodeFromString<Season>(argument.substring(5)))
-    } else
-    when (argument) {
-        "View" -> seasonTeamEditor(navController, null)
+        seasonTeamEditor(navController, Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Composable
-fun seasonTeamEditor(navController: NavController, season : Season?) {
+fun seasonTeamEditor(navController: NavController, param : SeasonCompetitionParam) {
     val viewModel: SeasonTeamViewModel = koinInject()
     val associationModel : AssociationViewModel = koinInject<AssociationViewModel>()
     val teamCategoryViewModel : TeamCategoryViewModel = koinInject()
@@ -65,68 +60,61 @@ fun seasonTeamEditor(navController: NavController, season : Season?) {
         mutableStateOf(tableConfig.copy(column = column.copy(cell = cell)))
     }
 
-    if (state.value.isLoading || state2.value.isLoading || state3.value.isLoading) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
-        }
-    } else if (state.value.data != null && state2.value.data != null && state3.value.data != null) {
+    viewCommon(state.value, navController, "Season ${param.seasonName} Competition ${param.competitionName} Teams", {
+        FloatingActionButton(onClick = {
+            if (!isLocked) {
+                val seasonId = param.seasonId
+                coroutineScope.launch {
+                    for (entry in edits) {
+                        viewModel.insert(SeasonTeam(seasonId = seasonId,
+                            teamCategoryId = entry.key.first,
+                            associationId = entry.key.second,
+                            competitionId = param.competitionId,
+                            count = entry.value.second))
+                    }
+                }
+            }
+            if (isLocked) {
+                buttonText = ""
+                isLocked = false
+            } else {
+                buttonText = "Edit"
+                isLocked = true
+            }
+        },
+            content = {
+                ViewText(buttonText)
+            }
+        )
+    }, "Return to Seasons screen") {paddingValues ->
         val teamList = state3.value.data?.sortedBy { it.name.uppercase().trim() }
         val associationList = state2.value.data?.sortedBy {it.name.trim().uppercase()}
         val values = mutableMapOf<Pair<Short, Short>, Short>()
         for (seasonTeam in state.value.data!!) {
-            if (seasonTeam.seasonId == season?.id) {
+            if (seasonTeam.seasonId == param.seasonId) {
                 values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
             }
         }
-        Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-            createTopBar(navController, "Season ${season?.name} Teams", "Return to Seasons screen")
-        }, floatingActionButton = {
-            FloatingActionButton(onClick = {
-                if (!isLocked) {
-                    val seasonId = season?.id!!
-                    coroutineScope.launch {
-                        for (entry in edits) {
-                            viewModel.insert(SeasonTeam(seasonId = seasonId,
-                                teamCategoryId = entry.key.first,
-                                associationId = entry.key.second,
-                                count = entry.value.second))
-                        }
-                    }
-                }
-                if (isLocked) {
-                    buttonText = ""
-                    isLocked = false
+        Column(modifier = Modifier.padding(paddingValues), content = {
+            associationTeamDataTable(values, teamList!!, associationList!!, isLocked, config, editConfig)
+            { old, value, teamId, associationId ->
+                val key = Pair(teamId, associationId)
+                if (!edits.contains(key) || edits[key] == null || edits[key]?.first != value.toShort()) {
+                    edits[key] = Pair(old.toShort(), value.toShort())
+                    buttonText = "Save"
+                    value
                 } else {
-                    buttonText = "Edit"
-                    isLocked = true
+                    edits.remove(key)
+                    buttonText = ""
+                    value
                 }
-            },
-                content = {
-                    ViewText(buttonText)
-                }
-            )
-        }, content = { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues), content = {
-                associationTeamDataTable(values, teamList!!, associationList!!, isLocked, config, editConfig)
-                { old, value, teamId, associationId ->
-                    val key = Pair(teamId, associationId)
-                    if (!edits.contains(key) || edits[key] == null || edits[key]?.first != value.toShort()) {
-                        edits[key] = Pair(old.toShort(), value.toShort())
-                        buttonText = "Save"
-                        value
-                    } else {
-                        edits.remove(key)
-                        buttonText = ""
-                        value
-                    }
-                }
-            })
+            }
         })
     }
 }
 
 @Composable
-internal fun associationTeamDataTable(
+private fun associationTeamDataTable(
     values: MutableMap<Pair<Short, Short>, Short>,
     teamList: List<TeamCategory>,
     associationList: List<Association>,

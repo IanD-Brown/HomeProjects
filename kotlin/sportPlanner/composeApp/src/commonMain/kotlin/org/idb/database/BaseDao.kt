@@ -1,7 +1,7 @@
 package org.idb.database
 
 interface BaseDao<ENTITY> {
-    suspend fun insert(entity: ENTITY)
+    suspend fun insert(entity: ENTITY) : Long
 
     suspend fun getAll(): List<ENTITY>
 

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
@@ -53,17 +52,23 @@ import androidx.navigation.NavController
 private val fontSize = 16.sp
 
 @Composable
-fun viewCommon(baseUiState : BaseUiState, navController : NavController, title : String, editor : Editors, content: @Composable (PaddingValues) -> Unit) {
+fun viewCommon(
+    baseUiState: BaseUiState,
+    navController: NavController,
+    title: String,
+    floatingActionButton: @Composable () -> Unit,
+    description: String = "Return to home screen",
+    content: @Composable (PaddingValues) -> Unit
+) {
     if (baseUiState.loadingInProgress()) {
         Box(modifier = Modifier.fillMaxSize()) {
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
     } else if (baseUiState.hasData()) {
         Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-            createTopBar(navController, title, "Return to home screen")
-        }, floatingActionButton = {
-            createFloatingAction(navController, editor.addRoute())
-        }, content = content)
+            createTopBar(navController, title, description)
+        }, floatingActionButton = floatingActionButton,
+            content = content)
     }
 }
 
@@ -151,7 +156,7 @@ fun spacedViewText(value : String) {
 @Composable
 fun spacedIcon(imageVector: ImageVector,
                contentDescription: String?,
-               tint: Color = LocalContentColor.current,
+               tint: Color = MaterialTheme.colors.surface,
                onClick : () -> Unit) {
     Spacer(modifier = Modifier.size(16.dp))
     Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)

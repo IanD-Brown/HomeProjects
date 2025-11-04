@@ -38,9 +38,10 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
         readAll()
     }
 
-    suspend fun insert(entity : ENTITY) {
-        dao.insert(entity)
+    suspend fun insert(entity : ENTITY) : Long {
+        val newId = dao.insert(entity)
         readAll()
+        return newId
     }
 
     suspend fun delete(entity : ENTITY) {

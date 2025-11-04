@@ -11,7 +11,7 @@ private const val table = "Associations"
 @Dao
 interface AssociationDao : BaseDao<Association> {
     @Insert
-    override suspend fun insert(entity: Association)
+    override suspend fun insert(entity: Association): Long
 
     @Query("SELECT * FROM $table")
     override suspend fun getAll(): List<Association>

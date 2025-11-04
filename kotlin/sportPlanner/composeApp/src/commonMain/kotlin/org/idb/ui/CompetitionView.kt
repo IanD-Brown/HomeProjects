@@ -46,7 +46,7 @@ private fun competitionView(navController: NavController) {
     val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    viewCommon(state.value, navController, "Competitions", editor) { paddingValues ->
+    viewCommon(state.value, navController, "Competitions",  { createFloatingAction(navController, editor.addRoute()) }, content = { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues), content = {
             val values = state.value.data!!
             items(
@@ -65,7 +65,7 @@ private fun competitionView(navController: NavController) {
                 })
             }
         })
-    }
+    })
 }
 
 
