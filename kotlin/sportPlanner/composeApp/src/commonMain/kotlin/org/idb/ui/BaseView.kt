@@ -1,8 +1,11 @@
 package org.idb.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,12 +21,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -31,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -45,6 +51,21 @@ import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
 
 private val fontSize = 16.sp
+
+@Composable
+fun viewCommon(baseUiState : BaseUiState, navController : NavController, title : String, editor : Editors, content: @Composable (PaddingValues) -> Unit) {
+    if (baseUiState.loadingInProgress()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
+        }
+    } else if (baseUiState.hasData()) {
+        Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
+            createTopBar(navController, title, "Return to home screen")
+        }, floatingActionButton = {
+            createFloatingAction(navController, editor.addRoute())
+        }, content = content)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,6 +139,13 @@ fun ViewTextField(
             textStyle = TextStyle.Default.copy(fontSize = fontSize)
         )
     }
+}
+
+@Composable
+fun spacedViewText(value : String) {
+    Spacer(modifier = Modifier.size(16.dp))
+    ViewText(value)
+
 }
 
 @Composable

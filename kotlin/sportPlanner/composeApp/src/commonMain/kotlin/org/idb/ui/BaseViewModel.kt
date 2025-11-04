@@ -54,8 +54,17 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
         }
 }
 
+interface BaseUiState {
+    fun loadingInProgress() : Boolean
+    fun hasData() : Boolean
+}
+
 data class UiState<ENTITY>(
     val isLoading: Boolean,
     val data: List<ENTITY>? = null,
     val error: String? = null,
-)
+) : BaseUiState {
+    override fun loadingInProgress(): Boolean = isLoading
+
+    override fun hasData(): Boolean = data != null
+}

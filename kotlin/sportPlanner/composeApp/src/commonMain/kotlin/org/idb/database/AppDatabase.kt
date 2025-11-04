@@ -7,12 +7,14 @@ import androidx.room.RoomDatabaseConstructor
 
 @Database(entities = [
     Association::class,
+    Competition::class,
     Season::class,
     SeasonTeam::class,
     TeamCategory::class], version = 1)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
+    abstract fun getCompetitionDao() : CompetitionDao
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao
     abstract fun getTeamCategoryDao() : TeamCategoryDao

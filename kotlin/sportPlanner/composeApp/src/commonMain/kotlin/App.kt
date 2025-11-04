@@ -8,6 +8,7 @@ import com.softartdev.theme.material3.PreferableMaterialTheme
 import org.idb.ui.Editors
 import org.idb.ui.homeScreen
 import org.idb.ui.navigateAssociation
+import org.idb.ui.navigateCompetitions
 import org.idb.ui.navigateSeason
 import org.idb.ui.navigateSeasonTeam
 import org.idb.ui.navigateTeamCategory
@@ -27,6 +28,10 @@ fun App() {
 
             composable(getRoute(Editors.ASSOCIATIONS)) {
                 navigateAssociation(navController, getArgument(it))
+            }
+
+            composable(getRoute(Editors.COMPETITIONS)) {
+                navigateCompetitions(navController, getArgument(it))
             }
 
             composable(getRoute(Editors.SEASONS)) {

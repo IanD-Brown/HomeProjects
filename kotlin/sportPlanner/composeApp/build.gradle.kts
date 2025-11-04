@@ -1,5 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.jetbrainsCompose)
@@ -21,8 +19,6 @@ kotlin {
         val desktopMain by getting
 
         commonMain.dependencies {
-            // IDB fix this, should be in libs.versions.toml
-            //implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -69,11 +65,11 @@ compose.desktop {
     application {
         mainClass = "MainKt"
 
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.sunildhiman90.cmpwithroom"
-            packageVersion = "1.0.0"
-        }
+//        nativeDistributions {
+//            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+//            packageName = "com.sunildhiman90.cmpwithroom"
+//            packageVersion = "1.0.0"
+//        }
     }
 }
 
