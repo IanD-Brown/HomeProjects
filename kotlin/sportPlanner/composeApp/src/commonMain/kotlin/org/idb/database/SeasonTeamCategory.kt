@@ -10,12 +10,12 @@ import androidx.room.Query
 import androidx.room.Update
 import kotlinx.serialization.Serializable
 
-private const val table = "SeasonTeams"
+private const val table = "SeasonTeamCategories"
 
 @Serializable
 @Entity(
     tableName = table,
-    primaryKeys = ["seasonId", "teamCategoryId", "associationId", "competitionId"],
+    primaryKeys = ["seasonId", "competitionId", "teamCategoryId"],
     foreignKeys = [
         ForeignKey(
             entity = Season::class,
@@ -24,46 +24,40 @@ private const val table = "SeasonTeams"
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = TeamCategory::class,
-            parentColumns = ["id"],
-            childColumns = ["teamCategoryId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = Association::class,
-            parentColumns = ["id"],
-            childColumns = ["associationId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
             entity = Competition::class,
             parentColumns = ["id"],
             childColumns = ["competitionId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = TeamCategory::class,
+            parentColumns = ["id"],
+            childColumns = ["teamCategoryId"],
+            onDelete = ForeignKey.CASCADE
         )]
 )
-data class SeasonTeam(
+data class SeasonTeamCategory(
     val seasonId: Short,
     val competitionId: Short,
-    val associationId: Short,
     val teamCategoryId: Short,
-    var count: Short
+    var games: Short,
+    var locked: Boolean
 )
 
 @Dao
-interface SeasonTeamDao : BaseDao<SeasonTeam> {
+interface SeasonTeamCategoryDao : BaseDao<SeasonTeamCategory> {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    override suspend fun insert(entity: SeasonTeam): Long
+    override suspend fun insert(entity: SeasonTeamCategory): Long
 
     @Query("SELECT * FROM $table")
-    override suspend fun getAll(): List<SeasonTeam>
+    override suspend fun getAll(): List<SeasonTeamCategory>
 
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
 
     @Delete
-    override suspend fun delete(entity: SeasonTeam)
+    override suspend fun delete(entity: SeasonTeamCategory)
 
     @Update
-    override suspend fun update(entity: SeasonTeam)
+    override suspend fun update(entity: SeasonTeamCategory)
 }

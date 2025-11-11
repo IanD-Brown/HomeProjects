@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldColors
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -118,14 +119,8 @@ fun ViewTextField(
             modifier = modifier,
             singleLine = true,
             trailingIcon = trailingIcon,
-            colors = TextFieldDefaults.textFieldColors(
-                textColor = MaterialTheme.colors.onSurface,
-                cursorColor = MaterialTheme.colors.onSurface,
-                backgroundColor = MaterialTheme.colors.surface,
-                focusedIndicatorColor = Color.Green,
-                unfocusedIndicatorColor = Color.Gray
-            ),
-            textStyle = TextStyle.Default.copy(fontSize = fontSize)
+            colors = textFieldColors(),
+            textStyle = textStyle()
         )
         else -> TextField(
             value = value,
@@ -134,23 +129,27 @@ fun ViewTextField(
             singleLine = true,
             label = { ViewText(label) },
             trailingIcon = trailingIcon,
-            colors = TextFieldDefaults.textFieldColors(
-                textColor = MaterialTheme.colors.onSurface,
-                cursorColor = MaterialTheme.colors.onSurface,
-                backgroundColor = MaterialTheme.colors.surface,
-                focusedIndicatorColor = Color.Green,
-                unfocusedIndicatorColor = Color.Gray
-            ),
-            textStyle = TextStyle.Default.copy(fontSize = fontSize)
+            colors = textFieldColors(),
+            textStyle = textStyle()
         )
     }
 }
+
+fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize)
+
+@Composable
+fun textFieldColors(): TextFieldColors = TextFieldDefaults.textFieldColors(
+    textColor = MaterialTheme.colors.onSurface,
+    cursorColor = MaterialTheme.colors.onSurface,
+    backgroundColor = MaterialTheme.colors.surface,
+    focusedIndicatorColor = Color.Green,
+    unfocusedIndicatorColor = Color.Gray
+)
 
 @Composable
 fun spacedViewText(value : String) {
     Spacer(modifier = Modifier.size(16.dp))
     ViewText(value)
-
 }
 
 @Composable

@@ -11,6 +11,7 @@ import org.idb.ui.navigateAssociation
 import org.idb.ui.navigateCompetitions
 import org.idb.ui.navigateSeason
 import org.idb.ui.navigateSeasonTeam
+import org.idb.ui.navigateSeasonTeamCategory
 import org.idb.ui.navigateTeamCategory
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -40,6 +41,10 @@ fun App() {
 
             composable(getRoute(Editors.SEASON_TEAMS)) {
                 navigateSeasonTeam(navController, getArgument(it))
+            }
+
+            composable(getRoute(Editors.SEASON_TEAM_CATEGORY)) {
+                navigateSeasonTeamCategory(navController, getArgument(it))
             }
 
             composable(getRoute(Editors.TEAM_CATEGORIES)) {

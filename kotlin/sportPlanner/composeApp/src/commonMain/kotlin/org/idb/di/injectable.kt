@@ -6,6 +6,7 @@ import org.idb.database.DBFactory
 import org.idb.ui.AssociationViewModel
 import org.idb.ui.CompetitionViewModel
 import org.idb.ui.SeasonCompetitionViewModel
+import org.idb.ui.SeasonTeamCategoryViewModel
 import org.idb.ui.SeasonTeamViewModel
 import org.idb.ui.SeasonViewModel
 import org.koin.core.context.startKoin
@@ -17,6 +18,7 @@ private val injectableModules = module {
     viewModelOf(::AssociationViewModel)
     viewModelOf(::CompetitionViewModel)
     viewModelOf(::SeasonCompetitionViewModel)
+    viewModelOf(::SeasonTeamCategoryViewModel)
     viewModelOf(::SeasonTeamViewModel)
     viewModelOf(::SeasonViewModel)
     viewModelOf(::TeamCategoryViewModel)

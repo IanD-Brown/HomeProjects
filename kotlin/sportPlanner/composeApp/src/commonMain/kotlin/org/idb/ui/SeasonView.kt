@@ -16,11 +16,13 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -120,10 +122,12 @@ private fun seasonListView(navController: NavController) {
                                     spacedViewText(convertMillisToDate(entity.endDate))
                                 })
 
+                                spacedIcon(Icons.Default.Settings, "manage teams") {
+                                    navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
+                                }
+
                                 spacedIcon(Icons.Default.Face, "manage teams") {
-                                    val seasonName = state.value.data?.find {it.id == entity.seasonId}?.name!!
-                                    val competitionName = competitionState.value.data?.find { it.id == entity.competitionId }?.name!!
-                                    navController.navigate(Editors.SEASON_TEAMS.viewRoute(SeasonCompetitionParam(entity.seasonId, seasonName, entity.competitionId, competitionName)))
+                                    navController.navigate(Editors.SEASON_TEAMS.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                 }
                             }
                         }
@@ -132,6 +136,13 @@ private fun seasonListView(navController: NavController) {
             }
         })
     })
+}
+
+private fun createSeasonCompetitionParam(state: State<UiState<Season>>, entity: SeasonCompetition, data: List<Competition>?)
+    : SeasonCompetitionParam {
+    val seasonName = state.value.data?.find { it.id == entity.seasonId }?.name!!
+    val competitionName = data?.find { it.id == entity.competitionId }?.name!!
+    return SeasonCompetitionParam(entity.seasonId, seasonName, entity.competitionId, competitionName)
 }
 
 // ensure all competitions for all seasons are present (so adding a competition appears in the list without an entry in season competitions)
