@@ -49,8 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val fontSize = 16.sp
+private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 @Composable
 fun viewCommon(
@@ -223,4 +227,18 @@ fun DropdownList(
             }
         }
     }
+}
+
+fun convertMillisToDate(millis: Long?): String =
+    when (millis) {
+        null -> ""
+        0L -> "dd/mm/yyyy"
+        else -> {
+            dateFormatter.format(Date(millis))
+        }
+    }
+
+fun dateToMillis(dateString : String) : Long {
+    val date = dateFormatter.parse(dateString)
+    return date.toInstant().toEpochMilli()
 }

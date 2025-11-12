@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,22 +45,24 @@ import com.ryinex.kotlin.datatable.views.DataTableView
 import com.softartdev.theme.material.PreferableMaterialTheme
 import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.text.ParseException
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.idb.database.AppDatabase
 import org.idb.database.Competition
 import org.idb.database.Season
 import org.idb.database.SeasonCompetition
+import org.idb.database.SeasonDao
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
-import java.text.ParseException
+
+class SeasonViewModel : BaseViewModel<SeasonDao, Season>() {
+    override fun getDao(db: AppDatabase): SeasonDao = db.getSeasonDao()
+}
 
 private val editor : Editors = Editors.SEASONS
-private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 @Serializable
 data class SeasonCompetitionParam(val seasonId : Short, val seasonName : String, val competitionId : Short, val competitionName : String)
@@ -122,6 +125,10 @@ private fun seasonListView(navController: NavController) {
                                     spacedViewText(convertMillisToDate(entity.endDate))
                                 })
 
+                                spacedIcon(Icons.Default.Info, "manage season breaks") {
+                                    navController.navigate(Editors.SEASON_BREAK.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
+                                }
+
                                 spacedIcon(Icons.Default.Settings, "manage teams") {
                                     navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                 }
@@ -168,15 +175,6 @@ private fun createSeasonsList(seasons : List<Season>, competitions : List<Compet
 
     return result
 }
-
-private fun convertMillisToDate(millis: Long?): String =
-    when (millis) {
-        null -> ""
-        0L -> "dd/mm/yyyy"
-        else -> {
-            dateFormatter.format(Date(millis))
-        }
-    }
 
 
 private enum class DateOption {START, END}
@@ -244,8 +242,7 @@ private fun seasonEditor(navController: NavController, season : Season? = null) 
                                 run {
                                     var result : String? = null
                                     try {
-                                        val date = dateFormatter.parse(text)
-                                        val milli = date.toInstant().toEpochMilli()
+                                        val milli = dateToMillis(text)
                                         when (option) {
                                             DateOption.START -> dates?.get(id)?.start = milli
                                             DateOption.END -> dates?.get(id)?.end = milli

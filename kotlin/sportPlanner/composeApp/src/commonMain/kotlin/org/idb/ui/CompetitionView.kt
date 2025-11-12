@@ -19,9 +19,21 @@ import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.idb.database.AppDatabase
 import org.idb.database.Competition
+import org.idb.database.CompetitionDao
+import org.idb.database.SeasonCompetition
+import org.idb.database.SeasonCompetitionDao
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+
+class CompetitionViewModel : BaseViewModel<CompetitionDao, Competition>() {
+    override fun getDao(db: AppDatabase): CompetitionDao = db.getCompetitionDao()
+}
+
+class SeasonCompetitionViewModel: BaseViewModel<SeasonCompetitionDao, SeasonCompetition>() {
+    override fun getDao(db: AppDatabase): SeasonCompetitionDao = db.getSeasonCompetitionDao()
+}
 
 private val editor = Editors.COMPETITIONS
 
@@ -67,7 +79,6 @@ private fun competitionView(navController: NavController) {
         })
     })
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

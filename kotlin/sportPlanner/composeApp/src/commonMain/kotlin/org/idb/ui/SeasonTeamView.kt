@@ -15,11 +15,17 @@ import com.ryinex.kotlin.datatable.data.*
 import com.ryinex.kotlin.datatable.views.DataTableView
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.idb.database.AppDatabase
 import org.idb.database.Association
 import org.idb.database.SeasonTeam
+import org.idb.database.SeasonTeamDao
 import org.idb.database.TeamCategory
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
+
+class SeasonTeamViewModel : BaseViewModel<SeasonTeamDao, SeasonTeam>() {
+    override fun getDao(db: AppDatabase): SeasonTeamDao = db.getSeasonTeamDao()
+}
 
 @Composable
 fun navigateSeasonTeam(navController : NavController, argument : String?) {

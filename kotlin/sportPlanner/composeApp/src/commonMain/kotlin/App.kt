@@ -10,6 +10,7 @@ import org.idb.ui.homeScreen
 import org.idb.ui.navigateAssociation
 import org.idb.ui.navigateCompetitions
 import org.idb.ui.navigateSeason
+import org.idb.ui.navigateSeasonBreak
 import org.idb.ui.navigateSeasonTeam
 import org.idb.ui.navigateSeasonTeamCategory
 import org.idb.ui.navigateTeamCategory
@@ -37,6 +38,10 @@ fun App() {
 
             composable(getRoute(Editors.SEASONS)) {
                 navigateSeason(navController, getArgument(it))
+            }
+
+            composable(getRoute(Editors.SEASON_BREAK)) {
+                navigateSeasonBreak(navController, getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_TEAMS)) {

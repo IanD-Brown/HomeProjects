@@ -30,10 +30,16 @@ import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.idb.database.AppDatabase
 import org.idb.database.Association
+import org.idb.database.AssociationDao
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
+
+class AssociationViewModel : BaseViewModel<AssociationDao, Association>() {
+    override fun getDao(db: AppDatabase): AssociationDao = db.getAssociationDao()
+}
 
 private val editor = Editors.ASSOCIATIONS
 

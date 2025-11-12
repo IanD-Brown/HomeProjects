@@ -11,6 +11,7 @@ private const val version = 7
     Association::class,
     Competition::class,
     Season::class,
+    SeasonBreak::class,
     SeasonCompetition::class,
     SeasonTeam::class,
     SeasonTeamCategory::class,
@@ -19,8 +20,9 @@ private const val version = 7
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
     abstract fun getCompetitionDao() : CompetitionDao
-    abstract fun getSeasonDao() : SeasonDao
+    abstract fun getSeasonBreakDao() : SeasonBreakDao
     abstract fun getSeasonCompetitionDao() : SeasonCompetitionDao
+    abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonTeamCategoryDao() : SeasonTeamCategoryDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao
     abstract fun getTeamCategoryDao() : TeamCategoryDao

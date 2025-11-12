@@ -1,3 +1,5 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.jetbrainsCompose)
@@ -12,7 +14,12 @@ plugins {
 }
 
 kotlin {
-
+//    macosArm64("native") {
+//        // Use linuxArm64("native") for Linux or mingwX64("native") for Windows
+//        binaries {
+//            executable()
+//        }
+//    }
     jvm("desktop")
 
     sourceSets {
@@ -65,11 +72,11 @@ compose.desktop {
     application {
         mainClass = "MainKt"
 
-//        nativeDistributions {
-//            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-//            packageName = "com.sunildhiman90.cmpwithroom"
-//            packageVersion = "1.0.0"
-//        }
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "org.idb"
+            packageVersion = "1.0.0"
+        }
     }
 }
 

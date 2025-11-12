@@ -30,11 +30,16 @@ import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.idb.database.AppDatabase
 import org.idb.database.TeamCategory
+import org.idb.database.TeamCategoryDao
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 
+class TeamCategoryViewModel : BaseViewModel<TeamCategoryDao, TeamCategory>() {
+    override fun getDao(db: AppDatabase): TeamCategoryDao = db.getTeamCategoryDao()
+}
 private enum class Day(val display : String) {
     MON("Mon"),
     TUES("Tues"),
