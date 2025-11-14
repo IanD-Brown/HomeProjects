@@ -23,6 +23,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SEASON_BREAK("Season Break", false),
+    SEASON_COMPETITION_ROUND("Season competition round", false),
     SEASON_TEAMS("Season Teams", false),
     SEASON_TEAM_CATEGORY("", false),
     SEASONS("Seasons"),

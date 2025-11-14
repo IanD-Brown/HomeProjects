@@ -6,6 +6,7 @@ import org.idb.database.DBFactory
 import org.idb.ui.AssociationViewModel
 import org.idb.ui.CompetitionViewModel
 import org.idb.ui.SeasonBreakViewModel
+import org.idb.ui.SeasonCompetitionRoundViewModel
 import org.idb.ui.SeasonCompetitionViewModel
 import org.idb.ui.SeasonTeamCategoryViewModel
 import org.idb.ui.SeasonTeamViewModel
@@ -19,6 +20,7 @@ private val injectableModules = module {
     viewModelOf(::AssociationViewModel)
     viewModelOf(::CompetitionViewModel)
     viewModelOf(::SeasonBreakViewModel)
+    viewModelOf(::SeasonCompetitionRoundViewModel)
     viewModelOf(::SeasonCompetitionViewModel)
     viewModelOf(::SeasonTeamCategoryViewModel)
     viewModelOf(::SeasonTeamViewModel)

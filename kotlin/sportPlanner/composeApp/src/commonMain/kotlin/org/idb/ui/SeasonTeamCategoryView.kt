@@ -11,8 +11,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +39,10 @@ import org.idb.database.SeasonTeamCategory
 import org.idb.database.SeasonTeamCategoryDao
 import org.idb.database.TeamCategory
 import org.koin.compose.koinInject
+import androidx.compose.material.Checkbox
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
 
 class SeasonTeamCategoryViewModel : BaseViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>() {
     override fun getDao(db: AppDatabase): SeasonTeamCategoryDao = db.getSeasonTeamCategoryDao()
@@ -200,7 +212,7 @@ private fun Dropdown(isLocked: () -> Boolean, index : Int, getMatch: (index : In
                         expanded.value = false
                     }
                 ) {
-                    Text(text = ms.display)
+                    ViewText(ms.display)
                 }
             }
         }

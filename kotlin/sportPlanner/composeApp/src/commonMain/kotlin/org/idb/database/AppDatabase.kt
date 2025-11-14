@@ -13,6 +13,7 @@ private const val version = 7
     Season::class,
     SeasonBreak::class,
     SeasonCompetition::class,
+    SeasonCompetitionRound::class,
     SeasonTeam::class,
     SeasonTeamCategory::class,
     TeamCategory::class], version = version)
@@ -22,6 +23,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getCompetitionDao() : CompetitionDao
     abstract fun getSeasonBreakDao() : SeasonBreakDao
     abstract fun getSeasonCompetitionDao() : SeasonCompetitionDao
+    abstract fun getSeasonCompetitionRoundDao() : SeasonCompetitionRoundDao
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonTeamCategoryDao() : SeasonTeamCategoryDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao

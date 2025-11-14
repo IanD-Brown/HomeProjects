@@ -1,6 +1,5 @@
 package org.idb.ui
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,7 +19,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -40,6 +37,8 @@ import org.koin.compose.koinInject
 class TeamCategoryViewModel : BaseViewModel<TeamCategoryDao, TeamCategory>() {
     override fun getDao(db: AppDatabase): TeamCategoryDao = db.getTeamCategoryDao()
 }
+
+private val editor = Editors.TEAM_CATEGORIES
 private enum class Day(val display : String) {
     MON("Mon"),
     TUES("Tues"),
@@ -59,7 +58,6 @@ fun navigateTeamCategory(navController : NavController, argument : String?) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
 fun teamCategoryEditor(navController: NavController) {
@@ -67,48 +65,39 @@ fun teamCategoryEditor(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
 
-    if (state.value.isLoading) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
-        }
-    } else if (state.value.data != null) {
-        Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-            createTopBar(navController, "Team Categories", "Return to home screen")
-        }, floatingActionButton = {
-            createFloatingAction(navController, Editors.TEAM_CATEGORIES.name + "/Add")
-        }, content = { paddingValues ->
-            LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-                val values = state.value.data!!
-                items(
-                    items = values.sortedBy { it.name.uppercase().trim() },
-                    key = { teamCategory -> teamCategory.id }) { teamCategory ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        content = {
-                            Row(
-                                modifier = Modifier.weight(2F), content = {
-                                    Spacer(modifier = Modifier.size(16.dp))
-                                    ViewText(teamCategory.name)
-                                    Spacer(modifier = Modifier.size(16.dp))
-                                    ViewText(Day.entries[teamCategory.matchDay].display)
-                                })
+    viewCommon(state.value, navController, "Team Categories", { createFloatingAction(navController, editor.addRoute()) }) {
+            paddingValues ->
+        LazyColumn(modifier = Modifier.padding(paddingValues), content = {
+            val values = state.value.data!!
+            items(
+                items = values.sortedBy { it.name.uppercase().trim() },
+                key = { teamCategory -> teamCategory.id }) { teamCategory ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    content = {
+                        Row(
+                            modifier = Modifier.weight(2F), content = {
+                                Spacer(modifier = Modifier.size(16.dp))
+                                ViewText(teamCategory.name)
+                                Spacer(modifier = Modifier.size(16.dp))
+                                ViewText(Day.entries[teamCategory.matchDay].display)
+                            })
 
-                            itemButtons(
-                                editClick = {
-                                    navController.navigate(
-                                        Editors.TEAM_CATEGORIES.name +
-                                                "/${Json.encodeToString(teamCategory)}"
-                                    )
-                                },
-                                deleteClick = {
-                                    coroutineScope.launch {
-                                        viewModel.delete(teamCategory)
-                                    }
-                                })
-                        })
+                        itemButtons(
+                            editClick = {
+                                navController.navigate(
+                                    Editors.TEAM_CATEGORIES.name +
+                                            "/${Json.encodeToString(teamCategory)}"
+                                )
+                            },
+                            deleteClick = {
+                                coroutineScope.launch {
+                                    viewModel.delete(teamCategory)
+                                }
+                            })
+                    })
 
-                }
-            })
+            }
         })
     }
 }
@@ -138,7 +127,7 @@ fun addTeamCategory(navController: NavController) {
                         navController.popBackStack()
                     }
                 },
-                enabled = !name.isEmpty()) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
+                enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
         })
     }
 }
@@ -169,8 +158,7 @@ fun editTeamCategory(navController: NavController, editCategory: TeamCategory) {
                     navController.popBackStack()
                 }
             },
-                enabled = !name.isEmpty()) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
-
+                enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
         })
     }
 }

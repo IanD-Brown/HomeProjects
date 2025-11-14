@@ -11,17 +11,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldColors
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,8 +33,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,10 +56,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import org.idb.database.SeasonCompetition
 
-private val fontSize = 16.sp
+val fontSize = 16.sp
 private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 @Composable
@@ -99,13 +107,26 @@ fun createFloatingAction(navController: NavController, route: String) {
 }
 
 @Composable
-fun ViewText(value : String) {
+fun ViewText(value : String, modifier: Modifier = Modifier) {
     Text(
         text = value,
         fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
+        modifier = modifier
     )
+}
+
+@Composable
+fun ViewTextField(value : String, modifier : Modifier, isError : () -> Boolean, onValueChange: (String) -> Unit) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        singleLine = true,
+        colors = textFieldColors(),
+        textStyle = textStyle(),
+        isError = isError())
 }
 
 @Composable
@@ -139,21 +160,22 @@ fun ViewTextField(
     }
 }
 
-fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize)
+@Composable
+fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colors.onSurface)
 
 @Composable
 fun textFieldColors(): TextFieldColors = TextFieldDefaults.textFieldColors(
     textColor = MaterialTheme.colors.onSurface,
     cursorColor = MaterialTheme.colors.onSurface,
     backgroundColor = MaterialTheme.colors.surface,
-    focusedIndicatorColor = Color.Green,
-    unfocusedIndicatorColor = Color.Gray
+    focusedIndicatorColor = Color.Transparent,
+    unfocusedIndicatorColor = Color.Transparent
 )
 
 @Composable
-fun spacedViewText(value : String) {
+fun spacedViewText(value : String, modifier: Modifier = Modifier) {
     Spacer(modifier = Modifier.size(16.dp))
-    ViewText(value)
+    ViewText(value, modifier)
 }
 
 @Composable
@@ -229,6 +251,53 @@ fun DropdownList(
     }
 }
 
+
+// Creating a composable to display a drop-down menu
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun datePicker(current: Long, modifier : Modifier, isSelectable : (Long) -> Boolean, onItemClick: (Long) -> Unit) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    ViewTextField(
+        value = convertMillisToDate(current),
+        modifier = modifier,
+        trailingIcon = {
+            IconButton(onClick = { showDatePicker = !showDatePicker }) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = "Select date"
+                )
+            }
+        }
+    ) {}
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean = isSelectable(utcTimeMillis)
+        })
+        val onDismissRequest = { showDatePicker = false }
+
+        datePickerState.selectedDateMillis = current
+
+        DatePickerDialog(
+            onDismissRequest = onDismissRequest,
+            confirmButton = {
+                TextButton(
+                    enabled = (datePickerState.selectedDateMillis ?: 0) > 0L,
+                    onClick = {
+                        onItemClick(datePickerState.selectedDateMillis!!)
+                        onDismissRequest()
+                    }) { ViewText("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissRequest) { ViewText("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
 fun convertMillisToDate(millis: Long?): String =
     when (millis) {
         null -> ""
@@ -241,4 +310,15 @@ fun convertMillisToDate(millis: Long?): String =
 fun dateToMillis(dateString : String) : Long {
     val date = dateFormatter.parse(dateString)
     return date.toInstant().toEpochMilli()
+}
+
+fun isMondayIn(season : SeasonCompetition, utcMs : Long) : Boolean {
+    if (utcMs >= season.startDate &&
+        utcMs <= season.endDate) {
+        val calendar = Calendar.getInstance()
+        calendar.setTimeInMillis(utcMs)
+
+        return calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY
+    }
+    return false
 }

@@ -121,7 +121,7 @@ fun addAssociation(navController: NavController) {
                         navController.popBackStack()
                     }
                 }, enabled = !name.isEmpty()
-            ) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
+            ) { ViewText(stringResource(Res.string.ok)) }
 
         })
     }
@@ -150,7 +150,7 @@ fun editAssociation(navController: NavController, association: Association) {
                         navController.popBackStack()
                     }
                 }, enabled = !name.isEmpty()
-            ) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
+            ) { ViewText(stringResource(Res.string.ok)) }
         })
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -124,6 +125,10 @@ private fun seasonListView(navController: NavController) {
                                     spacedViewText("to")
                                     spacedViewText(convertMillisToDate(entity.endDate))
                                 })
+
+                                spacedIcon(Icons.Default.Star, "manage season competition rounds") {
+                                    navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
+                                }
 
                                 spacedIcon(Icons.Default.Info, "manage season breaks") {
                                     navController.navigate(Editors.SEASON_BREAK.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
@@ -275,7 +280,7 @@ private fun seasonEditor(navController: NavController, season : Season? = null) 
                             }
                         },
                         enabled = !name.isEmpty() /*&& startDate > 0 && endDate > startDate*/
-                    ) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
+                    ) { ViewText(stringResource(Res.string.ok)) }
                 })
         }
     }

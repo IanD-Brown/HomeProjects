@@ -105,7 +105,7 @@ private fun addCompetition(navController: NavController) {
                         navController.popBackStack()
                     }
                 },
-                    enabled = !name.isEmpty()) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
+                    enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
             })
     }
 }
@@ -137,7 +137,7 @@ private fun editCompetition(navController: NavController, editCategory: Competit
                     navController.popBackStack()
                 }
             },
-                enabled = !name.isEmpty()) { androidx.compose.material.Text(stringResource(Res.string.ok)) }
+                enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
 
         })
     }
