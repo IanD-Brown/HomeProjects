@@ -71,6 +71,7 @@ fun viewCommon(
     title: String,
     floatingActionButton: @Composable () -> Unit,
     description: String = "Return to home screen",
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     if (baseUiState.loadingInProgress()) {
@@ -81,6 +82,7 @@ fun viewCommon(
         Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
             createTopBar(navController, title, description)
         }, floatingActionButton = floatingActionButton,
+            bottomBar = bottomBar,
             content = content)
     }
 }
@@ -203,7 +205,6 @@ fun DropdownList(
     // Declaring a boolean value to store
     // the expanded state of the Text Field
     var expanded by remember { mutableStateOf(false) }
-    // Create a string value to store the selected city
     var selectedText by remember { mutableStateOf(itemList[selectedIndex]) }
     var textFieldSize by remember { mutableStateOf(Size.Zero)}
 
