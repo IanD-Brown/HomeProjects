@@ -100,6 +100,10 @@ private fun SeasonListView(navController: NavController) {
                                     SpacedViewText(entity.name)
                                 })
 
+                                SpacedIcon(Icons.Default.Info, "manage season breaks") {
+                                    navController.navigate(Editors.SEASON_BREAK.viewRoute(entity))
+                                }
+
                                 ItemButtons(
                                     editClick = {
                                         navController.navigate(editor.editRoute(entity))
@@ -124,11 +128,7 @@ private fun SeasonListView(navController: NavController) {
                                     navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                 }
 
-                                SpacedIcon(Icons.Default.Info, "manage season breaks") {
-                                    navController.navigate(Editors.SEASON_BREAK.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
-                                }
-
-                                SpacedIcon(Icons.Default.Settings, "manage teams") {
+                                 SpacedIcon(Icons.Default.Settings, "manage teams") {
                                     navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                 }
 

@@ -186,7 +186,7 @@ fun SpacedViewText(value : String, modifier: Modifier = Modifier) {
 @Composable
 fun SpacedIcon(imageVector: ImageVector,
                contentDescription: String?,
-               tint: Color = MaterialTheme.colorScheme.surface,
+               tint: Color = MaterialTheme.colorScheme.onSurface,
                onClick : () -> Unit) {
     Spacer(modifier = Modifier.size(16.dp))
     Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
@@ -311,9 +311,11 @@ fun convertMillisToDate(millis: Long?): String =
         }
     }
 
-fun isMondayIn(season : SeasonCompetition, utcMs : Long) : Boolean {
-    if (utcMs >= season.startDate &&
-        utcMs <= season.endDate) {
+fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
+    isMondayIn(seasonCompetition.startDate, seasonCompetition.endDate, utcMs)
+
+fun isMondayIn(startDate : Long, endDate: Long, utcMs : Long) : Boolean {
+    if (utcMs in startDate..endDate) {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = utcMs
 
