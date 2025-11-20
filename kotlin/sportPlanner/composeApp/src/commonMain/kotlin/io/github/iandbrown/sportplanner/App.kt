@@ -11,6 +11,7 @@ import io.github.iandbrown.sportplanner.ui.Editors
 import io.github.iandbrown.sportplanner.ui.NavigateAssociation
 import io.github.iandbrown.sportplanner.ui.HomeScreen
 import io.github.iandbrown.sportplanner.ui.NavigateCompetitions
+import io.github.iandbrown.sportplanner.ui.NavigateFixtures
 import io.github.iandbrown.sportplanner.ui.NavigateSeason
 import io.github.iandbrown.sportplanner.ui.NavigateSeasonBreak
 import io.github.iandbrown.sportplanner.ui.NavigateSeasonCompetitionRound
@@ -49,6 +50,10 @@ fun App() {
 
             composable(getRoute(Editors.SEASON_COMPETITION_ROUND)) {
                 NavigateSeasonCompetitionRound(navController, getArgument(it))
+            }
+
+            composable(getRoute(Editors.SEASON_FIXTURES)) {
+                NavigateFixtures(navController, getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_TEAMS)) {

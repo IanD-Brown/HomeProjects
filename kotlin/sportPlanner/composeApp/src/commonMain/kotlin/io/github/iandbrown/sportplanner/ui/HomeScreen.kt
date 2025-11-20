@@ -26,6 +26,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SEASON_COMPETITION_ROUND("Season competition round", false),
     SEASON_TEAMS("Season Teams", false),
     SEASON_TEAM_CATEGORY("", false),
+    SEASON_FIXTURES("Fixtures"),
     SEASONS("Seasons"),
     COMPETITIONS("Competitions"),
     TEAM_CATEGORIES("Team Categories"),

@@ -110,9 +110,9 @@ private fun SeasonBreakEditor(navController: NavController, info : SeasonBreakEd
             onClick = {
                 coroutineScope.launch {
                     if (info.seasonBreak == null) {
-                        viewModel.insert(SeasonBreak(name = name.value.trim(), week = week.longValue))
+                        viewModel.insert(SeasonBreak(seasonId = info.param.id, name = name.value.trim(), week = week.longValue))
                     } else {
-                        viewModel.update(SeasonBreak(info.seasonBreak.id, name.value.trim(), week.longValue))
+                        viewModel.update(SeasonBreak(info.seasonBreak.id, info.param.id, name.value.trim(), week.longValue))
                     }
                     navController.popBackStack()
                 }

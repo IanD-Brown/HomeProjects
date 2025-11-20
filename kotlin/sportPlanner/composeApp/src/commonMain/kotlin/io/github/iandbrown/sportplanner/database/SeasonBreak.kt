@@ -1,23 +1,22 @@
 package io.github.iandbrown.sportplanner.database
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.serialization.Serializable
 
 private const val table = "SeasonBreaks"
 
 @Serializable
-@Entity(tableName = table, indices = [Index(value = ["name"], unique = true)])
+@Entity(tableName = table, indices = [Index(value = ["seasonId", "name"], unique = true)])
 data class SeasonBreak(
     @PrimaryKey(autoGenerate = true)
     val id: Short = 0,
+    val seasonId : Short,
     var name: String,
     var week: Long
 )
@@ -34,9 +33,6 @@ interface SeasonBreakDao : BaseDao<SeasonBreak> {
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
 
-    @Delete
-    override suspend fun delete(entity: SeasonBreak)
-
-    @Update
-    override suspend fun update(entity : SeasonBreak)
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    suspend fun getBySeason(seasonId: Short): List<SeasonBreak>
 }

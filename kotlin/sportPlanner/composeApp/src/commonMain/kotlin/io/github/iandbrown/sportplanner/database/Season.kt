@@ -1,14 +1,12 @@
 package io.github.iandbrown.sportplanner.database
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.serialization.Serializable
 
 private const val table = "Seasons"
@@ -31,10 +29,4 @@ interface SeasonDao : BaseDao<Season> {
 
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
-
-    @Delete
-    override suspend fun delete(entity: Season)
-
-    @Update
-    override suspend fun update(entity : Season)
 }
