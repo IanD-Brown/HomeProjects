@@ -46,7 +46,7 @@ fun NavigateCompetitions(navController: NavController, argument: String?) {
     }
 }
 
-private enum class Types(val display : String) {
+enum class CompetitionTypes(val display : String) {
     LEAGUE("League"),
     KNOCK_OUT_CUP("Knockout cup")
 }
@@ -69,7 +69,7 @@ private fun CompetitionView(navController: NavController) {
                         modifier = Modifier.weight(2F),
                         content = {
                             SpacedViewText(competition.name)
-                            SpacedViewText(Types.entries[competition.type.toInt()].display)
+                            SpacedViewText(CompetitionTypes.entries[competition.type.toInt()].display)
                         })
                     ItemButtons(
                         { navController.navigate(editor.editRoute(competition)) },
@@ -96,7 +96,7 @@ private fun AddCompetition(navController: NavController) {
                     modifier = Modifier.padding(paddingValues), content = {
                         ViewTextField(value = name, label = "Name:") { name = it }
                         Text("Type:")
-                        DropdownList(itemList = Types.entries.map { it.display }, selectedIndex = type) { type = it }
+                        DropdownList(itemList = CompetitionTypes.entries.map { it.display }, selectedIndex = type) { type = it }
                     })
             }, bottomBar = {
                 Button(onClick = {
@@ -128,7 +128,7 @@ private fun EditCompetition(navController: NavController, editCategory: Competit
                 modifier = Modifier.padding(paddingValues), content = {
                     ViewTextField(value = name, label = "Name:") { name = it }
                     Text("Type:")
-                    DropdownList(itemList = Types.entries.map { it.display }, selectedIndex = type.toInt()) { type = it.toShort() }
+                    DropdownList(itemList = CompetitionTypes.entries.map { it.display }, selectedIndex = type.toInt()) { type = it.toShort() }
                 })
         }, bottomBar = {
             Button(onClick = {

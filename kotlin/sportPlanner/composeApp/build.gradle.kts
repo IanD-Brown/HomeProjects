@@ -13,6 +13,8 @@ plugins {
     alias(libs.plugins.ksp) //ksp for room annotation processing
 
     alias(libs.plugins.kotlinSerialization)
+
+    alias(libs.plugins.kotest.plugin)
 }
 
 kotlin {
@@ -65,6 +67,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotest.framework)
+            implementation(libs.kotest.runner.junit5)
         }
 
         jvmMain.dependencies {

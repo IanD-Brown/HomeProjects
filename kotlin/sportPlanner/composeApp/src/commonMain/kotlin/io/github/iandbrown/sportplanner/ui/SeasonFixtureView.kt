@@ -76,6 +76,8 @@ private fun FixtureView(navController: NavController) {
 
 private suspend fun calcFixtures(seasonId : Short) {
     val db : AppDatabase by inject(AppDatabase::class.java)
-    val seasonWeeks = SeasonWeeks(db.getSeasonCompetitionDao().getBySeason(seasonId), db.getSeasonBreakDao().getBySeason(seasonId)
+    val seasonWeeks = SeasonWeeks(db.getSeasonCompetitionDao().getBySeason(seasonId),
+        db.getSeasonBreakDao().getBySeason(seasonId),
+        db.getCompetitionDao().getAll()
     )
 }

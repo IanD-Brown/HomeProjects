@@ -3,7 +3,7 @@ agp = "8.13.1"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
-androidx-activity = "1.11.0"
+androidx-activity = "1.12.0"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
@@ -21,14 +21,16 @@ materialThemePrefs = "0.9.8"
 # json serialize
 kotlin-serialize = "1.9.0"
 # room
-room = "2.8.3"
+room = "2.8.4"
 ksp = "2.3.2"
-sqliteBundled = "2.6.1"
+sqliteBundled = "2.6.2"
 # koin
 koin-core = "4.1.1"
 # data table
 dataTable = "1.0.7"
 androidx-startup = "1.2.0"
+# unit-testing kotest
+kotest-version = "6.0.5"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -63,7 +65,9 @@ koin-composeVM = { module = "io.insert-koin:koin-compose-viewmodel", version.ref
 data-table = {module = "com.ryinex.kotlin:compose-data-table", version.ref = "dataTable" }
 # android startup
 androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = "androidx-startup" }
-
+# unit testing with kotest
+kotest-framework = {module = "io.kotest:kotest-framework-engine", version.ref = "kotest-version"}
+kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref = "kotest-version"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -75,3 +79,4 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 androidxRoom = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
+kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
