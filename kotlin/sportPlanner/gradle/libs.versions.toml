@@ -31,6 +31,7 @@ dataTable = "1.0.7"
 androidx-startup = "1.2.0"
 # unit-testing kotest
 kotest-version = "6.0.5"
+kover ="0.9.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -80,3 +81,4 @@ androidxRoom = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
+kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}

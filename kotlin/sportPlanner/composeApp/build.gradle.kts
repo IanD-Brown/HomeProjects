@@ -15,6 +15,36 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 
     alias(libs.plugins.kotest.plugin)
+
+    alias(libs.plugins.kover)
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                // Entry Points
+                classes("MainKt") // Desktop
+                classes("*.MainActivity") // Android
+
+                // Generated Classes & Resources
+                packages("*.generated.*")
+
+                // Dependency Injection
+                packages("*di*")
+
+                // Compose Related
+                classes("*ComposableSingletons*")
+                annotatedBy("androidx.compose.runtime.Composable")
+            }
+        }
+
+        verify {
+            rule {
+                minBound(80)
+            }
+        }
+    }
 }
 
 kotlin {
