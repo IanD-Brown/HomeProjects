@@ -50,4 +50,4 @@ class SeasonWeeksTest : BehaviorSpec({
 })
 
 private fun getMsTime(date : String): Long =
-    SimpleDateFormat("dd/MM/yyyy").parse(date).time
+    SimpleDateFormat("dd/MM/yyyy").parse(date)?.time!!

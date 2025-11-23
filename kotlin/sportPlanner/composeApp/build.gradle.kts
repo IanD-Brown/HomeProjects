@@ -68,7 +68,11 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotest.framework)
-            implementation(libs.kotest.runner.junit5)
+        }
+        jvmTest {
+            dependencies {
+                implementation(libs.kotest.runner.junit5)
+            }
         }
 
         jvmMain.dependencies {
@@ -128,4 +132,11 @@ room {
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspJvm", libs.androidx.room.compiler)
+}
+
+tasks.named<Test>("jvmTest") {
+    useJUnitPlatform()
+    filter {
+        isFailOnNoMatchingTests = false
+    }
 }
