@@ -9,7 +9,7 @@ androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.9.6"
 androidx-testExt = "1.3.0"
-composeHotReload = "1.0.0-rc03"
+composeHotReload = "1.0.0"
 composeMultiplatform = "1.9.3"
 junit = "4.13.2"
 kotlin = "2.2.21"
@@ -22,7 +22,7 @@ materialThemePrefs = "0.9.8"
 kotlin-serialize = "1.9.0"
 # room
 room = "2.8.4"
-ksp = "2.3.2"
+ksp = "2.3.3"
 sqliteBundled = "2.6.2"
 # koin
 koin-core = "4.1.1"
@@ -67,6 +67,7 @@ data-table = {module = "com.ryinex.kotlin:compose-data-table", version.ref = "da
 # android startup
 androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = "androidx-startup" }
 # unit testing with kotest
+kotest-core = {module = "io.kotest:kotest-assertions-core", version.ref = "kotest-version"}
 kotest-framework = {module = "io.kotest:kotest-framework-engine", version.ref = "kotest-version"}
 kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref = "kotest-version"}
 

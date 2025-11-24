@@ -224,12 +224,15 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
                                 }
                             }
                             for (competition in competitionState.value.data!!) {
-                                seasonCompetitionModel.insert(SeasonCompetition(
+                                val seasonCompetition = SeasonCompetition(
                                     seasonId = seasonId.toShort(),
                                     competitionId = competition.id,
                                     startDate = dates[Pair(competition.id, DateOption.START)] ?: 0,
                                     endDate = dates[Pair(competition.id, DateOption.END)] ?: 0
-                                ))
+                                )
+                                if (seasonCompetition.isValid()) {
+                                    seasonCompetitionModel.insert(seasonCompetition)
+                                }
                             }
                             navController.popBackStack()
                         }

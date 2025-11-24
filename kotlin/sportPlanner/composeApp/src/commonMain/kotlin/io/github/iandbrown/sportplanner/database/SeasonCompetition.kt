@@ -29,7 +29,9 @@ data class SeasonCompetition(
     val competitionId : Short,
     var startDate: Long,
     var endDate: Long
-)
+) {
+    fun isValid() : Boolean = startDate > 0 && endDate >= startDate
+}
 
 @Dao
 interface SeasonCompetitionDao : BaseDao<SeasonCompetition> {

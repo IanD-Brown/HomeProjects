@@ -30,11 +30,7 @@ kover {
                 // Generated Classes & Resources
                 packages("*.generated.*")
 
-                // Dependency Injection
-                packages("*di*")
-
                 // Compose Related
-                classes("*ComposableSingletons*")
                 annotatedBy("androidx.compose.runtime.Composable")
             }
         }
@@ -97,6 +93,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotest.core)
             implementation(libs.kotest.framework)
         }
         jvmTest {
