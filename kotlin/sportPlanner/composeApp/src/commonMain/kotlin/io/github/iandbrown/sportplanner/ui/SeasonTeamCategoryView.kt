@@ -42,6 +42,7 @@ import io.github.iandbrown.sportplanner.database.TeamCategory
 import org.koin.compose.koinInject
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
+import com.ryinex.kotlin.datatable.data.text
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 class SeasonTeamCategoryViewModel : BaseViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>() {
@@ -161,6 +162,7 @@ private fun TeamCategoryDataTable(
     val scope = rememberCoroutineScope()
     val table = remember {
         DataTable<TeamCategory>(config = config, scope = scope, lazyState = lazyState)
+            .text(name = "Name", value = {_, item -> item.name})
             .composable(name = "Match Structure", content = { location, _ ->
                 Dropdown(isLocked, location.layoutRowIndex - 1, getMatch, setMatch) })
             .composable(name = "Locked", content = { location, _ ->

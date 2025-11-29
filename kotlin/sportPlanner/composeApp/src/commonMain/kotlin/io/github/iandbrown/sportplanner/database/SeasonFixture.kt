@@ -20,6 +20,7 @@ data class SeasonFixture(
     val seasonId : Short,
     val teamCategoryId : Short,
     val date : Long,
+    val message : String,
     val homeAssociationId : Short,
     val homeTeamNumber : Short,
     val awayAssociationId : Short,
@@ -33,6 +34,9 @@ interface SeasonFixtureDao : BaseDao<SeasonFixture> {
 
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
+
+    @Query("SELECT * FROM $table where seasonId = :seasonId")
+    suspend fun getBySeason(seasonId: Short): List<SeasonFixture>
 
     @Query("SELECT * FROM $table where seasonId = :seasonId and teamCategoryId = :teamCategoryId")
     suspend fun getBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short): List<SeasonFixture>

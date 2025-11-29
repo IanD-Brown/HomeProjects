@@ -8,10 +8,12 @@ import io.github.iandbrown.sportplanner.ui.CompetitionViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonBreakViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionRoundViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionViewModel
+import io.github.iandbrown.sportplanner.ui.SeasonFixtureViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonTeamCategoryViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonTeamViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
@@ -22,6 +24,7 @@ private val injectableModules = module {
     viewModelOf(::SeasonBreakViewModel)
     viewModelOf(::SeasonCompetitionRoundViewModel)
     viewModelOf(::SeasonCompetitionViewModel)
+    viewModel {parameters -> SeasonFixtureViewModel(parameters.get()) }
     viewModelOf(::SeasonTeamCategoryViewModel)
     viewModelOf(::SeasonTeamViewModel)
     viewModelOf(::SeasonViewModel)

@@ -1,62 +1,34 @@
 package io.github.iandbrown.sportplanner.logic
 
-import io.github.iandbrown.sportplanner.database.Competition
+import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonBreak
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
-import io.github.iandbrown.sportplanner.ui.CompetitionTypes
-import java.util.Calendar
+import io.github.iandbrown.sportplanner.ui.isMondayIn
+import org.koin.core.component.KoinComponent
+import org.koin.java.KoinJavaComponent
+import java.util.*
 
-/**
- * A read-only reference to a competition, including its type.
- */
-data class CompetitionRef(
-    val id: Short,
-    val name: String,
-    val type: CompetitionTypes
-)
+class SeasonWeeks {
+    companion object : KoinComponent {
+        private val db: AppDatabase by KoinJavaComponent.inject(AppDatabase::class.java)
 
-class SeasonWeeks(
-    seasonCompetitions: List<SeasonCompetition>,
-    private val breaks: List<SeasonBreak>,
-    private val competitions: List<Competition>
-) {
-    private val validSeasonCompetitions = seasonCompetitions.filter { it.isValid() }
-    private val seasonStart = validSeasonCompetitions.minOfOrNull { it.startDate } ?: 0L
-    private val seasonEnd = validSeasonCompetitions.maxOfOrNull { it.endDate } ?: 0L
-
-    /**
-     * Returns a list of active competitions for the week starting on the given Monday.
-     * @param week The timestamp for the Monday of the week to check.
-     */
-    fun getActiveCompetitions(week: Long): List<CompetitionRef> {
-        val activeCompIds = validSeasonCompetitions.filter { week in it.startDate..it.endDate }
-            .map { it.competitionId }.toSet()
-
-        return competitions
-            .filter { activeCompIds.contains(it.id) }
-            .map { comp ->
-                CompetitionRef(
-                    comp.id,
-                    comp.name,
-                    CompetitionTypes.entries.getOrElse(comp.type.toInt()) { CompetitionTypes.LEAGUE }
-                )
-            }
+        suspend fun createSeasonWeeks(seasonId: Short): SeasonWeeks {
+            return SeasonWeeks(
+                db.getSeasonCompetitionDao().getBySeason(seasonId),
+                db.getSeasonBreakDao().getBySeason(seasonId)
+            )
+        }
     }
 
-    fun leaguePlayingWeeks(): Int {
-        var result = 0
-        visitWeeks { monday, message ->
-            if (message == null && getActiveCompetitions(monday).any { it.type == CompetitionTypes.LEAGUE }) {
-                result++
-            }
-        }
-        return result
-    }
+    private val breakWeeks: Map<Long, String>
+    private val competitionWeeks: Map<Short, List<Long>>
 
-    fun visitWeeks(processor: (monday: Long, breakMessage: String?) -> Unit) {
-        if (seasonStart == 0L) {
-            return
-        }
+    constructor(seasonCompetitions: List<SeasonCompetition>, breaks: List<SeasonBreak>) {
+        val validSeasonCompetitions = seasonCompetitions.filter { it.isValid() }
+        val seasonStart = validSeasonCompetitions.minOfOrNull { it.startDate } ?: 0L
+        val seasonEnd = validSeasonCompetitions.maxOfOrNull { it.endDate } ?: 0L
+        breakWeeks = breaks.filter { isMondayIn(seasonStart, seasonEnd, it.week) }
+            .associateBy({ it.week }, { it.name })
 
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = seasonStart
@@ -65,10 +37,23 @@ class SeasonWeeks(
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
 
-        while (calendar.timeInMillis <= seasonEnd) {
-            processor(calendar.timeInMillis, breaks.firstOrNull { calendar.timeInMillis == it.week }?.name)
+        competitionWeeks = mutableMapOf<Short, MutableList<Long>>()
 
-            calendar.add(Calendar.WEEK_OF_YEAR, 1)
+        while (calendar.timeInMillis <= seasonEnd) {
+            val millis = calendar.timeInMillis
+
+            if (!breakWeeks.contains(millis)) {
+                validSeasonCompetitions.filter { millis in it.startDate..it.endDate }
+                    .map { it.competitionId }
+                    .forEach { id -> competitionWeeks.getOrPut(id, { mutableListOf() }).add(millis) }
+
+            }
+
+            calendar.add(Calendar.DAY_OF_YEAR, 7)
         }
     }
+
+    fun breakWeeks(): Map<Long, String> = breakWeeks
+
+    fun competitionWeeks(id: Short): List<Long>? = competitionWeeks[id]
 }

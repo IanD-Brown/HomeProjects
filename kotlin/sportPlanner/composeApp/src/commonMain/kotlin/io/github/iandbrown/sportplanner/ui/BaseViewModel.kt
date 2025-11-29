@@ -13,22 +13,26 @@ import org.koin.java.KoinJavaComponent.inject
 
 abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
     val dao : DAO
-    private val _uiState = MutableStateFlow(UiState<ENTITY>(true))
+    internal val _uiState = MutableStateFlow(UiState<ENTITY>(true))
     val uiState = _uiState.asStateFlow()
+    private val fullRead : Boolean
 
-    constructor() {
+    constructor(readAll : Boolean = true) {
         val database : AppDatabase by inject(AppDatabase::class.java)
         dao = getDao(database)
+        fullRead = readAll
         readAll()
     }
     
     abstract fun getDao(db : AppDatabase) : DAO
 
-    fun readAll() {
-        _uiState.value = UiState(isLoading = true)
-        viewModelScope.launch {
-            getAll().collect {
-                _uiState.value = UiState(data = it, isLoading = false)
+    private fun readAll() {
+        if (fullRead) {
+            _uiState.value = UiState(isLoading = true)
+            viewModelScope.launch {
+                getAll().collect {
+                    _uiState.value = UiState(data = it, isLoading = false)
+                }
             }
         }
     }
