@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-private const val version = 8
+private const val version = 9
 
 @Database(entities = [
     Association::class,
@@ -17,7 +17,9 @@ private const val version = 8
     SeasonFixture::class,
     SeasonTeam::class,
     SeasonTeamCategory::class,
-    TeamCategory::class], version = version)
+    TeamCategory::class],
+    views = [SeasonFixtureView::class],
+    version = version)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
@@ -27,6 +29,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getSeasonCompetitionRoundDao() : SeasonCompetitionRoundDao
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonFixtureDao() : SeasonFixtureDao
+    abstract fun getSeasonFixtureViewDao() : SeasonFixtureViewDao
     abstract fun getSeasonTeamCategoryDao() : SeasonTeamCategoryDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao
     abstract fun getTeamCategoryDao() : TeamCategoryDao

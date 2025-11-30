@@ -56,7 +56,7 @@ fun NavigateSeasonTeamCategory(navController : NavController, argument : String?
     }
 }
 
-private enum class MatchStructures(val display : String) {SINGLE("Single"), HOME_AWAY("Home and away")}
+private enum class MatchStructures(val display : String) {NONE(""), SINGLE("Single"), HOME_AWAY("Home and away")}
 
 @Composable
 @Preview
@@ -199,10 +199,12 @@ private fun Dropdown(isLocked: () -> Boolean, index : Int, getMatch: (index : In
             .clickable { if (!isLocked()) {expanded.value = !expanded.value} },
     ) {
         ViewText(getMatch(index))
-        Icon(
-            Icons.Filled.ArrowDropDown, "contentDescription",
-            Modifier.align(Alignment.CenterEnd)
-        )
+        if (!isLocked()) {
+            Icon(
+                Icons.Filled.ArrowDropDown, "contentDescription",
+                Modifier.align(Alignment.CenterEnd)
+            )
+        }
         DropdownMenu(
             expanded = expanded.value,
             onDismissRequest = { expanded.value = false }
