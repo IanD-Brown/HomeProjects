@@ -64,6 +64,12 @@ interface BaseUiState {
     fun hasData() : Boolean
 }
 
+class SimpleState : BaseUiState {
+    override fun loadingInProgress(): Boolean = false
+
+    override fun hasData(): Boolean = true
+}
+
 data class UiState<ENTITY>(
     val isLoading: Boolean,
     val data: List<ENTITY>? = null,

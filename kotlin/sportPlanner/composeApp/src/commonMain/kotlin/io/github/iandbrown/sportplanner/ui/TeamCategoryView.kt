@@ -1,17 +1,14 @@
 package io.github.iandbrown.sportplanner.ui
 
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,13 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.softartdev.theme.material.PreferableMaterialTheme
+import io.github.iandbrown.sportplanner.database.AppDatabase
+import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import io.github.iandbrown.sportplanner.database.AppDatabase
-import io.github.iandbrown.sportplanner.database.TeamCategory
-import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
@@ -54,7 +51,7 @@ private enum class Day(val display : String) {
 fun NavigateTeamCategory(navController : NavController, argument : String?) {
     when (argument) {
         "View" -> TeamCategoryEditor(navController)
-        "Add" -> AddTeamCategory(navController)
+        "Add" -> EditTeamCategory(navController, null)
         else -> EditTeamCategory(navController, Json.decodeFromString<TeamCategory>(argument!!))
     }
 }
@@ -81,7 +78,7 @@ fun TeamCategoryEditor(navController: NavController) {
                                 Spacer(modifier = Modifier.size(16.dp))
                                 ViewText(teamCategory.name)
                                 Spacer(modifier = Modifier.size(16.dp))
-                                ViewText(Day.entries[teamCategory.matchDay].display)
+                                ViewText(Day.entries[teamCategory.matchDay.toInt()].display)
                             })
 
                         ItemButtons(
@@ -103,63 +100,34 @@ fun TeamCategoryEditor(navController: NavController) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTeamCategory(navController: NavController) {
+fun EditTeamCategory(navController: NavController, editCategory: TeamCategory?) {
     val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
     val coroutineScope = rememberCoroutineScope()
-    var name by remember { mutableStateOf("") }
-    var matchDay by remember { mutableIntStateOf(5) }
+    var name by remember { mutableStateOf(editCategory?.name ?: "") }
+    var matchDay by remember { mutableIntStateOf(editCategory?.matchDay?.toInt() ?: 0) }
+    val title = if (editCategory == null) "Add TeamCategory" else "Edit TeamCategory"
 
-    PreferableMaterialTheme {
-        Scaffold(modifier = Modifier.fillMaxSize(),
-            topBar = {CreateTopBar(navController, "Add TeamCategory", "Return to teamCategories")},
-           content = { paddingValues ->
-            Row(
-                modifier = Modifier.padding(paddingValues), content = {
-                    ViewTextField(value = name, label = "Name:") { name = it }
-                    Text("Match Day:")
-                    DropdownList(itemList = Day.entries.map { it.display }, selectedIndex = matchDay) { matchDay = it }
-                })
-        }, bottomBar = {
-            Button(onClick = {
-                    coroutineScope.launch {
-                        viewModel.insert(TeamCategory(name = name.trim(), matchDay = matchDay))
-                        navController.popBackStack()
-                    }
-                },
-                enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
-        })
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditTeamCategory(navController: NavController, editCategory: TeamCategory) {
-    val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
-    val coroutineScope = rememberCoroutineScope()
-    var teamCategory by remember { mutableStateOf(editCategory) }
-    var name by remember { mutableStateOf(teamCategory.name) }
-    var matchDay by remember { mutableIntStateOf(teamCategory.matchDay) }
-
-    PreferableMaterialTheme {
-        Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-            CreateTopBar(navController, "Edit TeamCategory", "Return to teamCategories")
-        }, content = { paddingValues ->
-            Row(
-                modifier = Modifier.padding(paddingValues), content = {
-                    ViewTextField(value = name, label = "Name:") { name = it }
-                    Text("Match Day:")
-                    DropdownList(itemList = Day.entries.map { it.display }, selectedIndex = matchDay) { matchDay = it }
-                })
-        }, bottomBar = {
-            Button(onClick = {
-                coroutineScope.launch {
-                    viewModel.update(TeamCategory(teamCategory.id, name.trim(), matchDay))
-                    navController.popBackStack()
-                }
-            },
-                enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
-        })
+    ViewCommon(SimpleState(), navController, title, {}, "Return to teamCategories", {
+        Button(onClick = {
+            coroutineScope.launch {
+                viewModel.insert(TeamCategory(editCategory?.id ?: 0.toShort(), name.trim(), matchDay.toShort()))
+                navController.popBackStack()
+            }
+        },
+            enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
+    }) { paddingValues ->
+        PreferableMaterialTheme {
+            FlowRow(modifier = Modifier.padding(paddingValues).fillMaxWidth(), maxItemsInEachRow = 2) {
+                ViewText("Name", modifier = Modifier.weight(1f))
+                ViewText("Match Day", modifier = Modifier.weight(1f))
+                ViewTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f))
+                DropdownList(
+                    itemList = Day.entries.map { it.display },
+                    selectedIndex = matchDay,
+                    modifier = Modifier.weight(1f)
+                ) { matchDay = it }
+            }
+        }
     }
 }

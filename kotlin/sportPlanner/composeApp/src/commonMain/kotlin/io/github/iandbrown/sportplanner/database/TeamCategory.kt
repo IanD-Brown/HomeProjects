@@ -16,7 +16,7 @@ data class TeamCategory (
     @PrimaryKey(autoGenerate = true)
     val id : Short = 0,
     var name: String,
-    var matchDay: Int)
+    var matchDay: Short)
 
 @Dao
 interface TeamCategoryDao : BaseDao<TeamCategory> {

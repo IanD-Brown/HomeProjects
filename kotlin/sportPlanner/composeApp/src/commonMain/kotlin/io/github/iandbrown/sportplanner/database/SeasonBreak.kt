@@ -3,8 +3,6 @@ package io.github.iandbrown.sportplanner.database
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Index
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import kotlinx.serialization.Serializable
@@ -24,9 +22,6 @@ data class SeasonBreak(
 
 @Dao
 interface SeasonBreakDao : BaseDao<SeasonBreak> {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    override suspend fun insert(entity: SeasonBreak): Long
-
     @Query("SELECT * FROM $table")
     override suspend fun getAll(): List<SeasonBreak>
 

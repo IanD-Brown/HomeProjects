@@ -2,14 +2,13 @@ package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -44,22 +43,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
+import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import io.github.iandbrown.sportplanner.database.SeasonCompetition
 
 val fontSize = 16.sp
 private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -203,13 +199,14 @@ fun ItemButtons(editClick : () -> Unit, deleteClick : () -> Unit) {
 fun DropdownList(
     itemList: List<String>,
     selectedIndex: Int,
+    modifier: Modifier = Modifier,
+    isLocked: () -> Boolean = { false },
     onItemClick: (Int) -> Unit
 ) {
     // Declaring a boolean value to store
     // the expanded state of the Text Field
     var expanded by remember { mutableStateOf(false) }
     var selectedText by remember { mutableStateOf(itemList[selectedIndex]) }
-    var textFieldSize by remember { mutableStateOf(Size.Zero)}
 
     // Up Icon when expanded and down icon when collapsed
     val icon = if (expanded)
@@ -217,39 +214,40 @@ fun DropdownList(
     else
         Icons.Filled.KeyboardArrowDown
 
-    Column(Modifier.padding(20.dp)) {
+    Box(
+        contentAlignment = Alignment.CenterStart,
+        modifier = modifier
+            .fillMaxWidth().padding(0.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .clickable {
+                if (!isLocked()) {
+                    expanded = !expanded
+                }
+            },
+    ) {
         ViewTextField(
             value = selectedText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { coordinates ->
-                    // This value is used to assign to
-                    // the DropDown the same width
-                    textFieldSize = coordinates.size.toSize()
-                },
+            modifier = Modifier.fillMaxWidth(),
             trailingIcon = {
-                Icon(icon,"contentDescription",
-                    Modifier.clickable { expanded = !expanded })
+                if (!isLocked()) {
+                    Icon(
+                        icon, "contentDescription",
+                        Modifier.clickable { expanded = !expanded })
+                }
             }
         ) {}
-
-        // Create a drop-down menu with list of cities,
-        // when clicked, set the Text Field text as the city selected
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(with(LocalDensity.current){textFieldSize.width.toDp()})
-        ) {
-            itemList.forEach { label ->
-                DropdownMenuItem(
-                    text = { Text(text = label) },
-                    onClick = {
-                        selectedText = label
-                        onItemClick(itemList.indexOf(label))
-                        expanded = false
-                    }
-                )
+        if (!isLocked()  && expanded) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                itemList.forEach { label ->
+                    DropdownMenuItem(
+                        text = { ViewText(label) },
+                        onClick = {
+                            selectedText = label
+                            onItemClick(itemList.indexOf(label))
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
