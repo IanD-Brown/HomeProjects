@@ -52,13 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
+import io.github.iandbrown.sportplanner.logic.DayDate
 
 val fontSize = 16.sp
-private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 @Composable
 fun ViewCommon(
@@ -194,17 +190,15 @@ fun ItemButtons(editClick : () -> Unit, deleteClick : () -> Unit) {
     SpacedIcon(Icons.Default.Delete, "delete", Color.Red, deleteClick)
 }
 
-// Creating a composable to display a drop-down menu
 @Composable
 fun DropdownList(
     itemList: List<String>,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     isLocked: () -> Boolean = { false },
+    label: String? = null,
     onItemClick: (Int) -> Unit
 ) {
-    // Declaring a boolean value to store
-    // the expanded state of the Text Field
     var expanded by remember { mutableStateOf(false) }
     var selectedText by remember { mutableStateOf(itemList[selectedIndex]) }
 
@@ -227,7 +221,7 @@ fun DropdownList(
     ) {
         ViewTextField(
             value = selectedText,
-            modifier = Modifier.fillMaxWidth(),
+            label = label,
             trailingIcon = {
                 if (!isLocked()) {
                     Icon(
@@ -237,7 +231,7 @@ fun DropdownList(
             }
         ) {}
         if (!isLocked()  && expanded) {
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
                 itemList.forEach { label ->
                     DropdownMenuItem(
                         text = { ViewText(label) },
@@ -253,15 +247,13 @@ fun DropdownList(
     }
 }
 
-
-// Creating a composable to display a drop-down menu
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerView(current: Long, modifier : Modifier, isSelectable : (Long) -> Boolean, onItemClick: (Long) -> Unit) {
+fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> Boolean, onItemClick: (Int) -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     ViewTextField(
-        value = convertMillisToDate(current),
+        value = DayDate(current).toString(),
         modifier = modifier,
         trailingIcon = {
             IconButton(onClick = { showDatePicker = !showDatePicker }) {
@@ -274,12 +266,12 @@ fun DatePickerView(current: Long, modifier : Modifier, isSelectable : (Long) -> 
     ) {}
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean = isSelectable(utcTimeMillis)
-        })
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = DayDate(current).asUtcMs(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = isSelectable(utcTimeMillis)
+            })
         val onDismissRequest = { showDatePicker = false }
-
-        datePickerState.selectedDateMillis = current
 
         DatePickerDialog(
             onDismissRequest = onDismissRequest,
@@ -287,7 +279,7 @@ fun DatePickerView(current: Long, modifier : Modifier, isSelectable : (Long) -> 
                 TextButton(
                     enabled = (datePickerState.selectedDateMillis ?: 0) > 0L,
                     onClick = {
-                        onItemClick(datePickerState.selectedDateMillis!!)
+                        onItemClick(DayDate(datePickerState.selectedDateMillis!!).value())
                         onDismissRequest()
                     }) { ViewText("OK") }
             },
@@ -300,24 +292,5 @@ fun DatePickerView(current: Long, modifier : Modifier, isSelectable : (Long) -> 
     }
 }
 
-fun convertMillisToDate(millis: Long?): String =
-    when (millis) {
-        null -> ""
-        0L -> "dd/mm/yyyy"
-        else -> {
-            dateFormatter.format(Date(millis))
-        }
-    }
-
 fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
-    isMondayIn(seasonCompetition.startDate, seasonCompetition.endDate, utcMs)
-
-fun isMondayIn(startDate : Long, endDate: Long, utcMs : Long) : Boolean {
-    if (utcMs in startDate..endDate) {
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = utcMs
-
-        return calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY
-    }
-    return false
-}
+    DayDate.isMondayIn(seasonCompetition.startDate, seasonCompetition.endDate, DayDate(utcMs).value())

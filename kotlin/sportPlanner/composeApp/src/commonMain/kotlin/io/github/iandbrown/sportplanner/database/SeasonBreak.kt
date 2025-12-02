@@ -2,6 +2,7 @@ package io.github.iandbrown.sportplanner.database
 
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -10,13 +11,20 @@ import kotlinx.serialization.Serializable
 private const val table = "SeasonBreaks"
 
 @Serializable
-@Entity(tableName = table, indices = [Index(value = ["seasonId", "name"], unique = true)])
+@Entity(tableName = table,
+    indices = [Index(value = ["seasonId", "name"], unique = true)],
+    foreignKeys = [ForeignKey(
+        entity = Season::class,
+        parentColumns = ["id"],
+        childColumns = ["seasonId"],
+        onDelete = ForeignKey.CASCADE)]
+)
 data class SeasonBreak(
     @PrimaryKey(autoGenerate = true)
     val id: Short = 0,
     val seasonId : Short,
     var name: String,
-    var week: Long
+    var week: Int
 )
 
 

@@ -53,4 +53,7 @@ interface SeasonTeamDao : BaseDao<SeasonTeam> {
 
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
+
+    @Query("SELECT * FROM $table WHERE seasonId=:seasonId AND competitionId = :competitionId AND teamCategoryId = :teamCategoryId")
+    suspend fun getTeams(seasonId : Short, competitionId : Short, teamCategoryId : Short) : List<SeasonTeam>
 }

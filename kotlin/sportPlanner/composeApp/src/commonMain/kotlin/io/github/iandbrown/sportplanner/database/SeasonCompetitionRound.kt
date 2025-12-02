@@ -31,7 +31,7 @@ data class SeasonCompetitionRound(
     val competitionId : Short,
     val round : Short,
     var description : String,
-    var week : Long,
+    var week : Int,
     var optional : Boolean
 )
 
@@ -43,4 +43,7 @@ interface SeasonCompetitionRoundDao : BaseDao<SeasonCompetitionRound> {
 
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
+
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    suspend fun getBySeason(seasonId: Short): List<SeasonCompetitionRound>
 }

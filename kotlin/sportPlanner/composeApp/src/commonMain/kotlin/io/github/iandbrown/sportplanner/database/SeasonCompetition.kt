@@ -25,10 +25,10 @@ private const val table = "SeasonCompetitions"
 data class SeasonCompetition(
     val seasonId : Short,
     val competitionId : Short,
-    var startDate: Long,
-    var endDate: Long
+    var startDate: Int,
+    var endDate: Int
 ) {
-    fun isValid() : Boolean = startDate > 0 && endDate >= startDate
+    fun isValid() : Boolean = startDate in 1..endDate
 }
 
 @Dao
@@ -41,4 +41,9 @@ interface SeasonCompetitionDao : BaseDao<SeasonCompetition> {
 
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
     suspend fun getBySeason(seasonId : Short): List<SeasonCompetition>
+
+    @Query("SELECT * FROM $table "+
+            "WHERE seasonId = :seasonId AND startDate > 0 AND endDate > startDate " +
+            "AND competitionId IN (SELECT id FROM Competitions WHERE type = 0)")
+    suspend fun getActiveLeagueCompetitions(seasonId: Short) : List<SeasonCompetition>
 }

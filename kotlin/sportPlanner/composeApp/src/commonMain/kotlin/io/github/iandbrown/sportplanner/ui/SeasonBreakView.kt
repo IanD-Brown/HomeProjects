@@ -13,7 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,6 +25,7 @@ import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonBreak
 import io.github.iandbrown.sportplanner.database.SeasonBreakDao
+import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.launch
@@ -72,7 +73,7 @@ private fun SeasonBreakView(navController: NavController, param : Season) {
                         modifier = Modifier.weight(2F),
                         content = {
                             SpacedViewText(seasonBreak.name)
-                            SpacedViewText(convertMillisToDate(seasonBreak.week))
+                            SpacedViewText(DayDate(seasonBreak.week).toString())
                         })
                     ItemButtons(
                         { navController.navigate(editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak))) },
@@ -92,11 +93,11 @@ private fun SeasonBreakEditor(navController: NavController, info : SeasonBreakEd
     val coroutineScope = rememberCoroutineScope()
     val title : String
     val name = remember { mutableStateOf("") }
-    val week = remember {mutableLongStateOf(0L)}
+    val week = remember {mutableIntStateOf(0)}
 
     when (info.seasonBreak) {
         is SeasonBreak -> {
-            week.longValue = info.seasonBreak.week
+            week.intValue = info.seasonBreak.week
             title = "Edit Season break"
             name.value = info.seasonBreak.name
         }
@@ -110,24 +111,24 @@ private fun SeasonBreakEditor(navController: NavController, info : SeasonBreakEd
             onClick = {
                 coroutineScope.launch {
                     if (info.seasonBreak == null) {
-                        viewModel.insert(SeasonBreak(seasonId = info.param.id, name = name.value.trim(), week = week.longValue))
+                        viewModel.insert(SeasonBreak(seasonId = info.param.id, name = name.value.trim(), week = week.intValue))
                     } else {
-                        viewModel.update(SeasonBreak(info.seasonBreak.id, info.param.id, name.value.trim(), week.longValue))
+                        viewModel.update(SeasonBreak(info.seasonBreak.id, info.param.id, name.value.trim(), week.intValue))
                     }
                     navController.popBackStack()
                 }
             },
-            enabled = !name.value.isEmpty() && week.longValue > 0
+            enabled = !name.value.isEmpty() && week.intValue > 0
         ) { ViewText(stringResource(Res.string.ok)) }
     }) {
-        var startDate = 0L
-        var endDate = 0L
+        var startDate = 0
+        var endDate = 0
         for (seasonCompetition in seasonCompetitionState.value.data!!) {
             if (seasonCompetition.seasonId == info.param.id) {
-                if (seasonCompetition.startDate > 0 && (startDate == 0L || startDate < seasonCompetition.startDate)) {
+                if (seasonCompetition.startDate > 0 && (startDate == 0 || startDate < seasonCompetition.startDate)) {
                     startDate = seasonCompetition.startDate
                 }
-                if (seasonCompetition.endDate > 0 && (endDate == 0L || endDate > seasonCompetition.endDate)) {
+                if (seasonCompetition.endDate > 0 && (endDate == 0 || endDate > seasonCompetition.endDate)) {
                     endDate = seasonCompetition.endDate
                 }
             }
@@ -146,10 +147,10 @@ private fun SeasonBreakEditor(navController: NavController, info : SeasonBreakEd
                         Row {
                             ViewText("Week", modifier = Modifier.width(200.dp).padding(0.dp))
                             DatePickerView(
-                                week.longValue,
+                                week.intValue,
                                 modifier,
-                                { utcMs -> isMondayIn(startDate, endDate, utcMs) }) {
-                                week.longValue = it
+                                { utcMs -> DayDate.isMondayIn(startDate, endDate, DayDate(utcMs).value()) }) {
+                                week.intValue = it
                             }
                         }
                     }

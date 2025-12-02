@@ -48,6 +48,7 @@ import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonDao
+import io.github.iandbrown.sportplanner.logic.DayDate
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
@@ -119,9 +120,9 @@ private fun SeasonListView(navController: NavController) {
                                 Row(modifier = Modifier.weight(2F), content = {
                                     Spacer(Modifier.size(32.dp))
                                     SpacedViewText(competitionState.value.data?.first { it.id == entity.competitionId }?.name!!)
-                                    SpacedViewText(convertMillisToDate(entity.startDate))
+                                    SpacedViewText(DayDate(entity.startDate).toString())
                                     SpacedViewText("to")
-                                    SpacedViewText(convertMillisToDate(entity.endDate))
+                                    SpacedViewText(DayDate(entity.endDate).toString())
                                 })
 
                                 SpacedIcon(Icons.Default.Star, "manage season competition rounds") {
@@ -205,7 +206,7 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
             competitionState.value.data != null && competitionState.value.data != null && seasonCompetitionState.value.data != null
     }
     val title = if (season == null) "Add Season" else "Edit Season"
-    val dates = remember { mutableStateMapOf<Pair<Short, DateOption>, Long>() }
+    val dates = remember { mutableStateMapOf<Pair<Short, DateOption>, Int>() }
 
     PreferableMaterialTheme {
         ViewCommon(
@@ -269,8 +270,8 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
 private fun SeasonCompetitionDataTable(
     competitionList: List<Competition>,
     config: DataTableConfig,
-    dateFunction: (Short, DateOption) -> Long,
-    editFunction: (Short, DateOption, Long) -> Unit
+    dateFunction: (Short, DateOption) -> Int,
+    editFunction: (Short, DateOption, Int) -> Unit
 ) {
     val lazyState = rememberLazyListState()
     val scope = rememberCoroutineScope()

@@ -3,10 +3,8 @@ package io.github.iandbrown.sportplanner.logic
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonBreak
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
-import io.github.iandbrown.sportplanner.ui.isMondayIn
 import org.koin.core.component.KoinComponent
 import org.koin.java.KoinJavaComponent
-import java.util.*
 
 class SeasonWeeks {
     companion object : KoinComponent {
@@ -20,40 +18,38 @@ class SeasonWeeks {
         }
     }
 
-    private val breakWeeks: Map<Long, String>
-    private val competitionWeeks: Map<Short, List<Long>>
+    private val breakWeeks: Map<Int, String>
+    private val competitionWeeks: Map<Short, List<Int>>
 
     constructor(seasonCompetitions: List<SeasonCompetition>, breaks: List<SeasonBreak>) {
         val validSeasonCompetitions = seasonCompetitions.filter { it.isValid() }
-        val seasonStart = validSeasonCompetitions.minOfOrNull { it.startDate } ?: 0L
-        val seasonEnd = validSeasonCompetitions.maxOfOrNull { it.endDate } ?: 0L
-        breakWeeks = breaks.filter { isMondayIn(seasonStart, seasonEnd, it.week) }
+        val seasonStart = validSeasonCompetitions.minOfOrNull { it.startDate } ?: 0
+        val seasonEnd = validSeasonCompetitions.maxOfOrNull { it.endDate } ?: 0
+
+        var dayDate = DayDate(seasonStart)
+        while (dayDate.isValid() && !dayDate.isMonday()) {
+            dayDate = dayDate.addDays(1)
+        }
+        breakWeeks = breaks.filter { DayDate.isMondayIn(dayDate.value(), seasonEnd, it.week) }
             .associateBy({ it.week }, { it.name })
 
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = seasonStart
-        // Find the first Monday
-        while (calendar.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-        }
+        competitionWeeks = mutableMapOf<Short, MutableList<Int>>()
 
-        competitionWeeks = mutableMapOf<Short, MutableList<Long>>()
-
-        while (calendar.timeInMillis <= seasonEnd) {
-            val millis = calendar.timeInMillis
-
-            if (!breakWeeks.contains(millis)) {
-                validSeasonCompetitions.filter { millis in it.startDate..it.endDate }
+        while (dayDate.isValid() && dayDate.value() <= seasonEnd) {
+            if (!breakWeeks.contains(dayDate.value())) {
+                validSeasonCompetitions.filter { dayDate.value() in it.startDate..it.endDate }
                     .map { it.competitionId }
-                    .forEach { id -> competitionWeeks.getOrPut(id, { mutableListOf() }).add(millis) }
+                    .forEach { id -> competitionWeeks.getOrPut(id) { mutableListOf() }.add(dayDate.value()) }
 
             }
 
-            calendar.add(Calendar.DAY_OF_YEAR, 7)
+            dayDate = dayDate.addDays(7)
         }
     }
 
-    fun breakWeeks(): Map<Long, String> = breakWeeks
+    fun breakWeeks(): Map<Int, String> = breakWeeks
 
-    fun competitionWeeks(id: Short): List<Long>? = competitionWeeks[id]
+    fun competitionWeeks(id: Short): List<Int>? = competitionWeeks[id]
+
+    fun competitions(): List<Short> = competitionWeeks.keys.toList()
 }

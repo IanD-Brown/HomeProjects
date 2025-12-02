@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import kotlinx.serialization.json.Json
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
+import io.github.iandbrown.sportplanner.logic.DayDate
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
@@ -93,7 +95,7 @@ private fun SeasonCompetitionView(navController : NavController, param : SeasonC
                     for (it in values) {
                         ViewText(it.round.toString(), modifier = Modifier.weight(1f))
                         SpacedViewText(it.description, modifier = Modifier.weight(1f))
-                        SpacedViewText(convertMillisToDate(it.week), modifier = Modifier.weight(1f))
+                        SpacedViewText(DayDate(it.week).toString(), modifier = Modifier.weight(1f))
                         Checkbox(checked = it.optional, onCheckedChange = null, enabled = false, modifier = Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                         ItemButtons(
@@ -114,7 +116,7 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
     val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val description = remember { mutableStateOf("") }
-    val week = remember { mutableLongStateOf(0L) }
+    val week = remember { mutableIntStateOf(0) }
     val optional = remember {mutableStateOf( false )}
     val validRound = remember { mutableStateOf(true) }
     var title : String
@@ -133,7 +135,7 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
             is SeasonCompetitionRound -> {
                 round.value = info.competitionRound.round
                 description.value = info.competitionRound.description
-                week.longValue = info.competitionRound.week
+                week.intValue = info.competitionRound.week
                 optional.value = info.competitionRound.optional
                 title = "Edit Competition round"
             }
@@ -175,8 +177,8 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
                         }
                         Row {
                             ViewText("Week", modifier = Modifier.width(200.dp))
-                            DatePickerView(week.longValue, modifier, { utcMs -> isMondayIn(season, utcMs) }) {
-                                week.longValue = it
+                            DatePickerView(week.intValue, modifier, { utcMs -> isMondayIn(season, utcMs) }) {
+                                week.intValue = it
                             }
                         }
                         Row {
@@ -196,7 +198,7 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
                                                 info.competitionRound.competitionId,
                                                 round.value,
                                                 description.value.trim(),
-                                                week.longValue,
+                                                week.intValue,
                                                 optional.value
                                             )
                                         )
@@ -208,7 +210,7 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
                                                 info.param.competitionId,
                                                 round.value,
                                                 description.value.trim(),
-                                                week.longValue,
+                                                week.intValue,
                                                 optional.value
                                             )
                                         )

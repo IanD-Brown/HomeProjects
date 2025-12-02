@@ -2,6 +2,7 @@ package io.github.iandbrown.sportplanner.database
 
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -13,14 +14,21 @@ private const val table = "SeasonFixtures"
     indices = [
         Index(value = ["seasonId", "teamCategoryId", "date", "homeAssociationId", "homeTeamNumber"], unique = true),
         Index(value = ["seasonId", "teamCategoryId", "date", "awayAssociationId", "awayTeamNumber"], unique = true)
-    ])
+    ],
+    foreignKeys = [ForeignKey(
+        entity = Season::class,
+        parentColumns = ["id"],
+        childColumns = ["seasonId"],
+        onDelete = ForeignKey.CASCADE)]
+)
 data class SeasonFixture(
     @PrimaryKey(autoGenerate = true)
     val id : Long = 0,
     val seasonId : Short,
+    val competitionId : Short,
     val teamCategoryId : Short,
-    val date : Long,
-    val message : String,
+    val date : Int,
+    val message : String?,
     val homeAssociationId : Short,
     val homeTeamNumber : Short,
     val awayAssociationId : Short,
@@ -35,18 +43,18 @@ interface SeasonFixtureDao : BaseDao<SeasonFixture> {
     @Query("SELECT count(1) FROM $table")
     override suspend fun count(): Int
 
-    @Query("SELECT * FROM $table where seasonId = :seasonId")
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
     suspend fun getBySeason(seasonId: Short): List<SeasonFixture>
 
-    @Query("SELECT * FROM $table where seasonId = :seasonId and teamCategoryId = :teamCategoryId")
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND teamCategoryId = :teamCategoryId")
     suspend fun getBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short): List<SeasonFixture>
 
-    @Query("SELECT * FROM $table where seasonId = :seasonId and (homeAssociationId = :associationId or awayAssociationId = :associationId)")
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND (homeAssociationId = :associationId OR awayAssociationId = :associationId)")
     suspend fun getBySeasonAssociation(seasonId: Short, associationId: Short): List<SeasonFixture>
 
-    @Query("DELETE FROM $table where seasonId = :seasonId and teamCategoryId = :teamCategoryId")
-    suspend fun deleteBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short)
+    @Query("DELETE FROM $table WHERE seasonId = :seasonId AND teamCategoryId = :teamCategoryId AND competitionId = :competitionId")
+    suspend fun deleteBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short, competitionId: Short)
 
-    @Query("DELETE FROM $table where seasonId = :seasonId")
+    @Query("DELETE FROM $table WHERE seasonId = :seasonId")
     suspend fun deleteBySeason(seasonId: Short)
 }

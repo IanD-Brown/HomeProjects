@@ -70,6 +70,11 @@ class SimpleState : BaseUiState {
     override fun hasData(): Boolean = true
 }
 
+class MergedState(vararg val states : BaseUiState) : BaseUiState {
+    override fun loadingInProgress(): Boolean = states.any {it.loadingInProgress()}
+    override fun hasData(): Boolean = states.all { it.hasData()}
+}
+
 data class UiState<ENTITY>(
     val isLoading: Boolean,
     val data: List<ENTITY>? = null,

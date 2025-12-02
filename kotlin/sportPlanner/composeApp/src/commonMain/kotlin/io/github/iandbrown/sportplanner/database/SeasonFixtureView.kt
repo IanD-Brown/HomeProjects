@@ -4,9 +4,12 @@ import androidx.room.Dao
 import androidx.room.DatabaseView
 import androidx.room.Query
 
-@DatabaseView(viewName = "SeasonFixtureView",
+private const val viewName = "SeasonFixtureView"
+
+@DatabaseView(viewName = viewName,
     value = "SELECT f.id AS id," +
         "f.seasonId AS seasonId, " +
+        "f.competitionId AS competitionId, " +
         "tc.name AS teamCategoryName, " +
         "f.date, " +
         "f.message, " +
@@ -22,8 +25,9 @@ import androidx.room.Query
 data class SeasonFixtureView(
     val id : Long,
     val seasonId: Short,
+    val competitionId: Short,
     val teamCategoryName: String,
-    val date: Long,
+    val date: Int,
     val message: String,
     val homeAssociation: String,
     val homeTeamNumber: Short,
@@ -33,6 +37,6 @@ data class SeasonFixtureView(
 
 @Dao
 interface SeasonFixtureViewDao {
-    @Query("SELECT * FROM SeasonFixtureView WHERE seasonId = :seasonId")
+    @Query("SELECT * FROM $viewName WHERE seasonId = :seasonId")
     suspend fun get(seasonId : Short): List<SeasonFixtureView>
 }
