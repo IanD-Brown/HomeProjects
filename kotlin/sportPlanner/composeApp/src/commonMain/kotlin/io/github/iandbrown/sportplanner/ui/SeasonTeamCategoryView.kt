@@ -64,18 +64,11 @@ private fun SeasonTeamCategoryEditor(navController: NavController, param: Season
     val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var isLocked by remember { mutableStateOf(EditorState.LOCKED) }
-    val mergedState = object : BaseUiState {
-        override fun loadingInProgress(): Boolean =
-            state.value.isLoading || teamCategoryState.value.isLoading
-
-        override fun hasData(): Boolean =
-            state.value.data != null && teamCategoryState.value.data != null
-    }
     var teamCategoryList = listOf<TeamCategory>()
     val gameStructureStates = remember { mutableStateListOf<Short>() }
     val lockedStates = remember { mutableStateListOf<Boolean>() }
 
-    ViewCommon(mergedState, navController, "Season: ${param.seasonName} Competition: ${param.competitionName}", {
+    ViewCommon(MergedState(state.value, teamCategoryState.value), navController, "Season: ${param.seasonName} Competition: ${param.competitionName}", {
             FloatingActionButton(
                 onClick = {
                     if (isLocked == EditorState.DIRTY) {
@@ -181,4 +174,3 @@ private fun TeamCategoryDataTable(
 
     DataTableView(table = table)
 }
-

@@ -198,19 +198,12 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
 
         mutableStateOf(tableConfig.copy(column = column.copy(cell = cell)))
     }
-    val mergedState = object : BaseUiState {
-        override fun loadingInProgress(): Boolean =
-            competitionState.value.isLoading || competitionState.value.isLoading || seasonCompetitionState.value.isLoading
-
-        override fun hasData(): Boolean =
-            competitionState.value.data != null && competitionState.value.data != null && seasonCompetitionState.value.data != null
-    }
     val title = if (season == null) "Add Season" else "Edit Season"
     val dates = remember { mutableStateMapOf<Pair<Short, DateOption>, Int>() }
 
     PreferableMaterialTheme {
         ViewCommon(
-            mergedState,
+            MergedState(competitionState.value, seasonCompetitionState.value),
             navController,
             title,
             { }, "Return to seasons", {
