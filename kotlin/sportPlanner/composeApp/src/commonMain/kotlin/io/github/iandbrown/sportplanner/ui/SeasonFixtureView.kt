@@ -15,9 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -40,13 +44,17 @@ import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
 import io.github.iandbrown.sportplanner.logic.SeasonWeeks.Companion.createSeasonWeeks
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.openFileSaver
+import io.github.vinceglb.filekit.sink
 import kotlin.time.measureTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.io.buffered
+import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -84,7 +92,6 @@ fun NavigateFixtures(navController: NavController, argument : String?) =
     }
 
 @Composable
-@Preview
 private fun FixtureView(navController: NavController) {
     val seasonState by koinInject<SeasonViewModel>().uiState.collectAsState()
     val calculating = remember {mutableStateOf(false)}
@@ -250,11 +257,42 @@ private fun FixtureTableView(navController : NavController, season : Season) {
     val filterAssociation = remember { mutableStateOf("") }
     val filterTeamCategory = remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(MergedState(state.value, associationState, teamCategoryState, seasonTeamsState),
         navController,
         "Season fixtures",
-        { },
+        {
+            FloatingActionButton(onClick = {
+                coroutineScope.launch {
+                    val associationNameMap =
+                        associationState.data?.associateBy({ it.id }, { it.name })
+                    val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
+                    val file = FileKit.openFileSaver(suggestedName = "seasonFixtures", extension = "csv")
+                    val withTeamCategory = filterTeamCategory.value.isBlank()
+
+                    val sink = file?.sink(append = false)?.buffered()
+
+                    sink.use { bufferedSink ->
+                        if (withTeamCategory) {
+                            bufferedSink?.writeString("Date,Team Category,Message,Home,Away\n")
+                            for (fixture in getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)) {
+                                bufferedSink?.writeString(
+                                    "${DayDate(fixture.date)},${fixture.teamCategoryName},${fixture.message},${teamName(fixture, true, teamCounts)},${teamName(fixture, false, teamCounts)}\n"
+                                )
+                            }
+                        } else {
+                            bufferedSink?.writeString("Date,Message,Home,Away\n")
+                            for (fixture in getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)) {
+                                bufferedSink?.writeString("${DayDate(fixture.date)},${fixture.message},${teamName(fixture, true, teamCounts)},${teamName(fixture, false, teamCounts)}\n")
+                            }
+                        }
+                    }
+                }
+            }, content = {
+                Icon(imageVector = Icons.Default.FileDownload, contentDescription = "export", tint = Color.White)
+            })
+        },
         "Return to seasons screen",
         content = { paddingValues ->
             Column(verticalArrangement = Arrangement.Center) {
@@ -287,21 +325,11 @@ private fun FixtureTableView(navController : NavController, season : Season) {
 
                 })
                 LazyColumn(state = listState, modifier = Modifier.fillMaxWidth(), content = {
-                    val values = state.value.data!!
                     val associationNameMap = associationState.data?.associateBy({it.id}, {it.name})
                     val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
+                    val values = getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)
                     items(
-                        items = values.sortedBy { it.date }
-                            .filter {
-                                if (filterAssociation.value.isNotBlank() &&
-                                    it.homeAssociation != filterAssociation.value && it.awayAssociation != filterAssociation.value) {
-                                    false
-                                } else if (filterTeamCategory.value.isNotBlank() && it.teamCategoryName != filterTeamCategory.value) {
-                                    false
-                                } else {
-                                    true
-                                }
-                            },
+                        items = values,
                         key = { seasonFixture -> seasonFixture.id }) { seasonFixture ->
                         Row(modifier = Modifier.fillMaxWidth(), content = {
                             val modifier = Modifier.weight(1f)
@@ -317,6 +345,17 @@ private fun FixtureTableView(navController : NavController, season : Season) {
                 })
             }
         })
+}
+
+private fun getFixtures(allFixtures: List<SeasonFixtureView>, filterAssociation: String, filterTeamCategory: String)
+: List<SeasonFixtureView> = allFixtures.sortedBy { it.date }.filter {
+    if (filterAssociation.isNotBlank() && it.homeAssociation != filterAssociation && it.awayAssociation != filterAssociation) {
+        false
+    } else if (filterTeamCategory.isNotBlank() && it.teamCategoryName != filterTeamCategory) {
+        false
+    } else {
+        true
+    }
 }
 
 private fun getTeamCounts(seasonTeamsState: UiState<SeasonTeam>, season: Season, associationNameMap: Map<Short, String>?): Map<Triple<Short, String?, Short>, Short>? =

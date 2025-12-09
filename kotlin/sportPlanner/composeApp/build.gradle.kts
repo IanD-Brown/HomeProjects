@@ -89,6 +89,11 @@ kotlin {
             // data table
             implementation(libs.data.table)
 
+            // Enables FileKit dialogs without Compose dependencies
+            implementation(libs.filekit.dialogs)
+
+            // Enables FileKit dialogs with Composable utilities
+            implementation(libs.filekit.dialogs.compose)
         }
 
         commonTest.dependencies {

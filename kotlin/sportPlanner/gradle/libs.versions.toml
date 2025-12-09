@@ -32,6 +32,7 @@ androidx-startup = "1.2.0"
 # unit-testing kotest
 kotest-version = "6.0.7"
 kover ="0.9.3"
+filekit = "0.12.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -70,6 +71,8 @@ androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = 
 kotest-core = {module = "io.kotest:kotest-assertions-core", version.ref = "kotest-version"}
 kotest-framework = {module = "io.kotest:kotest-framework-engine", version.ref = "kotest-version"}
 kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref = "kotest-version"}
+filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
+filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
