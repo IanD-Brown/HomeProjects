@@ -270,21 +270,23 @@ private fun FixtureTableView(navController : NavController, season : Season) {
                     val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
                     val file = FileKit.openFileSaver(suggestedName = "seasonFixtures", extension = "csv")
                     val withTeamCategory = filterTeamCategory.value.isBlank()
-
+                    val matchDayAdjust = teamCategoryState.data?.associateBy({it.name}, { it.matchDay })
                     val sink = file?.sink(append = false)?.buffered()
 
                     sink.use { bufferedSink ->
+                        val fixtures = getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)
+                            .sortedBy { adjustedWeek(it, matchDayAdjust!!) }
                         if (withTeamCategory) {
                             bufferedSink?.writeString("Date,Team Category,Message,Home,Away\n")
-                            for (fixture in getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)) {
+                            for (fixture in fixtures) {
                                 bufferedSink?.writeString(
-                                    "${DayDate(fixture.date)},${fixture.teamCategoryName},${fixture.message},${teamName(fixture, true, teamCounts)},${teamName(fixture, false, teamCounts)}\n"
+                                    "${adjustedDate(fixture, matchDayAdjust!!)},${fixture.teamCategoryName},${fixture.message},${teamName(fixture, true, teamCounts)},${teamName(fixture, false, teamCounts)}\n"
                                 )
                             }
                         } else {
                             bufferedSink?.writeString("Date,Message,Home,Away\n")
-                            for (fixture in getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)) {
-                                bufferedSink?.writeString("${DayDate(fixture.date)},${fixture.message},${teamName(fixture, true, teamCounts)},${teamName(fixture, false, teamCounts)}\n")
+                            for (fixture in fixtures) {
+                                bufferedSink?.writeString("${adjustedDate(fixture, matchDayAdjust!!)},${fixture.message},${teamName(fixture, true, teamCounts)},${teamName(fixture, false, teamCounts)}\n")
                             }
                         }
                     }
@@ -325,15 +327,18 @@ private fun FixtureTableView(navController : NavController, season : Season) {
 
                 })
                 LazyColumn(state = listState, modifier = Modifier.fillMaxWidth(), content = {
+                    val matchDayAdjust = teamCategoryState.data?.associateBy({it.name}, { it.matchDay })
                     val associationNameMap = associationState.data?.associateBy({it.id}, {it.name})
                     val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
                     val values = getFixtures(state.value.data!!, filterAssociation.value, filterTeamCategory.value)
+                        .sortedBy { adjustedWeek(it, matchDayAdjust!!) }
+
                     items(
                         items = values,
                         key = { seasonFixture -> seasonFixture.id }) { seasonFixture ->
                         Row(modifier = Modifier.fillMaxWidth(), content = {
                             val modifier = Modifier.weight(1f)
-                            SpacedViewText(DayDate(seasonFixture.date).toString(), modifier)
+                            SpacedViewText(adjustedDate(seasonFixture, matchDayAdjust!!), modifier)
                             if (filterTeamCategory.value.isBlank()) {
                                 SpacedViewText(seasonFixture.teamCategoryName, modifier)
                             }
@@ -346,6 +351,17 @@ private fun FixtureTableView(navController : NavController, season : Season) {
             }
         })
 }
+
+private fun adjustedWeek(fixture: SeasonFixtureView, matchDayAdjust: Map<String, Short>) : Int =
+    if (matchDayAdjust[fixture.teamCategoryName]!! > 0.toShort()) {
+        DayDate(fixture.date).addDays(matchDayAdjust[fixture.teamCategoryName]!!.toInt()).value()
+    } else {
+        DayDate(fixture.date).value()
+    }
+
+private fun adjustedDate(fixture: SeasonFixtureView, matchDayAdjust: Map<String, Short>): String =
+    DayDate(adjustedWeek(fixture, matchDayAdjust)).toString()
+
 
 private fun getFixtures(allFixtures: List<SeasonFixtureView>, filterAssociation: String, filterTeamCategory: String)
 : List<SeasonFixtureView> = allFixtures.sortedBy { it.date }.filter {
@@ -391,10 +407,11 @@ private suspend fun calcFixtures(seasonId : Short) {
     val db : AppDatabase by inject(AppDatabase::class.java)
     val seasonFixtureDao = db.getSeasonFixtureDao()
     val seasonWeeks = createSeasonWeeks(seasonId)
-
     val leagueGames = SeasonLeagueGames()
     val seasonTeamDao = db.getSeasonTeamDao()
-    for (activeLeagueCompetition in db.getSeasonCompetitionDao().   getActiveLeagueCompetitions(seasonId)) {
+    val activeLeagueCompetitions = db.getSeasonCompetitionDao().getActiveLeagueCompetitions(seasonId)
+
+    for (activeLeagueCompetition in activeLeagueCompetitions) {
         for (activeTeamCategory in db.getSeasonTeamCategoryDao().getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
             seasonFixtureDao.deleteBySeasonTeamCategory(seasonId, activeTeamCategory.teamCategoryId, activeLeagueCompetition.competitionId)
 
@@ -418,11 +435,19 @@ private suspend fun calcFixtures(seasonId : Short) {
         }
     }
 
+    val teamsByCategoryAndCompetition = mutableMapOf<Pair<Short, Short>, Int>()
+    for (seasonTeam in seasonTeamDao.getAll()) {
+        val key = Pair(seasonTeam.teamCategoryId, seasonTeam.competitionId)
+        teamsByCategoryAndCompetition[key] = teamsByCategoryAndCompetition.getOrPut(key) { 0 } + seasonTeam.count
+    }
+
     for (fixture in leagueGames.scheduleFixtures(seasonId,
         seasonWeeks,
         db.getTeamCategoryDao().getAll(),
         db.getSeasonTeamCategoryDao().getBySeason(seasonId),
-        db.getSeasonCompRoundViewDao().getBySeason(seasonId))) {
+        db.getSeasonCompRoundViewDao().getBySeason(seasonId),
+        teamsByCategoryAndCompetition,
+        activeLeagueCompetitions.map {it.competitionId}.toSet())) {
         seasonFixtureDao.insert(fixture)
     }
 }

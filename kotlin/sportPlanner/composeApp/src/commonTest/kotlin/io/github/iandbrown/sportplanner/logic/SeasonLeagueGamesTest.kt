@@ -97,7 +97,15 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             val teamCategories = listOf(TeamCategory(1, "Team category", 1))
 
             seasonLeagueGames.prepareGames(1, 1, 2, teams)
-            val scheduledFixtures = seasonLeagueGames.scheduleFixtures(1, seasonWeeks, teamCategories,  seasonTeamCategories, competitionRounds)
+            val scheduledFixtures = seasonLeagueGames.scheduleFixtures(
+                1,
+                seasonWeeks,
+                teamCategories,
+                seasonTeamCategories,
+                competitionRounds,
+                mapOf(Pair(Pair(1, 1), 3)),
+                setOf(1.toShort())
+            )
 
             then("the correct number of fixtures should be created") {
                 scheduledFixtures.size shouldBe 7
