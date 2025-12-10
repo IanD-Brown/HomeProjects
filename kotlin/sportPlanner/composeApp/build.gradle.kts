@@ -26,9 +26,10 @@ kover {
                 // Entry Points
                 classes("MainKt") // Desktop
                 classes("*.MainActivity") // Android
+                classes("App", "JVMPlatform", "Platform_jvmKt")
 
                 // Generated Classes & Resources
-                packages("*.generated.*")
+                packages("*.generated.*", "*.database", "*.ui", "*.di")
 
                 // Compose Related
                 annotatedBy("androidx.compose.runtime.Composable")
