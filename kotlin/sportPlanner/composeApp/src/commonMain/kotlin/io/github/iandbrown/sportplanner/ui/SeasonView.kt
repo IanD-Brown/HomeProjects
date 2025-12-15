@@ -75,20 +75,18 @@ fun NavigateSeason(navController : NavController, argument : String?) {
 @Preview
 private fun SeasonListView(navController: NavController) {
     val viewModel: SeasonViewModel = koinInject()
-    val competitionViewModel: CompetitionViewModel = koinInject()
-    val seasonCompetitionViewModel: SeasonCompetitionViewModel = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
-    val competitionState = competitionViewModel.uiState.collectAsState()
-    val seasonCompetitionState = seasonCompetitionViewModel.uiState.collectAsState()
-    val mergedState = object : BaseUiState {
-        override fun loadingInProgress(): Boolean = state.value.isLoading || competitionState.value.isLoading || seasonCompetitionState.value.isLoading
+    val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
+    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
 
-        override fun hasData(): Boolean = state.value.data != null && competitionState.value.data != null && seasonCompetitionState.value.data != null
-    }
-
-    ViewCommon(mergedState, navController, "Seasons", { CreateFloatingAction(navController, editor.addRoute()) }, content = { paddingValues ->
+    ViewCommon(MergedState(state.value, competitionState.value, seasonCompetitionState.value),
+        navController,
+        "Seasons",
+        { CreateFloatingAction(navController, editor.addRoute()) },
+        content = { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues), content = {
+            val competitionTypeMap = competitionState.value.data?.associateBy({it.id}, {it.type})
             items(
                 items = createSeasonsList(viewModel.uiState.value.data!!, competitionState.value.data!!, seasonCompetitionState.value.data!!),
                 key = { pair -> pair.first }) { pair ->
@@ -125,8 +123,10 @@ private fun SeasonListView(navController: NavController) {
                                     SpacedViewText(DayDate(entity.endDate).toString())
                                 })
 
-                                SpacedIcon(Icons.Default.Star, "manage season competition rounds") {
-                                    navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
+                                if (competitionTypeMap?.get(entity.competitionId) == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
+                                    SpacedIcon(Icons.Default.Star, "manage season competition rounds") {
+                                        navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
+                                    }
                                 }
 
                                  SpacedIcon(Icons.Default.Settings, "manage teams") {
