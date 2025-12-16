@@ -11,10 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Rotate90DegreesCcw
+import androidx.compose.material.icons.filled.Splitscreen
+import androidx.compose.material.icons.filled._123
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -99,7 +99,7 @@ private fun SeasonListView(navController: NavController) {
                                     SpacedViewText(entity.name)
                                 })
 
-                                SpacedIcon(Icons.Default.Info, "manage season breaks") {
+                                SpacedIcon(Icons.Default.Splitscreen, "manage season breaks") {
                                     navController.navigate(Editors.SEASON_BREAK.viewRoute(entity))
                                 }
 
@@ -124,16 +124,16 @@ private fun SeasonListView(navController: NavController) {
                                 })
 
                                 if (competitionTypeMap?.get(entity.competitionId) == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
-                                    SpacedIcon(Icons.Default.Star, "manage season competition rounds") {
+                                    SpacedIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
                                         navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                     }
                                 }
 
-                                 SpacedIcon(Icons.Default.Settings, "manage teams") {
+                                 SpacedIcon(Icons.Default.Accessibility, "manage teams") {
                                     navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                 }
 
-                                SpacedIcon(Icons.Default.Face, "manage teams") {
+                                SpacedIcon(Icons.Default._123, "manage match structure") {
                                     navController.navigate(Editors.SEASON_TEAMS.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
                                 }
                             }

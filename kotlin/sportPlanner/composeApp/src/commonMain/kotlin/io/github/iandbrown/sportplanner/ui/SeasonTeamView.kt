@@ -49,12 +49,10 @@ fun NavigateSeasonTeam(navController: NavController, argument: String?) {
 @Composable
 fun SeasonTeamEditor(navController: NavController, param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamViewModel = koinInject()
-    val associationModel: AssociationViewModel = koinInject<AssociationViewModel>()
-    val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
-    val state2 = associationModel.uiState.collectAsState()
-    val state3 = teamCategoryViewModel.uiState.collectAsState()
+    val state2 = koinInject<AssociationViewModel>().uiState.collectAsState()
+    val state3 = koinInject<TeamCategoryViewModel>().uiState.collectAsState()
     var isLocked by remember { mutableStateOf(true) }
     val edits = remember { mutableStateMapOf<Pair<Short, Short>, Short>() }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
@@ -78,7 +76,7 @@ fun SeasonTeamEditor(navController: NavController, param: SeasonCompetitionParam
     }
 
     ViewCommon(
-        state.value,
+        MergedState(state.value, state2.value, state3.value),
         navController,
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
         {
