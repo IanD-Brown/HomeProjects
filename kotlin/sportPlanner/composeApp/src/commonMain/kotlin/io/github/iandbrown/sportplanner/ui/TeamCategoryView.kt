@@ -1,13 +1,8 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,9 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.softartdev.theme.material.PreferableMaterialTheme
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
@@ -63,40 +56,23 @@ fun TeamCategoryEditor(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
 
-    ViewCommon(state.value, navController, "Team Categories", { CreateFloatingAction(navController, editor.addRoute()) }) {
-            paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-            val values = state.value.data!!
-            items(
-                items = values.sortedBy { it.name.uppercase().trim() },
-                key = { teamCategory -> teamCategory.id }) { teamCategory ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    content = {
-                        Row(
-                            modifier = Modifier.weight(2F), content = {
-                                Spacer(modifier = Modifier.size(16.dp))
-                                ViewText(teamCategory.name)
-                                Spacer(modifier = Modifier.size(16.dp))
-                                ViewText(Day.entries[teamCategory.matchDay.toInt()].display)
-                            })
-
-                        ItemButtons(
-                            editClick = {
-                                navController.navigate(
-                                    Editors.TEAM_CATEGORIES.name +
-                                            "/${Json.encodeToString(teamCategory)}"
-                                )
-                            },
-                            deleteClick = {
-                                coroutineScope.launch {
-                                    viewModel.delete(teamCategory)
-                                }
-                            })
-                    })
-
+    ViewCommon(
+        state.value,
+        navController,
+        "Team Categories",
+        { CreateFloatingAction(navController, editor.addRoute()) }) { paddingValues ->
+        LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
+            item { ViewText("Name") }
+            item { ViewText("Match Day") }
+            item {}
+            item {}
+            for (teamCategory in state.value.data?.sortedBy { it.name.uppercase().trim() }!!) {
+                item { ViewText(teamCategory.name) }
+                item { ViewText(Day.entries[teamCategory.matchDay.toInt()].display) }
+                item { EditButton {navController.navigate(editor.editRoute(teamCategory)) } }
+                item { DeleteButton { coroutineScope.launch { viewModel.delete(teamCategory) } } }
             }
-        })
+        }
     }
 }
 
@@ -117,17 +93,14 @@ fun EditTeamCategory(navController: NavController, editCategory: TeamCategory?) 
         },
             enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
     }) { paddingValues ->
-        PreferableMaterialTheme {
-            FlowRow(modifier = Modifier.padding(paddingValues).fillMaxWidth(), maxItemsInEachRow = 2) {
-                ViewText("Name", modifier = Modifier.weight(1f))
-                ViewText("Match Day", modifier = Modifier.weight(1f))
-                ViewTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f))
-                DropdownList(
-                    itemList = Day.entries.map { it.display },
-                    selectedIndex = matchDay,
-                    modifier = Modifier.weight(1f)
-                ) { matchDay = it }
-            }
+        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
+            item { ReadonlyViewText(value = "Name") }
+            item { ReadonlyViewText(value = "Match Day") }
+            item { ViewTextField(value = name, onValueChange = { name = it }) }
+            item { DropdownList(
+                itemList = Day.entries.map { it.display },
+                selectedIndex = matchDay,
+            ) { matchDay = it } }
         }
     }
 }

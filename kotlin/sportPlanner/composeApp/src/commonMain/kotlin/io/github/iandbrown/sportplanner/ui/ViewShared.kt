@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -48,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -107,6 +110,19 @@ fun ViewText(value : String, modifier: Modifier = Modifier) {
         fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
+    TextField(
+        value = value,
+        readOnly = true,
+        onValueChange = {},
+        singleLine = true,
+        colors = textFieldColors(),
+        textStyle = textStyle(),
         modifier = modifier
     )
 }
@@ -186,8 +202,10 @@ fun SpacedIcon(imageVector: ImageVector,
 
 @Composable
 fun ItemButtons(editClick : () -> Unit, deleteClick : () -> Unit) {
-    SpacedIcon(Icons.Default.Edit, "edit", Color.Green, editClick)
-    SpacedIcon(Icons.Default.Delete, "delete", Color.Red, deleteClick)
+    Spacer(modifier = Modifier.size(16.dp))
+    EditButton(editClick)
+    Spacer(modifier = Modifier.size(16.dp))
+    DeleteButton(deleteClick)
 }
 
 @Composable
@@ -294,3 +312,31 @@ fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> B
 
 fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
     DayDate.isMondayIn(seasonCompetition.startDate, seasonCompetition.endDate, DayDate(utcMs).value())
+
+@Composable
+fun EditButton(onClick : () -> Unit) =
+    Icon(Icons.Default.Edit, "edit", Modifier.clickable(onClick = onClick), Color.Green)
+
+@Composable
+fun DeleteButton(onClick : () -> Unit) =
+    Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+
+class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
+    GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        // Define the total available width after accounting for spacing
+        val columnCount = dataColumnCount + trailingIconCount + 1
+        val totalSpacing = spacing * columnCount
+        val iconSize = (IconSize + 16.dp).roundToPx()
+        val usableWidth = availableSize - totalSpacing - 2 * iconSize
+        return mutableListOf<Int>().apply {
+            repeat(dataColumnCount) {
+                add(usableWidth / dataColumnCount)
+            }
+        }.apply {
+            repeat(trailingIconCount) {
+                add(iconSize)
+            }
+        }
+    }
+}

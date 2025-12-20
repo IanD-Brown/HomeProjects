@@ -1,11 +1,8 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,7 +13,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
-import com.softartdev.theme.material.PreferableMaterialTheme
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionDao
@@ -60,24 +56,18 @@ private fun CompetitionView(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(state.value, navController, "Competitions",  { CreateFloatingAction(navController, editor.addRoute()) }, content = { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-            val values = state.value.data!!
-            items(
-                items = values.sortedBy { it.name.uppercase().trim() },
-                key = { competition -> competition.id }) { competition ->
-                Row(modifier = Modifier.fillMaxWidth(), content = {
-                    Row(
-                        modifier = Modifier.weight(2F),
-                        content = {
-                            SpacedViewText(competition.name)
-                            SpacedViewText(CompetitionTypes.entries[competition.type.toInt()].display)
-                        })
-                    ItemButtons(
-                        { navController.navigate(editor.editRoute(competition)) },
-                        { coroutineScope.launch { viewModel.delete(competition) } })
-                })
+        LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
+            item { ViewText("Name") }
+            item { ViewText("Type") }
+            item {}
+            item {}
+            for (competition in state.value.data?.sortedBy { it.name.uppercase().trim() }!!) {
+                item { ViewText(competition.name) }
+                item { ViewText(CompetitionTypes.entries[competition.type.toInt()].display) }
+                item { EditButton {navController.navigate(editor.editRoute(competition)) } }
+                item { DeleteButton { coroutineScope.launch { viewModel.delete(competition) } } }
             }
-        })
+        }
     })
 }
 
@@ -99,17 +89,14 @@ private fun EditCompetition(navController: NavController, editCategory: Competit
             enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
 
     }) { paddingValues ->
-        PreferableMaterialTheme {
-            FlowRow(modifier = Modifier.padding(paddingValues).fillMaxWidth(), maxItemsInEachRow = 2) {
-                ViewText("Name", modifier = Modifier.weight(1f))
-                ViewText("Type", modifier = Modifier.weight(1f))
-                ViewTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f))
-                DropdownList(
-                    itemList = CompetitionTypes.entries.map { it.display },
-                    selectedIndex = type.toInt(),
-                    modifier = Modifier.weight(1f)
-                ) { type = it.toShort() }
-            }
+        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
+            item { ReadonlyViewText(value = "Name") }
+            item { ReadonlyViewText(value = "Type") }
+            item { ViewTextField(value = name, onValueChange = { name = it }) }
+            item { DropdownList(
+                itemList = CompetitionTypes.entries.map { it.display },
+                selectedIndex = type.toInt(),
+            ) { type = it.toShort() } }
         }
     }
 }
