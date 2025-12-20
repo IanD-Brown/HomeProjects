@@ -183,31 +183,7 @@ private fun SummaryFixtureView(navController : NavController, season : Season) {
                         label = "Competition"
                     ) { competitionFilter.value = competitionNameToId[competitionList[it]]!! }
                 })
-                LazyVerticalGrid(
-                    columns = object : GridCells {
-                        override fun Density.calculateCrossAxisCellSizes(
-                            availableSize: Int,
-                            spacing: Int
-                        ): List<Int> {
-                            // Define the total available width after accounting for spacing
-                            val columnCount = teamCategories.size + 1
-                            val totalSpacing = spacing * columnCount
-                            val usableWidth = availableSize - totalSpacing
-
-                            // Calculate widths based on a 2:1 ratio (first column twice as wide as second)
-                            val firstColumnWidth = (usableWidth * 2 / columnCount)
-                            val laterColumnWidth = (usableWidth * 1 / columnCount)
-                            val sizes = mutableListOf<Int>().apply {
-                                repeat(teamCategories.size) {
-                                    add(laterColumnWidth)
-                                }
-                            }
-                            sizes.add(0, firstColumnWidth)
-
-                            return sizes
-                        }
-                    },
-                ) {
+                LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size)) {
                     item { ViewText("") }
                     for (teamCategory in teamCategories) {
                         item { ViewText(teamCategory) }

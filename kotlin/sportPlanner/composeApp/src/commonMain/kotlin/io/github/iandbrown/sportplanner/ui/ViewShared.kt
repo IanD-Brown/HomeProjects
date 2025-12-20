@@ -74,9 +74,10 @@ fun ViewCommon(
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
     } else if (baseUiState.hasData()) {
-        Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-            CreateTopBar(navController, title, description)
-        }, floatingActionButton = floatingActionButton,
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(navController, title, description) },
+            floatingActionButton = floatingActionButton,
             bottomBar = bottomBar,
             content = content)
     }
@@ -338,5 +339,25 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
                 add(iconSize)
             }
         }
+    }
+}
+
+class DoubleFirstGridCells(val columns : Int) : GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        // Define the total available width after accounting for spacing
+        val columnCount = columns + 1
+        val totalSpacing = spacing * columnCount
+        val usableWidth = availableSize - totalSpacing
+
+        // Calculate widths based on a 2:1 ratio (first column twice as wide as second)
+        val firstColumnWidth = (usableWidth * 2 / (columnCount + 1))
+        val laterColumnWidth = (usableWidth * 1 / (columnCount + 1))
+        val sizes = mutableListOf<Int>().apply {
+            repeat(columns) {
+                add(laterColumnWidth)
+            }
+        }
+        sizes.add(0, firstColumnWidth)
+        return sizes
     }
 }
