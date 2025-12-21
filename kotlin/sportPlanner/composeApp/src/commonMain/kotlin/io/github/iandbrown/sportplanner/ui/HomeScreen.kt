@@ -9,14 +9,11 @@ import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -51,12 +48,8 @@ fun HomeScreen(navController: NavController) {
     }, content = { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues), content = {
             items(items = Editors.entries.filter { it.showOnHome }.toTypedArray(), key = { entry -> entry.ordinal }) { editor ->
-                OutlinedButton( onClick = { navController.navigate(editor.viewRoute()) },
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.padding(6.dp),
-                ) {
-                    ViewText(editor.displayName)
-                }
+                OutlinedTextButton(value = editor.displayName)
+                { navController.navigate(editor.viewRoute()) }
             }
         })
     })

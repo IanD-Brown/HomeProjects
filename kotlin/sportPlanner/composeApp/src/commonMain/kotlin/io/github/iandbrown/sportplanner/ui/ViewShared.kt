@@ -29,6 +29,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
@@ -360,4 +361,13 @@ class DoubleFirstGridCells(val columns : Int) : GridCells {
         sizes.add(0, firstColumnWidth)
         return sizes
     }
+}
+
+@Composable
+fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    OutlinedButton(enabled = enabled,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier.padding(6.dp),
+        onClick = onClick)
+    { ViewText(value) }
 }

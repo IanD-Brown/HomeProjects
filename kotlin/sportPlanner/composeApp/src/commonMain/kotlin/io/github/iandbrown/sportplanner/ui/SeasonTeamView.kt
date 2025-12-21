@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.Button
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,7 +18,7 @@ import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
-import kotlin.getValue
+import kotlin.collections.set
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
@@ -60,39 +58,29 @@ private fun SeasonTeamEditor(navController: NavController, param: SeasonCompetit
         {
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
-                Button(enabled = isLocked, modifier = Modifier.weight(1f), onClick = {
-                    navController.navigate(
-                        "${Editors.SEASON_TEAMS.name}/ByCategory&${
-                            Json.encodeToString(
-                                param
-                            )
-                        }"
-                    )
-                }) { ViewText("By Category") }
-                Button(
-                    onClick = {
-                        if (!isLocked && edits.isNotEmpty()) {
-                            coroutineScope.launch {
-                                for ((key, count) in edits) {
-                                    if (values.getOrDefault(key, 0) != count) {
-                                        viewModel.insert(
-                                            SeasonTeam(
-                                                seasonId = param.seasonId,
-                                                teamCategoryId = key.second,
-                                                associationId = key.first,
-                                                competitionId = param.competitionId,
-                                                count = count
-                                            )
+                OutlinedTextButton("By Category", Modifier.weight(1.3f), isLocked) {
+                    navController.navigate("${Editors.SEASON_TEAMS.name}/ByCategory&${Json.encodeToString(param)}")
+                }
+                OutlinedTextButton(value = buttonText,modifier = Modifier.weight(1f)){
+                    if (!isLocked && edits.isNotEmpty()) {
+                        coroutineScope.launch {
+                            for ((key, count) in edits) {
+                                if (values.getOrDefault(key, 0) != count) {
+                                    viewModel.insert(
+                                        SeasonTeam(
+                                            seasonId = param.seasonId,
+                                            teamCategoryId = key.second,
+                                            associationId = key.first,
+                                            competitionId = param.competitionId,
+                                            count = count
                                         )
-                                    }
+                                    )
                                 }
-                                edits.clear()
                             }
+                            edits.clear()
                         }
-                        isLocked = !isLocked
-                    },
-                    modifier = Modifier.weight(1f)) {
-                    ViewText(buttonText)
+                    }
+                    isLocked = !isLocked
                 }
             }
         }
@@ -122,21 +110,23 @@ private fun SeasonTeamEditor(navController: NavController, param: SeasonCompetit
                         } else {
                             ViewTextField(
                                 value = value.toString(),
-                                onValueChange = {
-                                    try {
-                                        when(it.toIntOrNull()) {
-                                            0 -> edits[key] = 0
-                                            1 -> edits[key] = 1
-                                            2 -> edits[key] = 2
-                                        }
-                                    } catch (_: NumberFormatException) {
-                                    }
-                                })
+                                onValueChange = {matchStructure(it) { number -> edits[key] = number } })
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun matchStructure(value: String, editFun: (Short) -> Unit) {
+    try {
+        when(value.toIntOrNull()) {
+            0 -> editFun(0)
+            1 -> editFun(1)
+            2 -> editFun(2)
+        }
+    } catch (_: NumberFormatException) {
     }
 }
 
@@ -155,9 +145,12 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
         MergedState(state.value, teamCategory.value),
         navController,
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
+        {},
+        "Return to Season teams screen",
         {
-            FloatingActionButton(
-                onClick = {
+            Row {
+                ReadonlyViewText("", Modifier.weight(4f))
+                OutlinedTextButton(buttonText, Modifier.weight(1f)){
                     if (!isLocked && edits.isNotEmpty()) {
                         coroutineScope.launch {
                             val db : AppDatabase by inject(AppDatabase::class.java)
@@ -179,13 +172,9 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
                         }
                     }
                     isLocked = !isLocked
-                },
-                content = {
-                    ViewText(buttonText)
                 }
-            )
-        },
-        "Return to Season teams screen"
+            }
+        }
     ) { paddingValues ->
         val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
         for (seasonTeam in state.value.data!!) {
@@ -220,17 +209,7 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
                     } else {
                         ViewTextField(
                             value = value,
-                            onValueChange = {
-                                try {
-                                    when(it.toIntOrNull()) {
-                                        null -> edits[key] = 0
-                                        0 -> edits[key] = 0
-                                        1 -> edits[key] = 1
-                                        2 -> edits[key] = 2
-                                    }
-                                } catch (_: NumberFormatException) {
-                                }
-                            })
+                            onValueChange = {matchStructure(it) { number -> edits[key] = number } })
                     }
                 }
             }

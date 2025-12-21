@@ -36,6 +36,13 @@ class DayDate {
         return LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR).dayOfWeek == java.time.DayOfWeek.MONDAY
     }
 
+    fun isSunday() : Boolean {
+        if (value == 0) {
+            return false
+        }
+        return LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR).dayOfWeek == java.time.DayOfWeek.SUNDAY
+    }
+
     fun addDays(days: Int) : DayDate {
         if (value == 0) {
             return this
