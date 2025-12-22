@@ -87,9 +87,6 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
 
-            // data table
-            implementation(libs.data.table)
-
             // Enables FileKit dialogs without Compose dependencies
             implementation(libs.filekit.dialogs)
 

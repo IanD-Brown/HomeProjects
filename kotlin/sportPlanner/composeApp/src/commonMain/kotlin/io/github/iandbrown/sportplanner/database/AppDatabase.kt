@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-private const val version = 2
+private const val version = 3
 
 @Database(entities = [
     Association::class,

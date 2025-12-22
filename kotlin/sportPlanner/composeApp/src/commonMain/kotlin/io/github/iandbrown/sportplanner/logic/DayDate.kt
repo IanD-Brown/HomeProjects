@@ -25,7 +25,7 @@ class DayDate {
         value = YEAR_FACTOR * date.year + date.dayOfYear
     }
 
-    constructor(msTime: Long) : this(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(msTime))!!)
+    constructor(msTime: Long) : this(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(msTime)))
 
     fun isValid() : Boolean = value > 0
 

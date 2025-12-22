@@ -8,7 +8,6 @@ To create an executable for windows run
 * kotest for unit testing
 * kover for code coverage
 * theme-material for dark/light theme setting
-* compose-data-table for a data table view
 * file-kit for file picker and write access
 
 `gradlew.bat createDistributable`
