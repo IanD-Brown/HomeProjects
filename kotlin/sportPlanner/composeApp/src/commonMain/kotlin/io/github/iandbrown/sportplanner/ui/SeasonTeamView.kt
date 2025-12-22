@@ -18,11 +18,11 @@ import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
+import io.github.iandbrown.sportplanner.database.TeamCategory
 import kotlin.collections.set
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
-import org.koin.java.KoinJavaComponent.inject
 
 class SeasonTeamViewModel : BaseViewModel<SeasonTeamDao, SeasonTeam>() {
     override fun getDao(db: AppDatabase): SeasonTeamDao = db.getSeasonTeamDao()
@@ -136,13 +136,13 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
     val teamCategory = koinInject<TeamCategoryViewModel>().uiState.collectAsState()
+    val associationState = koinInject<AssociationViewModel>().uiState.collectAsState()
     var isLocked by remember { mutableStateOf(true) }
     val edits = remember { mutableStateMapOf<Short, Short>() }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
-    val values = mutableMapOf<Short, Short>()
 
     ViewCommon(
-        MergedState(state.value, teamCategory.value),
+        MergedState(state.value, teamCategory.value, associationState.value),
         navController,
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
         {},
@@ -153,10 +153,8 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
                 OutlinedTextButton(buttonText, Modifier.weight(1f)){
                     if (!isLocked && edits.isNotEmpty()) {
                         coroutineScope.launch {
-                            val db : AppDatabase by inject(AppDatabase::class.java)
-                            val associations = db.getAssociationDao().getAll()
                             for ((key, count) in edits) {
-                                for (association in associations) {
+                                for (association in associationState.value.data!!) {
                                     viewModel.insert(
                                         SeasonTeam(
                                             seasonId = param.seasonId,
@@ -177,29 +175,21 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
         }
     ) { paddingValues ->
         val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
-        for (seasonTeam in state.value.data!!) {
-            if (seasonTeam.seasonId == param.seasonId) {
-                when {
-                    // doesn't exist so seed
-                    values[seasonTeam.teamCategoryId] == null -> values[seasonTeam.teamCategoryId] = seasonTeam.count
-                    // match, ignore
-                    values[seasonTeam.teamCategoryId] == seasonTeam.count -> {}
-                    // different, mark...
-                    else -> values[seasonTeam.teamCategoryId] = -1
-                }
-            }
-        }
+        val values = countByTeamCategory(teamCategoryList!!,
+            associationState.value.data?.count()!!,
+            state.value.data?.
+                filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }!!)
 
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
             item { ReadonlyViewText("Team Category") }
             item { ReadonlyViewText("Team Count") }
-            for (teamCategory in teamCategoryList!!) {
-                item { ViewText(teamCategory.name) }
+            for (teamCategory in teamCategoryList) {
+                item { ReadonlyViewText(teamCategory.name) }
                 item {
                     val key = teamCategory.id
                     val value = if (edits.contains(key)) {
                         edits[key]?.toString()!!
-                    } else if (values.contains(key)){
+                    } else if (values.contains(key) && values[key]!!.toInt() != -1) {
                         values[key]?.toString()!!
                     } else {
                         ""
@@ -215,4 +205,29 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
             }
         }
     }
+}
+
+fun countByTeamCategory(teamCategoryList: List<TeamCategory>, associationCount: Int, seasonTeams: List<SeasonTeam>) : Map<Short, Short> {
+    val result = mutableMapOf<Short, Short>()
+    val valueCounts = teamCategoryList.associateBy({it.id}, {0}).toMutableMap()
+    for (seasonTeam in seasonTeams) {
+        valueCounts[seasonTeam.teamCategoryId] = valueCounts.getOrDefault(seasonTeam.teamCategoryId, 0) + 1
+
+        when {
+            // doesn't exist so seed
+            result[seasonTeam.teamCategoryId] == null -> result[seasonTeam.teamCategoryId] = seasonTeam.count
+            // match, ignore
+            result[seasonTeam.teamCategoryId] == seasonTeam.count -> {}
+            // different, mark...
+            else -> result[seasonTeam.teamCategoryId] = -1
+        }
+    }
+    
+    for (entry in valueCounts) {
+        if (entry.value != associationCount || !result.contains(entry.key)) {
+            result[entry.key] = -1
+        }
+    }
+
+    return result
 }
