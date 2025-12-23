@@ -87,10 +87,8 @@ private fun SeasonTeamEditor(navController: NavController, param: SeasonCompetit
     ) { paddingValues ->
         val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
         val associationList = associationState.value.data?.sortedBy { it.name.trim().uppercase() }
-        for (seasonTeam in state.value.data!!) {
-            if (seasonTeam.seasonId == param.seasonId) {
-                values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
-            }
+        for (seasonTeam in state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }!!) {
+            values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
         }
 
         LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategoryList?.size!!),

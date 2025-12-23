@@ -190,29 +190,15 @@ private fun SummaryFixtureView(navController : NavController, season : Season) {
                         item { ViewText("$team HOME") }
                         for (teamCategory in teamCategories) {
                             item {
-                                ViewText(
-                                    "${
-                                        countsByTeamAndCategory[Triple(
-                                            team,
-                                            teamCategory,
-                                            SumType.HOME_TEAM
-                                        )]
-                                    }"
-                                )
+                                val key = Triple(team, teamCategory, SumType.HOME_TEAM)
+                                ViewText("${countsByTeamAndCategory[key] ?: 0}")
                             }
                         }
                         item { ViewText("$team AWAY") }
                         for (teamCategory in teamCategories) {
                             item {
-                                ViewText(
-                                    "${
-                                        countsByTeamAndCategory[Triple(
-                                            team,
-                                            teamCategory,
-                                            SumType.AWAY_TEAM
-                                        )]
-                                    }"
-                                )
+                                val key = Triple(team, teamCategory, SumType.AWAY_TEAM)
+                                ViewText("${countsByTeamAndCategory[key] ?: 0}")
                             }
                         }
                     }
@@ -388,6 +374,10 @@ private suspend fun calcFixtures(seasonId : Short) {
     for (activeLeagueCompetition in activeLeagueCompetitions) {
         for (activeTeamCategory in db.getSeasonTeamCategoryDao().getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
             seasonFixtureDao.deleteBySeasonTeamCategory(seasonId, activeTeamCategory.teamCategoryId, activeLeagueCompetition.competitionId)
+
+            if (activeTeamCategory.games == 0.toShort()) {
+                continue
+            }
 
             for (seasonBreak in seasonWeeks.breakWeeks()) {
                     seasonFixtureDao.insert(SeasonFixture(0,
