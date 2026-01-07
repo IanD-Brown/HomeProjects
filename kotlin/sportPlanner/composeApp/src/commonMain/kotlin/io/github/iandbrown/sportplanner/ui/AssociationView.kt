@@ -57,7 +57,6 @@ fun NavigateAssociation(navController: NavController, argument: String?) {
 @Preview
 fun AssociationEditor(navController: NavController) {
     val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
-    val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
 
     if (state.value.isLoading) {
@@ -85,11 +84,7 @@ fun AssociationEditor(navController: NavController) {
                                 })
                             ItemButtons(editClick = {
                                 navController.navigate(editor.editRoute(association))
-                            }, deleteClick = {
-                                coroutineScope.launch {
-                                    viewModel.delete(association)
-                                }
-                            })
+                            }, deleteClick = { viewModel.delete(association) })
                         })
 
                 }

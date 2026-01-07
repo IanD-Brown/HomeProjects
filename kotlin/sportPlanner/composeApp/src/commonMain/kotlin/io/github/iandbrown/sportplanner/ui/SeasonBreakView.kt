@@ -57,7 +57,6 @@ fun NavigateSeasonBreak(navController : NavController, argument : String?) {
 private fun SeasonBreakView(navController: NavController, param : Season) {
     val viewModel : SeasonBreakViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(state.value,
         navController,
@@ -77,7 +76,7 @@ private fun SeasonBreakView(navController: NavController, param : Season) {
                         })
                     ItemButtons(
                         { navController.navigate(editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak))) },
-                        { coroutineScope.launch { viewModel.delete(seasonBreak) } })
+                        { viewModel.delete(seasonBreak) })
                 })
             }
         })

@@ -60,7 +60,6 @@ fun NavigateSeason(navController : NavController, argument : String?) {
 @Preview
 private fun SeasonListView(navController: NavController) {
     val viewModel: SeasonViewModel = koinInject()
-    val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
     val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
     val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
@@ -73,7 +72,7 @@ private fun SeasonListView(navController: NavController) {
         LazyColumn(modifier = Modifier.padding(paddingValues), content = {
             val competitionTypeMap = competitionState.value.data?.associateBy({it.id}, {it.type})
             items(
-                items = createSeasonsList(viewModel.uiState.value.data!!, competitionState.value.data!!, seasonCompetitionState.value.data!!),
+                items = createSeasonsList(state.value.data!!, competitionState.value.data!!, seasonCompetitionState.value.data!!),
                 key = { pair -> pair.first }) { pair ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -92,11 +91,7 @@ private fun SeasonListView(navController: NavController) {
                                     editClick = {
                                         navController.navigate(editor.editRoute(entity))
                                     },
-                                    deleteClick = {
-                                        coroutineScope.launch {
-                                            viewModel.delete(entity)
-                                        }
-                                    })
+                                    deleteClick = { viewModel.delete(entity) })
                             }
 
                             is SeasonCompetition -> {
@@ -231,7 +226,7 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
                         modifier = Modifier,
                         isSelectable = {
                             val dayDate = DayDate(it)
-                            dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: 0) }) {
+                            dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: Integer.MAX_VALUE) }) {
                         startDates[competition.id] = it
                     }
                 }

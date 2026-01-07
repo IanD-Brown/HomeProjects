@@ -53,7 +53,6 @@ fun NavigateTeamCategory(navController : NavController, argument : String?) {
 @Preview
 fun TeamCategoryEditor(navController: NavController) {
     val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
-    val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
 
     ViewCommon(
@@ -70,7 +69,7 @@ fun TeamCategoryEditor(navController: NavController) {
                 item { ViewText(teamCategory.name) }
                 item { ViewText(Day.entries[teamCategory.matchDay.toInt()].display) }
                 item { EditButton {navController.navigate(editor.editRoute(teamCategory)) } }
-                item { DeleteButton { coroutineScope.launch { viewModel.delete(teamCategory) } } }
+                item { DeleteButton { viewModel.delete(teamCategory) } }
             }
         }
     }

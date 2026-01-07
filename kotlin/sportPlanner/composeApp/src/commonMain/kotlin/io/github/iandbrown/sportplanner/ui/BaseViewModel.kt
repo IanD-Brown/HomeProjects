@@ -16,6 +16,7 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
     internal val _uiState = MutableStateFlow(UiState<ENTITY>(true))
     val uiState = _uiState.asStateFlow()
     private val fullRead : Boolean
+    private val coroutineScope = viewModelScope
 
     constructor(readAll : Boolean = true) {
         val database : AppDatabase by inject(AppDatabase::class.java)
@@ -48,9 +49,11 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
         return newId
     }
 
-    suspend fun delete(entity : ENTITY) {
-        dao.delete(entity)
-        readAll()
+    fun delete(entity : ENTITY) {
+        coroutineScope.launch {
+            dao.delete(entity)
+            readAll()
+        }
     }
 
     private fun getAll(): Flow<List<ENTITY>> =

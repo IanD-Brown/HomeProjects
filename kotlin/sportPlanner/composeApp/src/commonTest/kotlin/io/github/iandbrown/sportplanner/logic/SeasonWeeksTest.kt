@@ -62,34 +62,34 @@ class SeasonWeeksTest : BehaviorSpec({
         }
     }
 
-//    given("a long season with several breaks") {
-//        val seasonCompetitions = listOf(createSeasonCompetition(1, "08/09/2025", "05/04/2026"))
-//        val breaks = listOf(createSeasonBreak(1, "27/10/2025"),
-//            createSeasonBreak(2, "22/12/2025"),
-//            createSeasonBreak(3, "29/12/2025"),
-//            createSeasonBreak(4, "23/02/2026")
-//        )
-//        When("The season weeks are calculated") {
-//            val seasonWeeks = SeasonWeeks(seasonCompetitions, breaks)
-//
-//            Then("Breaks should contain the 4 dates") {
-//                seasonWeeks.breakWeeks() shouldContainExactly mapOf(Pair(getDayDateVal("27/10/2025"), "Break 1"),
-//                    Pair(getDayDateVal("22/12/2025"), "Break 2"),
-//                    Pair(getDayDateVal("29/12/2025"), "Break 3"),
-//                    Pair(getDayDateVal("23/02/2026"), "Break 4"))
-//            }
-//
-//            Then("the league season should exclude the breaks") {
-//                var leagueWeeks = seasonWeeks.competitionWeeks(1.toShort())
-//
-//                leagueWeeks?.
-//                shouldNotContain(getDayDateVal("27/10/2025"))?.
-//                shouldNotContain(getDayDateVal("22/12/2025"))?.
-//                shouldNotContain(getDayDateVal("29/12/2025"))?.
-//                shouldNotContain(getDayDateVal("23/02/2026"))
-//            }
-//        }
-//    }
+    given("a long season with several breaks") {
+        val seasonCompetitions = listOf(createSeasonCompetition(1, "08/09/2025", "05/04/2026"))
+        val breaks = listOf(createSeasonBreak(1, "27/10/2025"),
+            createSeasonBreak(2, "22/12/2025"),
+            createSeasonBreak(3, "29/12/2025"),
+            createSeasonBreak(4, "23/02/2026")
+        )
+        When("The season weeks are calculated") {
+            val seasonWeeks = SeasonWeeks(seasonCompetitions, breaks)
+
+            Then("Breaks should contain the 4 dates") {
+                seasonWeeks.breakWeeks() shouldContainExactly mapOf(Pair(getDayDateVal("27/10/2025"), "Break 1"),
+                    Pair(getDayDateVal("22/12/2025"), "Break 2"),
+                    Pair(getDayDateVal("29/12/2025"), "Break 3"),
+                    Pair(getDayDateVal("23/02/2026"), "Break 4"))
+            }
+
+            Then("the league season should exclude the breaks") {
+                var leagueWeeks = seasonWeeks.competitionWeeks(1.toShort())
+
+                leagueWeeks?.
+                shouldNotContain(getDayDateVal("27/10/2025"))?.
+                shouldNotContain(getDayDateVal("22/12/2025"))?.
+                shouldNotContain(getDayDateVal("29/12/2025"))?.
+                shouldNotContain(getDayDateVal("23/02/2026"))
+            }
+        }
+    }
 })
 
 private fun createSeasonBreak(id: Int, date: String): SeasonBreak = SeasonBreak(id.toShort(), 1.toShort(), "Break $id", getDayDateVal(date))

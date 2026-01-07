@@ -53,7 +53,6 @@ enum class CompetitionTypes(val display : String) {
 private fun CompetitionView(navController: NavController) {
     val viewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()
     val state = viewModel.uiState.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(state.value, navController, "Competitions",  { CreateFloatingAction(navController, editor.addRoute()) }, content = { paddingValues ->
         LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
@@ -65,7 +64,7 @@ private fun CompetitionView(navController: NavController) {
                 item { ViewText(competition.name) }
                 item { ViewText(CompetitionTypes.entries[competition.type.toInt()].display) }
                 item { EditButton {navController.navigate(editor.editRoute(competition)) } }
-                item { DeleteButton { coroutineScope.launch { viewModel.delete(competition) } } }
+                item { DeleteButton { viewModel.delete(competition) } }
             }
         }
     })
