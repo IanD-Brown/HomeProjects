@@ -1,11 +1,13 @@
 package io.github.iandbrown.sportplanner.database
 
+import androidx.room.AutoMigration
 import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-private const val version = 3
+private const val version = 4
+private const val majorVersion = 3
 
 @Database(entities = [
     Association::class,
@@ -19,7 +21,10 @@ private const val version = 3
     SeasonTeamCategory::class,
     TeamCategory::class],
     views = [SeasonFixtureView::class, SeasonCompRoundView::class],
-    version = version)
+    version = version,
+    autoMigrations = [
+        AutoMigration(from = 3, to = 4)
+    ])
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
@@ -41,4 +46,4 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase
 }
 
-internal const val dbFileName = "SportPlanningDb$version.db"
+internal const val dbFileName = "SportPlanningDb$majorVersion.db"

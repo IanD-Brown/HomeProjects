@@ -58,6 +58,12 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 
+private typealias TeamCategoryId = Short
+private typealias AssociationName = String
+private typealias CompetitionId = Short
+private typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
+private typealias TeamCountMap = Map<TeamCountKey, Short>
+
 class SeasonFixtureViewModel : ViewModel {
     val database : AppDatabase by inject(AppDatabase::class.java)
     val dao : SeasonFixtureViewDao = database.getSeasonFixtureViewDao()
@@ -152,7 +158,7 @@ private fun SummaryFixtureView(navController : NavController, season : Season) {
             val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
             val teamCategories = sortedSetOf<String>()
             val teams = sortedSetOf<String>()
-            val filteredFixtures = state.data?.filter { it.competitionId == competitionFilter.value && it.homeTeamNumber > 0 || it.awayTeamNumber > 0 }
+            val filteredFixtures = state.data?.filter { it.competitionId == competitionFilter.value && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0 )}
             for (seasonFixture in filteredFixtures!!) {
                 teamCategories += seasonFixture.teamCategoryName
                 val homeTeamName = teamName(seasonFixture, true, teamCounts)
@@ -334,19 +340,19 @@ private fun getFixtures(allFixtures: List<SeasonFixtureView>, filterAssociation:
     }
 }
 
-private fun getTeamCounts(seasonTeamsState: UiState<SeasonTeam>, season: Season, associationNameMap: Map<Short, String>?): Map<Triple<Short, String?, Short>, Short>? =
+private fun getTeamCounts(seasonTeamsState: UiState<SeasonTeam>, season: Season, associationNameMap: Map<Short, String>?): TeamCountMap? =
     seasonTeamsState.data?.
     filter { it.seasonId == season.id }?.
-    associateBy({ Triple(it.teamCategoryId, associationNameMap?.get(it.associationId), it.competitionId) }, { it.count })
+    associateBy({ Triple(it.teamCategoryId, associationNameMap?.get(it.associationId)!!, it.competitionId) }, { it.count })
 
-private fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCount : Map<Triple<Short, String?, Short>, Short>?) : String {
+private fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCountMap : TeamCountMap?) : String {
     val key = if (home) {
-        Triple(fixture.seasonId, fixture.homeAssociation, fixture.competitionId)
+        Triple(fixture.teamCategoryId, fixture.homeAssociation, fixture.competitionId)
     } else {
-        Triple(fixture.seasonId, fixture.awayAssociation, fixture.competitionId)
+        Triple(fixture.teamCategoryId, fixture.awayAssociation, fixture.competitionId)
     }
 
-    return when (teamCount?.get(key)) {
+    return when (teamCountMap?.get(key)) {
         null -> ""
         0.toShort() -> ""
         1.toShort() -> key.second

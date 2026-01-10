@@ -10,6 +10,7 @@ private const val viewName = "SeasonFixtureView"
     value = "SELECT f.id AS id," +
         "f.seasonId AS seasonId, " +
         "f.competitionId AS competitionId, " +
+        "f.teamCategoryId AS teamCategoryId, " +
         "tc.name AS teamCategoryName, " +
         "f.date, " +
         "f.message, " +
@@ -26,6 +27,7 @@ data class SeasonFixtureView(
     val id : Long,
     val seasonId: Short,
     val competitionId: Short,
+    val teamCategoryId: Short,
     val teamCategoryName: String,
     val date: Int,
     val message: String,
