@@ -37,7 +37,6 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.logic.DayDate
 import kotlinx.coroutines.CoroutineScope
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 
 class SeasonViewModel : BaseViewModel<SeasonDao, Season>() {
@@ -59,7 +58,6 @@ fun NavigateSeason(navController : NavController, argument : String?) {
 }
 
 @Composable
-@Preview
 private fun SeasonListView(navController: NavController) {
     val viewModel: SeasonViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
