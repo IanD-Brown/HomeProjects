@@ -92,6 +92,8 @@ kotlin {
 
             // Enables FileKit dialogs with Composable utilities
             implementation(libs.filekit.dialogs.compose)
+
+            implementation(libs.navigationevent.compose)
         }
 
         commonTest.dependencies {

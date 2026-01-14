@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import io.github.iandbrown.sportplanner.database.DBFactory
 import io.github.iandbrown.sportplanner.di.startKoinCommon
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,7 +17,7 @@ class MainActivity : ComponentActivity() {
         startKoinCommon(DBFactory())
 
         setContent {
-            App()
+            App(FileKitDialogSettings.createDefault())
         }
     }
 }
@@ -24,5 +25,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    App(FileKitDialogSettings.createDefault())
 }

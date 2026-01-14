@@ -18,11 +18,14 @@ import io.github.iandbrown.sportplanner.ui.NavigateSeasonCompetitionRound
 import io.github.iandbrown.sportplanner.ui.NavigateSeasonTeam
 import io.github.iandbrown.sportplanner.ui.NavigateSeasonTeamCategory
 import io.github.iandbrown.sportplanner.ui.NavigateTeamCategory
+import io.github.iandbrown.sportplanner.ui.appFileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun App() {
+fun App(fileKitDialogSettings: FileKitDialogSettings) {
+    appFileKitDialogSettings = fileKitDialogSettings
     PreferableMaterialTheme {
         val navController = rememberNavController()
 

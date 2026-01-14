@@ -17,12 +17,9 @@ import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
-import io.github.softartdev.theme_prefs.generated.resources.Res
-import io.github.softartdev.theme_prefs.generated.resources.ok
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 
 class TeamCategoryViewModel : BaseViewModel<TeamCategoryDao, TeamCategory>() {
@@ -50,8 +47,7 @@ fun NavigateTeamCategory(navController : NavController, argument : String?) {
 }
 
 @Composable
-@Preview
-fun TeamCategoryEditor(navController: NavController) {
+private fun TeamCategoryEditor(navController: NavController) {
     val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
     val state = viewModel.uiState.collectAsState()
 
@@ -76,22 +72,23 @@ fun TeamCategoryEditor(navController: NavController) {
 }
 
 @Composable
-fun EditTeamCategory(navController: NavController, editCategory: TeamCategory?) {
+private fun EditTeamCategory(navController: NavController, editCategory: TeamCategory?) {
     val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
     val coroutineScope = rememberCoroutineScope()
     var name by remember { mutableStateOf(editCategory?.name ?: "") }
     var matchDay by remember { mutableIntStateOf(editCategory?.matchDay?.toInt() ?: 0) }
     val title = if (editCategory == null) "Add TeamCategory" else "Edit TeamCategory"
 
-    ViewCommon(SimpleState(), navController, title, {}, "Return to teamCategories", {
-        Button(onClick = {
-            coroutineScope.launch {
-                viewModel.insert(TeamCategory(editCategory?.id ?: 0.toShort(), name.trim(), matchDay.toShort()))
+    ViewCommon(SimpleState(), navController, title, {}, "Return to teamCategories",
+        {
+            Button(onClick = {
+                save(coroutineScope, viewModel, editCategory, name, matchDay)
                 navController.popBackStack()
-            }
+            },
+            enabled = name.isNotEmpty()) { ViewText("OK") }
         },
-            enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
-    }) { paddingValues ->
+        {name.isNotEmpty() && (editCategory == null || name != editCategory.name) || (editCategory != null && matchDay.toShort() != editCategory.matchDay)},
+        {save(coroutineScope, viewModel, editCategory, name, matchDay)}) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
             item { ReadonlyViewText(value = "Name") }
             item { ReadonlyViewText(value = "Match Day") }
@@ -103,3 +100,14 @@ fun EditTeamCategory(navController: NavController, editCategory: TeamCategory?) 
         }
     }
 }
+
+private fun save(coroutineScope: CoroutineScope, viewModel: TeamCategoryViewModel, editCategory: TeamCategory?, name: String, matchDay: Int) =
+    coroutineScope.launch {
+        viewModel.insert(
+            TeamCategory(
+                editCategory?.id ?: 0.toShort(),
+                name.trim(),
+                matchDay.toShort()
+            )
+        )
+    }

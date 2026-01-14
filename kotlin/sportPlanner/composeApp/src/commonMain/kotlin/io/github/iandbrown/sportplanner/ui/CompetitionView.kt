@@ -20,6 +20,7 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.softartdev.theme_prefs.generated.resources.Res
 import io.github.softartdev.theme_prefs.generated.resources.ok
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.stringResource
@@ -71,23 +72,25 @@ private fun CompetitionView(navController: NavController) {
 }
 
 @Composable
-private fun EditCompetition(navController: NavController, editCategory: Competition?) {
+private fun EditCompetition(navController: NavController, editCompetition: Competition?) {
     val viewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()
     val coroutineScope = rememberCoroutineScope()
-    var name by remember { mutableStateOf(editCategory?.name ?: "") }
-    var type by remember {mutableStateOf(editCategory?.type ?: 0.toShort())}
-    val title = if (editCategory == null) "Add Competition" else "Edit Competition"
+    var name by remember { mutableStateOf(editCompetition?.name ?: "") }
+    var type by remember {mutableStateOf(editCompetition?.type ?: 0.toShort())}
+    val title = if (editCompetition == null) "Add Competition" else "Edit Competition"
 
-    ViewCommon(SimpleState(), navController, title, {}, "Return to Competitions", {
-        Button(onClick = {
-            coroutineScope.launch {
-                viewModel.insert(Competition(editCategory?.id ?: 0.toShort(), name.trim(), type))
+    ViewCommon(SimpleState(), navController, title, {}, "Return to Competitions",
+        {
+            Button(onClick = {
+                save(coroutineScope, viewModel, editCompetition, name, type)
                 navController.popBackStack()
-            }
-        },
+            },
             enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
-
-    }) { paddingValues ->
+        },
+        {
+            (name.isNotEmpty() && (editCompetition == null || name != editCompetition.name)) || (editCompetition != null && type != editCompetition.type)
+        },
+        {save(coroutineScope, viewModel, editCompetition, name, type)}) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
             item { ReadonlyViewText(value = "Name") }
             item { ReadonlyViewText(value = "Type") }
@@ -97,5 +100,11 @@ private fun EditCompetition(navController: NavController, editCategory: Competit
                 selectedIndex = type.toInt(),
             ) { type = it.toShort() } }
         }
+    }
+}
+
+private fun save(coroutineScope: CoroutineScope, viewModel: CompetitionViewModel, editCompetition: Competition?, name: String, type: Short) {
+    coroutineScope.launch {
+        viewModel.insert(Competition(editCompetition?.id ?: 0.toShort(), name.trim(), type))
     }
 }

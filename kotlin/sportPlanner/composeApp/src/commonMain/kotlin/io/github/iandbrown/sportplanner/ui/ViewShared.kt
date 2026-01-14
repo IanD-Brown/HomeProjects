@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -55,19 +57,27 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.logic.DayDate
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 
 val fontSize = 16.sp
+var appFileKitDialogSettings : FileKitDialogSettings? = null
+
 
 @Composable
 fun ViewCommon(
     baseUiState: BaseUiState,
     navController: NavController,
     title: String,
-    floatingActionButton: @Composable () -> Unit,
+    floatingActionButton: @Composable () -> Unit = {},
     description: String = "Return to home screen",
     bottomBar: @Composable () -> Unit = {},
+    confirm: () -> Boolean = { false },
+    confirmAction: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     if (baseUiState.loadingInProgress()) {
@@ -77,11 +87,61 @@ fun ViewCommon(
     } else if (baseUiState.hasData()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { CreateTopBar(navController, title, description) },
+            topBar = { CreateTopBar(navController, title, description, confirm, confirmAction) },
             floatingActionButton = floatingActionButton,
             bottomBar = bottomBar,
             content = content)
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateTopBar(navController: NavController,
+                 title: String,
+                 description: String,
+                 confirm : () -> Boolean,
+                 confirmAction : () -> Unit) {
+    var isDialogOpen by remember { mutableStateOf(false) }
+    val navState = rememberNavigationEventState(NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = navState,
+        isBackEnabled = confirm(),
+        onBackCompleted = {}
+    )
+
+    TopAppBar(title = { Text(title) }, navigationIcon = {
+        IconButton(onClick = {
+            if (confirm()) {
+                isDialogOpen = true
+            } else {
+                navController.navigateUp()
+            }
+        }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
+        }
+    })
+    if (isDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {},
+            dismissButton = {
+                Button(onClick = { isDialogOpen = closeConfirmDialog(navController) {} }) {
+                    Text("Discard changes")
+                }
+            },
+            confirmButton = {
+                Button(onClick = { isDialogOpen = closeConfirmDialog(navController, confirmAction) }) {
+                    Text("Save")
+                }
+            },
+            title = { Text("Data has been changed") },
+        )
+    }
+}
+
+private fun closeConfirmDialog(navController: NavController, confirmAction : () -> Unit) : Boolean {
+    confirmAction()
+    navController.navigateUp()
+    return false
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

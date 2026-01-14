@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -35,6 +36,7 @@ import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.logic.DayDate
+import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 
@@ -64,7 +66,8 @@ private fun SeasonListView(navController: NavController) {
     val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
     val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
 
-    ViewCommon(MergedState(state.value, competitionState.value, seasonCompetitionState.value),
+    ViewCommon(
+        MergedState(state.value, competitionState.value, seasonCompetitionState.value),
         navController,
         "Seasons",
         { CreateFloatingAction(navController, editor.addRoute()) },
@@ -172,73 +175,99 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
         MergedState(competitionState.value, seasonCompetitionState.value),
         navController,
         title,
-        { },
+        {},
         "Return to seasons",
         {
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
-                OutlinedTextButton("ok", Modifier.weight(1f)) {
-                    coroutineScope.launch {
-                        val seasonId = when (season) {
-                            null -> viewModel.insert(Season(name = name.trim()))
-                            else -> {
-                                viewModel.update(Season(season.id, name.trim()))
-                                season.id
-                            }
-                        }
-                        for (competition in competitionState.value.data!!) {
-                            val seasonCompetition = SeasonCompetition(
-                                seasonId = seasonId.toShort(),
-                                competitionId = competition.id,
-                                startDate = startDates[competition.id] ?: 0,
-                                endDate = endDates[competition.id] ?: 0
-                            )
-                            if (seasonCompetition.isValid()) {
-                                seasonCompetitionModel.insert(seasonCompetition)
-                            }
-                        }
-                        navController.popBackStack()
+                OutlinedTextButton("ok", Modifier.weight(1f), name.isNotBlank()) {
+                    save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, seasonCompetitionModel)
+                    navController.popBackStack()
+                }
+            }
+        },
+        {
+            if (season == null) {
+                name.isNotEmpty()
+            } else if (season.name != name) {
+                true
+            } else {
+                seasonCompetitionState.value.data?.filter { it.seasonId == season.id }
+                    ?.filter { it.startDate != startDates[it.competitionId] }
+                    ?.any { it.endDate != endDates[it.competitionId] }!!
+            }
+        },
+        {save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, seasonCompetitionModel)},
+        content = { paddingValues ->
+            val competitionList = competitionState.value.data?.sortedBy { it.name.trim().uppercase() }
+            if (season != null) {
+                for (current in seasonCompetitionState.value.data!!) {
+                    if (current.seasonId == season.id) {
+                        startDates[current.competitionId] = current.startDate
+                        endDates[current.competitionId] = current.endDate
                     }
                 }
             }
-        }) { paddingValues ->
-        val competitionList = competitionState.value.data?.sortedBy { it.name.trim().uppercase() }
-        if (season != null) {
-            for (current in seasonCompetitionState.value.data!!) {
-                if (current.seasonId == season.id) {
-                    startDates[current.competitionId] = current.startDate
-                    endDates[current.competitionId] = current.endDate
+            LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
+                item { ReadonlyViewText("Name:") }
+                item { ViewTextField(value = name, onValueChange = { name = it }) }
+                item { ReadonlyViewText("") }
+                item { ReadonlyViewText("Competition") }
+                item { ReadonlyViewText("Start") }
+                item { ReadonlyViewText("End") }
+                for (competition in competitionList!!) {
+                    item { ReadonlyViewText(competition.name) }
+                    item {
+                        DatePickerView(
+                            current = startDates[competition.id] ?: 0,
+                            modifier = Modifier,
+                            isSelectable = {
+                                val dayDate = DayDate(it)
+                                dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: Integer.MAX_VALUE) }) {
+                            startDates[competition.id] = it
+                        }
+                    }
+                    item {
+                        DatePickerView(
+                            current = endDates[competition.id] ?: 0,
+                            modifier = Modifier,
+                            isSelectable = { val dayDate = DayDate(it)
+                                dayDate.isSunday() && dayDate.value() > (startDates[competition.id] ?: 0) }) {
+                            endDates[competition.id] = it
+                        }
+                    }
                 }
+            }
+        })
+}
+
+private fun save(
+    coroutineScope: CoroutineScope,
+    season: Season?,
+    viewModel: SeasonViewModel,
+    name: String,
+    competitionState: State<UiState<Competition>>,
+    startDates: SnapshotStateMap<Short, Int>,
+    endDates: SnapshotStateMap<Short, Int>,
+    seasonCompetitionModel: SeasonCompetitionViewModel
+) {
+    coroutineScope.launch {
+        val seasonId = when (season) {
+            null -> viewModel.insert(Season(name = name.trim()))
+            else -> {
+                viewModel.update(Season(season.id, name.trim()))
+                season.id
             }
         }
-        LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Name:") }
-            item { ViewTextField(value = name, onValueChange = { name = it }) }
-            item { ReadonlyViewText("") }
-            item { ReadonlyViewText("Competition") }
-            item { ReadonlyViewText("Start") }
-            item { ReadonlyViewText("End") }
-            for (competition in competitionList!!) {
-                item { ReadonlyViewText(competition.name) }
-                item {
-                    DatePickerView(
-                        current = startDates[competition.id] ?: 0,
-                        modifier = Modifier,
-                        isSelectable = {
-                            val dayDate = DayDate(it)
-                            dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: Integer.MAX_VALUE) }) {
-                        startDates[competition.id] = it
-                    }
-                }
-                item {
-                    DatePickerView(
-                        current = endDates[competition.id] ?: 0,
-                        modifier = Modifier,
-                        isSelectable = { val dayDate = DayDate(it)
-                            dayDate.isSunday() && dayDate.value() > (startDates[competition.id] ?: 0) }) {
-                        endDates[competition.id] = it
-                    }
-                }
+        for (competition in competitionState.value.data!!) {
+            val seasonCompetition = SeasonCompetition(
+                seasonId = seasonId.toShort(),
+                competitionId = competition.id,
+                startDate = startDates[competition.id] ?: 0,
+                endDate = endDates[competition.id] ?: 0
+            )
+            if (seasonCompetition.isValid()) {
+                seasonCompetitionModel.insert(seasonCompetition)
             }
         }
     }
