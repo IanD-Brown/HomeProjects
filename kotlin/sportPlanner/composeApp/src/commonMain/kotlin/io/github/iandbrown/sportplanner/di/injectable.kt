@@ -6,6 +6,7 @@ import io.github.iandbrown.sportplanner.database.DBFactory
 import io.github.iandbrown.sportplanner.ui.AssociationViewModel
 import io.github.iandbrown.sportplanner.ui.CompetitionViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonBreakViewModel
+import io.github.iandbrown.sportplanner.ui.SeasonCompViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionRoundViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonFixtureViewModel
@@ -24,6 +25,7 @@ private val injectableModules = module {
     viewModelOf(::SeasonBreakViewModel)
     viewModelOf(::SeasonCompetitionRoundViewModel)
     viewModelOf(::SeasonCompetitionViewModel)
+    viewModelOf(::SeasonCompViewModel)
     viewModel {parameters -> SeasonFixtureViewModel(parameters.get()) }
     viewModelOf(::SeasonTeamCategoryViewModel)
     viewModelOf(::SeasonTeamViewModel)

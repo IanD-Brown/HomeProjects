@@ -141,11 +141,12 @@ private enum class SumType {HOME_TEAM, AWAY_TEAM}
 
 @Composable
 private fun SummaryFixtureView(navController : NavController, season : Season) {
+    val seasonParameter = parametersOf(season.id)
     val state by koinViewModel<SeasonFixtureViewModel> { parametersOf(season.id) }.uiState.collectAsState()
     val associationState by koinInject<AssociationViewModel>().uiState.collectAsState()
     val competitionState by koinInject<CompetitionViewModel>().uiState.collectAsState()
     val seasonTeamsState by koinInject<SeasonTeamViewModel>().uiState.collectAsState()
-    val seasonCompetitionState by koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
+    val seasonCompetitionState by koinInject<SeasonCompetitionViewModel>{ seasonParameter }.uiState.collectAsState()
     val competitionFilter = remember { mutableStateOf(0.toShort()) }
 
     ViewCommon(MergedState(state, associationState, competitionState, seasonTeamsState, seasonCompetitionState),

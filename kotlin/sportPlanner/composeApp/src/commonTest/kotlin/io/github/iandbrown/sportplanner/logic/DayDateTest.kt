@@ -60,25 +60,25 @@ class DayDateTest : ShouldSpec({
 
         should("return true for a Monday within range") {
             val date = DayDate("09/09/2024").value() // Monday
-            DayDate.isMondayIn(startDate, endDate, date) shouldBe true
+            DayDate.isMondayIn(IntRange(startDate, endDate), date) shouldBe true
         }
 
         should("return false for a non-Monday within range") {
             val date = DayDate("10/09/2024").value() // Tuesday
-            DayDate.isMondayIn(startDate, endDate, date) shouldBe false
+            DayDate.isMondayIn(IntRange(startDate, endDate), date) shouldBe false
         }
 
         should("return false for a Monday outside range") {
             val date = DayDate("23/09/2024").value() // Monday
-            DayDate.isMondayIn(startDate, endDate, date) shouldBe false
+            DayDate.isMondayIn(IntRange(startDate, endDate), date) shouldBe false
         }
 
         should("return true for start date if it is a monday") {
-            DayDate.isMondayIn(startDate, endDate, startDate) shouldBe true
+            DayDate.isMondayIn(IntRange(startDate, endDate), startDate) shouldBe true
         }
 
         should("return true for end date if it is a monday") {
-            DayDate.isMondayIn(startDate, endDate, endDate) shouldBe true
+            DayDate.isMondayIn(IntRange(startDate, endDate), endDate) shouldBe true
         }
     }
 })

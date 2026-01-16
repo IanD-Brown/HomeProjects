@@ -40,8 +40,8 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.logic.DayDate
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 class SeasonCompetitionRoundViewModel : BaseViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>() {
     override fun getDao(db: AppDatabase): SeasonCompetitionRoundDao = db.getSeasonCompetitionRoundDao()
@@ -61,7 +61,6 @@ fun NavigateSeasonCompetitionRound(navController : NavController, argument : Str
 }
 
 @Composable
-@Preview
 private fun SeasonCompetitionView(navController : NavController, param : SeasonCompetitionParam) {
     val viewModel : SeasonCompetitionRoundViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
@@ -108,11 +107,11 @@ private fun SeasonCompetitionView(navController : NavController, param : SeasonC
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview
 private fun SeasonCompetitionRoundEditor(navController: NavController, info : SeasonCompetitionRoundEditorInfo) {
+    val seasonParameter = parametersOf(info.param.seasonId)
     val viewModel : SeasonCompetitionRoundViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
-    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
+    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>{seasonParameter}.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val description = remember { mutableStateOf("") }
     val week = remember { mutableIntStateOf(0) }

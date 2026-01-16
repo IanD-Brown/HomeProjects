@@ -34,15 +34,9 @@ data class SeasonCompetition(
 }
 
 @Dao
-interface SeasonCompetitionDao : BaseDao<SeasonCompetition> {
-    @Query("SELECT * FROM $table")
-    override suspend fun getAll(): List<SeasonCompetition>
-
-    @Query("SELECT count(1) FROM $table")
-    override suspend fun count(): Int
-
+interface SeasonCompetitionDao : BaseSeasonDao<SeasonCompetition> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    suspend fun getBySeason(seasonId : Short): List<SeasonCompetition>
+    override suspend fun get(seasonId : Short): List<SeasonCompetition>
 
     @Query("SELECT * FROM $table "+
             "WHERE seasonId = :seasonId AND startDate > 0 AND endDate > startDate " +

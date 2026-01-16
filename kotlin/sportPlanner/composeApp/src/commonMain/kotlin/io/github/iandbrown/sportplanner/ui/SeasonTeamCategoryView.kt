@@ -1,6 +1,5 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,12 +15,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 
 class SeasonTeamCategoryViewModel : BaseViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>() {
@@ -65,17 +64,14 @@ private fun SeasonTeamCategoryEditor(navController: NavController, param: Season
         {},
         "Return to Seasons screen",
         {
-            Row {
-                ReadonlyViewText("", Modifier.weight(4f))
-                OutlinedTextButton(isLocked.display, Modifier.weight(1f)){
-                    if (isLocked == EditorState.DIRTY) {
+            BottomBarWithButton(isLocked.display) {
+                if (isLocked == EditorState.DIRTY) {
                         coroutineScope.launch {
                             save(viewModel, param, teamCategoryList, gameStructureStates, lockedStates)
                         }
                     }
                     isLocked = isLocked.onClick()
                 }
-            }
         }) { paddingValues ->
         teamCategoryList = teamCategoryState.value.data?.sortedBy { it.name.trim().uppercase() }!!
         val seasonTeamCategories = state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }

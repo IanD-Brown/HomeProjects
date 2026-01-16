@@ -27,15 +27,8 @@ data class SeasonBreak(
     var week: Int
 )
 
-
 @Dao
-interface SeasonBreakDao : BaseDao<SeasonBreak> {
-    @Query("SELECT * FROM $table")
-    override suspend fun getAll(): List<SeasonBreak>
-
-    @Query("SELECT count(1) FROM $table")
-    override suspend fun count(): Int
-
+interface SeasonBreakDao : BaseSeasonDao<SeasonBreak> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    suspend fun getBySeason(seasonId: Short): List<SeasonBreak>
+    override suspend fun get(seasonId : Short): List<SeasonBreak>
 }

@@ -3,6 +3,7 @@ package io.github.iandbrown.sportplanner.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,8 +66,9 @@ import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 
 val fontSize = 16.sp
-var appFileKitDialogSettings : FileKitDialogSettings? = null
+const val OK = "OK"
 
+var appFileKitDialogSettings : FileKitDialogSettings? = null
 
 @Composable
 fun ViewCommon(
@@ -259,7 +261,7 @@ fun SpacedIcon(imageVector: ImageVector,
                tint: Color = MaterialTheme.colorScheme.onSurface,
                onClick : () -> Unit) {
     Spacer(modifier = Modifier.size(16.dp))
-    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
+    ClickableIcon(imageVector, contentDescription, tint, onClick)
 }
 
 @Composable
@@ -373,15 +375,45 @@ fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> B
 }
 
 fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
-    DayDate.isMondayIn(seasonCompetition.startDate, seasonCompetition.endDate, DayDate(utcMs).value())
+    DayDate.isMondayIn(IntRange(seasonCompetition.startDate, seasonCompetition.endDate), DayDate(utcMs).value())
 
 @Composable
 fun EditButton(onClick : () -> Unit) =
-    Icon(Icons.Default.Edit, "edit", Modifier.clickable(onClick = onClick), Color.Green)
+    ClickableIcon(Icons.Default.Edit, "edit", Color.Green, onClick)
 
 @Composable
 fun DeleteButton(onClick : () -> Unit) =
-    Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+    ClickableIcon(Icons.Default.Delete, "delete", Color.Red, onClick)
+
+@Composable
+fun ClickableIcon(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
+}
+
+class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        val columnCount = iconCount + weights.size
+        val totalSpacing = spacing * (columnCount - 1)
+        val iconSize = (IconSize + 16.dp).roundToPx()
+        val remainingSpace = availableSize - totalSpacing - iconSize * iconCount
+        val totalWeight = weights.sum()
+        val perWeight = remainingSpace / totalWeight
+        return mutableListOf<Int>().apply {
+            repeat(weights.size) {
+                add(perWeight * weights[it])
+            }
+        }.apply {
+            repeat(iconCount) {
+                add(iconSize)
+            }
+        }
+    }
+}
 
 class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
     GridCells {
@@ -430,4 +462,14 @@ fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Bo
         modifier = modifier.padding(6.dp),
         onClick = onClick)
     { ViewText(value) }
+}
+
+@Composable
+fun BottomBarWithButton(value : String = OK, onClick : () -> Unit) {
+    Row {
+        ReadonlyViewText("", Modifier.weight(4f))
+        OutlinedTextButton(value, Modifier.weight(1f)){
+            onClick()
+        }
+    }
 }

@@ -11,8 +11,8 @@ private const val YEAR_FACTOR = 500
 
 class DayDate {
     companion object {
-        fun isMondayIn(startDate : Int, endDate: Int, date : Int): Boolean =
-            date in startDate..endDate && DayDate(date).isMonday()
+        fun isMondayIn(dateRange: IntRange, date : Int) : Boolean =
+            date in dateRange && DayDate(date).isMonday()
     }
     private val value: Int
 

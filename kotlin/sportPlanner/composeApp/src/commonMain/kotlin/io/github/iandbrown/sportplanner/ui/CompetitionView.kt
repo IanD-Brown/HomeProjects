@@ -18,19 +18,16 @@ import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
-import io.github.softartdev.theme_prefs.generated.resources.Res
-import io.github.softartdev.theme_prefs.generated.resources.ok
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 class CompetitionViewModel : BaseViewModel<CompetitionDao, Competition>() {
     override fun getDao(db: AppDatabase): CompetitionDao = db.getCompetitionDao()
 }
 
-class SeasonCompetitionViewModel: BaseViewModel<SeasonCompetitionDao, SeasonCompetition>() {
+class SeasonCompetitionViewModel(seasonId : Short): BaseSeasonViewModel<SeasonCompetitionDao, SeasonCompetition>(seasonId) {
     override fun getDao(db: AppDatabase): SeasonCompetitionDao = db.getSeasonCompetitionDao()
 }
 
@@ -85,7 +82,7 @@ private fun EditCompetition(navController: NavController, editCompetition: Compe
                 save(coroutineScope, viewModel, editCompetition, name, type)
                 navController.popBackStack()
             },
-            enabled = !name.isEmpty()) { ViewText(stringResource(Res.string.ok)) }
+            enabled = !name.isEmpty()) { ViewText(OK) }
         },
         {
             (name.isNotEmpty() && (editCompetition == null || name != editCompetition.name)) || (editCompetition != null && type != editCompetition.type)

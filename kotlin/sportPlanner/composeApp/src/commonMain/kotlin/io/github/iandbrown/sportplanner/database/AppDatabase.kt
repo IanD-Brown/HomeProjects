@@ -6,7 +6,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-private const val version = 4
+private const val version = 5
 private const val majorVersion = 3
 
 @Database(entities = [
@@ -20,16 +20,18 @@ private const val majorVersion = 3
     SeasonTeam::class,
     SeasonTeamCategory::class,
     TeamCategory::class],
-    views = [SeasonFixtureView::class, SeasonCompRoundView::class],
+    views = [SeasonFixtureView::class, SeasonCompRoundView::class, SeasonCompView::class],
     version = version,
     autoMigrations = [
-        AutoMigration(from = 3, to = 4)
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5)
     ])
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
     abstract fun getCompetitionDao() : CompetitionDao
     abstract fun getSeasonBreakDao() : SeasonBreakDao
+    abstract fun getSeasonCompViewDao() : SeasonCompViewDao
     abstract fun getSeasonCompRoundViewDao() : SeasonCompRoundViewDao
     abstract fun getSeasonCompetitionDao() : SeasonCompetitionDao
     abstract fun getSeasonCompetitionRoundDao() : SeasonCompetitionRoundDao

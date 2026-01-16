@@ -12,8 +12,8 @@ class SeasonWeeks {
 
         suspend fun createSeasonWeeks(seasonId: Short): SeasonWeeks {
             return SeasonWeeks(
-                db.getSeasonCompetitionDao().getBySeason(seasonId),
-                db.getSeasonBreakDao().getBySeason(seasonId)
+                db.getSeasonCompetitionDao().get(seasonId),
+                db.getSeasonBreakDao().get(seasonId)
             )
         }
     }
@@ -30,7 +30,7 @@ class SeasonWeeks {
         while (dayDate.isValid() && !dayDate.isMonday()) {
             dayDate = dayDate.addDays(1)
         }
-        breakWeeks = breaks.filter { DayDate.isMondayIn(dayDate.value(), seasonEnd, it.week) }
+        breakWeeks = breaks.filter { DayDate.isMondayIn(IntRange(dayDate.value(), seasonEnd), it.week) }
             .associateBy({ it.week }, { it.name })
 
         competitionWeeks = mutableMapOf<Short, MutableList<Int>>()

@@ -1,19 +1,15 @@
 package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Splitscreen
 import androidx.compose.material.icons.filled._123
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
@@ -25,22 +21,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.Season
+import io.github.iandbrown.sportplanner.database.SeasonCompView
+import io.github.iandbrown.sportplanner.database.SeasonCompViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.logic.DayDate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 class SeasonViewModel : BaseViewModel<SeasonDao, Season>() {
     override fun getDao(db: AppDatabase): SeasonDao = db.getSeasonDao()
+}
+
+class SeasonCompViewModel : ReadonlyViewModel<SeasonCompViewDao, SeasonCompView>() {
+    override fun getDao(db: AppDatabase): SeasonCompViewDao = db.getSeasonCompViewDao()
 }
 
 private val editor : Editors = Editors.SEASONS
@@ -61,106 +63,66 @@ fun NavigateSeason(navController : NavController, argument : String?) {
 private fun SeasonListView(navController: NavController) {
     val viewModel: SeasonViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
-    val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
-    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
+    val seasonCompViewState = koinInject<SeasonCompViewModel>().uiState.collectAsState()
 
     ViewCommon(
-        MergedState(state.value, competitionState.value, seasonCompetitionState.value),
+        MergedState(state.value, seasonCompViewState.value),
         navController,
         "Seasons",
-        { CreateFloatingAction(navController, editor.addRoute()) },
+        {  },
+        bottomBar = { BottomBarWithButton("+") {navController.navigate(editor.addRoute())} },
         content = { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-            val competitionTypeMap = competitionState.value.data?.associateBy({it.id}, {it.type})
-            items(
-                items = createSeasonsList(state.value.data!!, competitionState.value.data!!, seasonCompetitionState.value.data!!),
-                key = { pair -> pair.first }) { pair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    content = {
-                        when (val entity = pair.second) {
-                            is Season -> {
-                                Row(modifier = Modifier.weight(2F), content = {
-                                    SpacedViewText(entity.name)
-                                })
+            var seasonId : Short? = null
 
-                                SpacedIcon(Icons.Default.Splitscreen, "manage season breaks") {
-                                    navController.navigate(Editors.SEASON_BREAK.viewRoute(entity))
-                                }
+            LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues)) {
+                for (seasonCompView in seasonCompViewState.value.data!!) {
+                    if (seasonCompView.seasonId != seasonId) {
+                        item { ViewText(seasonCompView.seasonName) }
+                        item { ViewText("") }
 
-                                ItemButtons(
-                                    editClick = {
-                                        navController.navigate(editor.editRoute(entity))
-                                    },
-                                    deleteClick = { viewModel.delete(entity) })
+                        item { ClickableIcon(Icons.Default.Splitscreen, "manage season breaks") {
+                            navController.navigate(Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)))
+                        }}
+                        item { EditButton { navController.navigate(editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))) }}
+                        item { DeleteButton { viewModel.delete(Season(seasonCompView.seasonId, seasonCompView.seasonName)) }}
+
+                        seasonId = seasonCompView.seasonId
+                    }
+                    item { ViewText(" * ${seasonCompView.competitionName}") }
+                    item { val startDate = DayDate(seasonCompView.startDate).toString()
+                        val endDate = DayDate(seasonCompView.endDate).toString()
+                        val join = if (startDate.isNotBlank() || endDate.isNotBlank()) "to" else ""
+                        ViewText("$startDate $join $endDate") }
+                    item {
+                        if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
+                            ClickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
+                                navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView)))
                             }
+                        } else {
+                            Icon(Blank, "")
 
-                            is SeasonCompetition -> {
-                                Row(modifier = Modifier.weight(2F), content = {
-                                    Spacer(Modifier.size(32.dp))
-                                    SpacedViewText(competitionState.value.data?.first { it.id == entity.competitionId }?.name!!)
-                                    SpacedViewText(DayDate(entity.startDate).toString())
-                                    SpacedViewText("to")
-                                    SpacedViewText(DayDate(entity.endDate).toString())
-                                })
-
-                                if (competitionTypeMap?.get(entity.competitionId) == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
-                                    SpacedIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
-                                        navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
-                                    }
-                                }
-
-                                 SpacedIcon(Icons.Default.Accessibility, "manage teams") {
-                                    navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
-                                }
-
-                                SpacedIcon(Icons.Default._123, "manage match structure") {
-                                    navController.navigate(Editors.SEASON_TEAMS.viewRoute(createSeasonCompetitionParam(state, entity, competitionState.value.data)))
-                                }
-                            }
                         }
-                    })
-
+                    }
+                    item { ClickableIcon(Icons.Default.Accessibility, "manage teams") {
+                        navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                    }}
+                    item { ClickableIcon(Icons.Default._123, "manage match structure") {
+                        navController.navigate(Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                    }}
+                }
             }
-        })
     })
 }
 
-private fun createSeasonCompetitionParam(state: State<UiState<Season>>, entity: SeasonCompetition, data: List<Competition>?)
-    : SeasonCompetitionParam {
-    val seasonName = state.value.data?.find { it.id == entity.seasonId }?.name!!
-    val competitionName = data?.find { it.id == entity.competitionId }?.name!!
-    return SeasonCompetitionParam(entity.seasonId, seasonName, entity.competitionId, competitionName)
-}
-
-// ensure all competitions for all seasons are present (so adding a competition appears in the list without an entry in season competitions)
-private fun createSeasonsList(seasons : List<Season>, competitions : List<Competition>, seasonCompetitions : List<SeasonCompetition>) : List<Pair<Int, Any>> {
-    val orderedCompetitions = competitions.sortedBy { it.name.trim().uppercase() }
-    val orderedSeasons = seasons.sortedByDescending { it.name.trim().uppercase() }
-    val seasonCompetitionMap = mutableMapOf<Pair<Short, Short>, SeasonCompetition>()
-
-    for (sc in seasonCompetitions) {
-        seasonCompetitionMap[Pair(sc.seasonId, sc.competitionId)] = sc
-    }
-
-    val result = mutableListOf<Pair<Int, Any>>()
-    for (s in orderedSeasons) {
-        result += Pair(result.size, s)
-        for (c in orderedCompetitions) {
-            val key = Pair(s.id, c.id)
-            val sc = seasonCompetitionMap[key]
-
-            result += Pair(result.size, sc ?: SeasonCompetition(seasonId = s.id, competitionId = c.id, startDate = 0, endDate = 0))
-        }
-    }
-
-    return result
-}
+private fun seasonCompetitionParamOf(seasonCompView : SeasonCompView) : SeasonCompetitionParam =
+    SeasonCompetitionParam(seasonCompView.seasonId, seasonCompView.seasonName, seasonCompView.competitionId, seasonCompView.competitionName)
 
 @Composable
 private fun SeasonEditor(navController: NavController, season : Season? = null) {
+    val database = koinInject<AppDatabase>()
     val viewModel: SeasonViewModel = koinInject()
-    val seasonCompetitionModel: SeasonCompetitionViewModel = koinInject()
+    val seasonParameter = parametersOf(season?.id ?: 0)
+    val seasonCompetitionModel: SeasonCompetitionViewModel = koinInject {seasonParameter}
     val seasonCompetitionState = seasonCompetitionModel.uiState.collectAsState()
     val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -179,7 +141,7 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
                 OutlinedTextButton("ok", Modifier.weight(1f), name.isNotBlank()) {
-                    save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, seasonCompetitionModel)
+                    save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, database)
                     navController.popBackStack()
                 }
             }
@@ -195,7 +157,7 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
                     ?.any { it.endDate != endDates[it.competitionId] }!!
             }
         },
-        {save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, seasonCompetitionModel)},
+        {save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, database)},
         content = { paddingValues ->
             val competitionList = competitionState.value.data?.sortedBy { it.name.trim().uppercase() }
             if (season != null) {
@@ -247,7 +209,7 @@ private fun save(
     competitionState: State<UiState<Competition>>,
     startDates: SnapshotStateMap<Short, Int>,
     endDates: SnapshotStateMap<Short, Int>,
-    seasonCompetitionModel: SeasonCompetitionViewModel
+    appDataBase: AppDatabase
 ) {
     coroutineScope.launch {
         val seasonId = when (season) {
@@ -265,7 +227,7 @@ private fun save(
                 endDate = endDates[competition.id] ?: 0
             )
             if (seasonCompetition.isValid()) {
-                seasonCompetitionModel.insert(seasonCompetition)
+                appDataBase.getSeasonCompetitionDao().insert(seasonCompetition)
             }
         }
     }

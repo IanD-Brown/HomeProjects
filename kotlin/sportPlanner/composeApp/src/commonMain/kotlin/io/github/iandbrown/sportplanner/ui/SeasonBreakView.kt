@@ -1,41 +1,31 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.softartdev.theme.material.PreferableMaterialTheme
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonBreak
 import io.github.iandbrown.sportplanner.database.SeasonBreakDao
+import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.logic.DayDate
-import io.github.softartdev.theme_prefs.generated.resources.Res
-import io.github.softartdev.theme_prefs.generated.resources.ok
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
-class SeasonBreakViewModel : BaseViewModel<SeasonBreakDao, SeasonBreak>() {
+class SeasonBreakViewModel(seasonId : Short) : BaseSeasonViewModel<SeasonBreakDao, SeasonBreak>(seasonId) {
     override fun getDao(db: AppDatabase): SeasonBreakDao = db.getSeasonBreakDao()
 }
 
@@ -53,107 +43,84 @@ fun NavigateSeasonBreak(navController : NavController, argument : String?) {
 }
 
 @Composable
-@Preview
 private fun SeasonBreakView(navController: NavController, param : Season) {
-    val viewModel : SeasonBreakViewModel = koinInject()
+    val viewModel : SeasonBreakViewModel = koinViewModel { parametersOf(param.id) }
     val state = viewModel.uiState.collectAsState()
 
     ViewCommon(state.value,
         navController,
         "Season breaks in ${param.name}",
-        { CreateFloatingAction(navController, editor.editRoute(SeasonBreakEditorInfo(param))) },
-        content = { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-            items(
-                items = state.value.data?.sortedBy { it.week }!!,
-                key = { seasonBreak -> seasonBreak.id }) { seasonBreak ->
-                Row(modifier = Modifier.fillMaxWidth(), content = {
-                    Row(
-                        modifier = Modifier.weight(2F),
-                        content = {
-                            SpacedViewText(seasonBreak.name)
-                            SpacedViewText(DayDate(seasonBreak.week).toString())
-                        })
-                    ItemButtons(
-                        { navController.navigate(editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak))) },
-                        { viewModel.delete(seasonBreak) })
-                })
+        {  },
+        bottomBar = { BottomBarWithButton("+") { navController.navigate(editor.editRoute(SeasonBreakEditorInfo(param))) }})
+        { paddingValues ->
+            LazyVerticalGrid(columns = TrailingIconGridCells(2, 2),
+                modifier = Modifier.padding(paddingValues)) {
+                item { ViewText("Name") }
+                item { ViewText("Week") }
+                item {}
+                item {}
+                for (seasonBreak in state.value.data?.sortedBy { it.week }!!) {
+                    item { ViewText(seasonBreak.name) }
+                    item { ViewText(DayDate(seasonBreak.week).toString()) }
+                    item { EditButton { navController.navigate(editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak))) } }
+                    item { DeleteButton { viewModel.delete(seasonBreak) } }
+                }
             }
-        })
-    })
+        }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview
 private fun SeasonBreakEditor(navController: NavController, info : SeasonBreakEditorInfo) {
-    val viewModel : SeasonBreakViewModel = koinInject()
-    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>().uiState.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
-    val title : String
-    val name = remember { mutableStateOf("") }
-    val week = remember {mutableIntStateOf(0)}
+    val seasonParameter = parametersOf(info.param.id)
+    val viewModel : SeasonBreakViewModel = koinViewModel { seasonParameter }
+    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel> { seasonParameter }.uiState.collectAsState()
+    val title = if (info.seasonBreak == null) "Add Season break" else "Edit Season break"
+    var name by remember { mutableStateOf(info.seasonBreak?.name ?: "") }
+    var week by remember {mutableIntStateOf(info.seasonBreak?.week ?: 0)}
 
-    when (info.seasonBreak) {
-        is SeasonBreak -> {
-            week.intValue = info.seasonBreak.week
-            title = "Edit Season break"
-            name.value = info.seasonBreak.name
-        }
-        else -> {
-            title = "Add Season break"
-        }
-    }
-
-    ViewCommon(seasonCompetitionState.value, navController, title, {}, "Return to season breaks", bottomBar = {
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    if (info.seasonBreak == null) {
-                        viewModel.insert(SeasonBreak(seasonId = info.param.id, name = name.value.trim(), week = week.intValue))
-                    } else {
-                        viewModel.update(SeasonBreak(info.seasonBreak.id, info.param.id, name.value.trim(), week.intValue))
-                    }
-                    navController.popBackStack()
-                }
-            },
-            enabled = !name.value.isEmpty() && week.intValue > 0
-        ) { ViewText(stringResource(Res.string.ok)) }
-    }) {
-        var startDate = 0
-        var endDate = 0
-        for (seasonCompetition in seasonCompetitionState.value.data!!) {
-            if (seasonCompetition.seasonId == info.param.id) {
-                if (seasonCompetition.startDate > 0 && (startDate == 0 || startDate < seasonCompetition.startDate)) {
-                    startDate = seasonCompetition.startDate
-                }
-                if (seasonCompetition.endDate > 0 && (endDate == 0 || endDate > seasonCompetition.endDate)) {
-                    endDate = seasonCompetition.endDate
-                }
+    ViewCommon(seasonCompetitionState.value, navController, title, {}, "Return to season breaks",
+        {
+            BottomBarWithButton {
+                save(info, viewModel, name, week)
+                navController.popBackStack()
             }
-        }
-        PreferableMaterialTheme {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                topBar = { CreateTopBar(navController, title, "Return to season breaks") },
-                content = { paddingValues ->
-                    Column(modifier = Modifier.padding(paddingValues).fillMaxWidth()) {
-                        val modifier = Modifier.padding(0.dp)
-                        Row {
-                            ViewText("Name", modifier = Modifier.width(200.dp).padding(0.dp))
-                            ViewTextField(name.value, modifier) { name.value = it }
-                        }
-                        Row {
-                            ViewText("Week", modifier = Modifier.width(200.dp).padding(0.dp))
-                            DatePickerView(
-                                week.intValue,
-                                modifier,
-                                { utcMs -> DayDate.isMondayIn(startDate, endDate, DayDate(utcMs).value()) }) {
-                                week.intValue = it
-                            }
-                        }
-                    }
-                })
+        },
+        { name.isNotEmpty() && (info.seasonBreak == null || name != info.seasonBreak.name) ||
+                (info.seasonBreak != null && week != info.seasonBreak.week) },
+        {save(info, viewModel, name, week)}) {paddingValues ->
+        val range = buildDateRange(seasonCompetitionState.value.data!!)
+        LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
+            item { ReadonlyViewText("Name") }
+            item { ReadonlyViewText("Week") }
+            item { ViewTextField(name) { name = it } }
+            item { DatePickerView(
+                week,
+                Modifier.padding(0.dp),
+                { utcMs -> DayDate.isMondayIn(range, DayDate(utcMs).value()) }) {
+                week = it
+            } }
         }
     }
+}
+
+private fun save(info: SeasonBreakEditorInfo, viewModel: SeasonBreakViewModel, name: String, week: Int) {
+    if (info.seasonBreak == null) {
+        viewModel.insert(SeasonBreak(seasonId = info.param.id, name = name.trim(), week = week))
+    } else {
+        viewModel.update(SeasonBreak(info.seasonBreak.id, info.param.id, name.trim(), week))
+    }
+}
+
+private fun buildDateRange(seasonCompetitions: List<SeasonCompetition>): IntRange {
+    var startDate = 0
+    var endDate = 0
+    for (seasonCompetition in seasonCompetitions) {
+        if (seasonCompetition.startDate > 0 && (startDate == 0 || startDate > seasonCompetition.startDate)) {
+            startDate = seasonCompetition.startDate
+        }
+        if (seasonCompetition.endDate > 0 && (endDate == 0 || endDate < seasonCompetition.endDate)) {
+            endDate = seasonCompetition.endDate
+        }
+    }
+    return IntRange(startDate, endDate)
 }
