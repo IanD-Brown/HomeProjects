@@ -18,7 +18,7 @@ private const val viewName = "SeasonCompView"
             "FROM seasons s, " +
             "Competitions c  " +
             "LEFT JOIN SeasonCompetitions sc ON sc.seasonId = s.id AND sc.competitionId = c.id " +
-            "ORDER BY s.name, c.name")
+            "ORDER BY s.name DESC, c.name")
 
 data class SeasonCompView(
     val seasonId: Short,
@@ -34,4 +34,7 @@ data class SeasonCompView(
 interface SeasonCompViewDao : ReadonlyDao<SeasonCompView> {
     @Query("SELECT * FROM $viewName")
     override suspend fun getAll(): List<SeasonCompView>
+
+    @Query("DELETE FROM seasons WHERE id = :seasonId")
+    suspend fun deleteSeason(seasonId : Short)
 }

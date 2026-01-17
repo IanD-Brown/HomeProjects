@@ -6,7 +6,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-private const val version = 5
+private const val version = 7
 private const val majorVersion = 3
 
 @Database(entities = [
@@ -24,7 +24,9 @@ private const val majorVersion = 3
     version = version,
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
-        AutoMigration(from = 4, to = 5)
+        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 6, to = 7)
     ])
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {

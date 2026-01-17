@@ -14,7 +14,7 @@ private const val table = "Seasons"
 data class Season(
     @PrimaryKey(autoGenerate = true)
     val id: Short = 0,
-    var name: String
+    val name: String
 )
 
 @Dao

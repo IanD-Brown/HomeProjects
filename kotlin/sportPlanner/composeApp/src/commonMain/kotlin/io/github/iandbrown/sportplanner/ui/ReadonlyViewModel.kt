@@ -11,13 +11,18 @@ import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject
 
 abstract class ReadonlyViewModel<DAO : ReadonlyDao<ENTITY>, ENTITY> : ViewModel {
-    private val dao : DAO
+    val dao : DAO
     private val _uiState = MutableStateFlow(UiState<ENTITY>(true))
     val uiState = _uiState.asStateFlow()
 
     constructor() {
         val database : AppDatabase by inject(AppDatabase::class.java)
         dao = getDao(database)
+        refresh()
+    }
+
+    fun refresh() {
+        _uiState.value = UiState(isLoading = true)
         viewModelScope.launch {
             flow {
                 emit(dao.getAll())

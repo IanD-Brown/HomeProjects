@@ -50,6 +50,7 @@ abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
     }
 
     fun delete(entity : ENTITY) {
+        _uiState.value = UiState(isLoading = true)
         coroutineScope.launch {
             dao.delete(entity)
             readAll()
@@ -68,9 +69,9 @@ interface BaseUiState {
 }
 
 class SimpleState : BaseUiState {
-    override fun loadingInProgress(): Boolean = false
+    override fun loadingInProgress(): Boolean = true
 
-    override fun hasData(): Boolean = true
+    override fun hasData(): Boolean = false
 }
 
 class MergedState(vararg val states : BaseUiState) : BaseUiState {

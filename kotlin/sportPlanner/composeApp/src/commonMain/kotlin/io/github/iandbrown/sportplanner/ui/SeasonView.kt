@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
@@ -21,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Competition
@@ -43,6 +45,13 @@ class SeasonViewModel : BaseViewModel<SeasonDao, Season>() {
 
 class SeasonCompViewModel : ReadonlyViewModel<SeasonCompViewDao, SeasonCompView>() {
     override fun getDao(db: AppDatabase): SeasonCompViewDao = db.getSeasonCompViewDao()
+
+    fun deleteSeason(seasonId : Short) {
+        viewModelScope.launch {
+            dao.deleteSeason(seasonId)
+            refresh()
+        }
+    }
 }
 
 private val editor : Editors = Editors.SEASONS
@@ -50,75 +59,79 @@ private val editor : Editors = Editors.SEASONS
 @Serializable
 data class SeasonCompetitionParam(val seasonId : Short, val seasonName : String, val competitionId : Short, val competitionName : String)
 
+var internalNavController : NavController? = null
+
 @Composable
 fun NavigateSeason(navController : NavController, argument : String?) {
+    internalNavController = navController
     when (argument) {
-        "View" -> SeasonListView(navController)
-        "Add" -> SeasonEditor(navController)
-        else -> SeasonEditor(navController, Json.decodeFromString<Season>(argument!!))
+        "View" -> SeasonListView()
+        "Add" -> SeasonEditor()
+        else -> SeasonEditor(Json.decodeFromString<Season>(argument!!))
     }
 }
 
 @Composable
-private fun SeasonListView(navController: NavController) {
-    val viewModel: SeasonViewModel = koinInject()
-    val state = viewModel.uiState.collectAsState()
-    val seasonCompViewState = koinInject<SeasonCompViewModel>().uiState.collectAsState()
+private fun SeasonListView() {
+    val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
+    val seasonCompViewModel = koinInject<SeasonCompViewModel>()
+    val seasonCompViewState = seasonCompViewModel.uiState.collectAsState()
+    val gridState = rememberLazyGridState()
 
     ViewCommon(
-        MergedState(state.value, seasonCompViewState.value),
-        navController,
+        MergedState(seasonCompViewState.value, competitionState.value),
+        internalNavController!!,
         "Seasons",
         {  },
-        bottomBar = { BottomBarWithButton("+") {navController.navigate(editor.addRoute())} },
+        bottomBar = { BottomBarWithButton("+") {internalNavController?.navigate(editor.addRoute())} },
         content = { paddingValues ->
             var seasonId : Short? = null
 
-            LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues)) {
-                for (seasonCompView in seasonCompViewState.value.data!!) {
+            LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues), state = gridState) {
+                for (seasonCompView in seasonCompViewState.value.data ?: emptyList()) {
                     if (seasonCompView.seasonId != seasonId) {
-                        item { ViewText(seasonCompView.seasonName) }
-                        item { ViewText("") }
+                        item(key = "${seasonCompView.seasonId}") { ViewText(seasonCompView.seasonName)  }
+                        item(key = "${seasonCompView.seasonId}Blank") { ViewText("") }
 
-                        item { ClickableIcon(Icons.Default.Splitscreen, "manage season breaks") {
-                            navController.navigate(Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)))
+                        item(key = "${seasonCompView.seasonId}Breaks") { ClickableIcon(Icons.Default.Splitscreen, "manage season breaks") {
+                            internalNavController?.navigate(Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)))
                         }}
-                        item { EditButton { navController.navigate(editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))) }}
-                        item { DeleteButton { viewModel.delete(Season(seasonCompView.seasonId, seasonCompView.seasonName)) }}
+                        item(key = "${seasonCompView.seasonId}Edit") { EditButton { internalNavController?.navigate(editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))) }}
+                        item { DeleteButton { seasonCompViewModel.deleteSeason(seasonCompView.seasonId) }}
 
                         seasonId = seasonCompView.seasonId
                     }
-                    item { ViewText(" * ${seasonCompView.competitionName}") }
-                    item { val startDate = DayDate(seasonCompView.startDate).toString()
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}") { ViewText(" * ${seasonCompView.competitionName}") }
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Dates") { val startDate = DayDate(seasonCompView.startDate).toString()
                         val endDate = DayDate(seasonCompView.endDate).toString()
                         val join = if (startDate.isNotBlank() || endDate.isNotBlank()) "to" else ""
                         ViewText("$startDate $join $endDate") }
-                    item {
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Rounds") {
                         if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
                             ClickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
-                                navController.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                                internalNavController?.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView)))
                             }
                         } else {
                             Icon(Blank, "")
 
                         }
                     }
-                    item { ClickableIcon(Icons.Default.Accessibility, "manage teams") {
-                        navController.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Teams") { ClickableIcon(Icons.Default.Accessibility, "manage teams") {
+                        internalNavController?.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView)))
                     }}
-                    item { ClickableIcon(Icons.Default._123, "manage match structure") {
-                        navController.navigate(Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Structure") { ClickableIcon(Icons.Default._123, "manage match structure") {
+                        internalNavController?.navigate(Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView)))
                     }}
                 }
             }
-    })
+        })
 }
 
 private fun seasonCompetitionParamOf(seasonCompView : SeasonCompView) : SeasonCompetitionParam =
     SeasonCompetitionParam(seasonCompView.seasonId, seasonCompView.seasonName, seasonCompView.competitionId, seasonCompView.competitionName)
 
 @Composable
-private fun SeasonEditor(navController: NavController, season : Season? = null) {
+private fun SeasonEditor(season : Season? = null) {
     val database = koinInject<AppDatabase>()
     val viewModel: SeasonViewModel = koinInject()
     val seasonParameter = parametersOf(season?.id ?: 0)
@@ -133,7 +146,7 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
 
     ViewCommon(
         MergedState(competitionState.value, seasonCompetitionState.value),
-        navController,
+        internalNavController!!,
         title,
         {},
         "Return to seasons",
@@ -142,7 +155,7 @@ private fun SeasonEditor(navController: NavController, season : Season? = null) 
                 ReadonlyViewText("", Modifier.weight(4f))
                 OutlinedTextButton("ok", Modifier.weight(1f), name.isNotBlank()) {
                     save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, database)
-                    navController.popBackStack()
+                    internalNavController?.popBackStack()
                 }
             }
         },

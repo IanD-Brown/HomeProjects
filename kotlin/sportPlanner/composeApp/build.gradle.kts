@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.kotest.plugin)
 
     alias(libs.plugins.kover)
+    alias(libs.plugins.stability.analyzer)
 }
 
 kover {
