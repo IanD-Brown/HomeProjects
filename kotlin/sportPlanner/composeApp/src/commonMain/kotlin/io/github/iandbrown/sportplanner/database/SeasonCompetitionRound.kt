@@ -32,9 +32,9 @@ data class SeasonCompetitionRound(
     val seasonId : Short,
     val competitionId : Short,
     val round : Short,
-    var description : String,
-    var week : Int,
-    var optional : Boolean
+    val description : String,
+    val week : Int,
+    val optional : Boolean
 )
 
 

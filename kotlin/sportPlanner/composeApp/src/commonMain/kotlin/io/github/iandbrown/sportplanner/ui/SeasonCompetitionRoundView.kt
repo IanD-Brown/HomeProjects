@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,18 +27,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.softartdev.theme.material.PreferableMaterialTheme
-import io.github.softartdev.theme_prefs.generated.resources.Res
-import io.github.softartdev.theme_prefs.generated.resources.ok
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.logic.DayDate
-import org.jetbrains.compose.resources.stringResource
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
@@ -52,24 +47,24 @@ private val editor : Editors = Editors.SEASON_COMPETITION_ROUND
 private data class SeasonCompetitionRoundEditorInfo(val param : SeasonCompetitionParam, val competitionRound : SeasonCompetitionRound? = null)
 
 @Composable
-fun NavigateSeasonCompetitionRound(navController : NavController, argument : String?) {
+fun NavigateSeasonCompetitionRound(argument: String?) {
     when {
         argument == null -> {}
-        argument.startsWith("View&") -> SeasonCompetitionView(navController, Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
-        else -> SeasonCompetitionRoundEditor(navController, Json.decodeFromString<SeasonCompetitionRoundEditorInfo>(argument))
+        argument.startsWith("View&") -> SeasonCompetitionView(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
+        else -> SeasonCompetitionRoundEditor(Json.decodeFromString<SeasonCompetitionRoundEditorInfo>(argument))
     }
 }
 
 @Composable
-private fun SeasonCompetitionView(navController : NavController, param : SeasonCompetitionParam) {
+private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
     val viewModel : SeasonCompetitionRoundViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    ViewCommon(state.value,
-        navController,
+    ViewCommon(
+        state.value,
         "Competition rounds in ${param.seasonName} for ${param.competitionName}",
-        { CreateFloatingAction(navController, editor.editRoute(SeasonCompetitionRoundEditorInfo(param))) },
+        { CreateFloatingAction(editor.editRoute(SeasonCompetitionRoundEditorInfo(param))) },
         content = { paddingValues ->
             val columns = 11
              Column(Modifier.padding(paddingValues).fillMaxSize().verticalScroll(rememberScrollState()).padding(8.dp)) {
@@ -97,7 +92,7 @@ private fun SeasonCompetitionView(navController : NavController, param : SeasonC
                         Checkbox(checked = it.optional, onCheckedChange = null, enabled = false, modifier = Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                         ItemButtons(
-                            { navController.navigate(editor.editRoute(SeasonCompetitionRoundEditorInfo(param, it))) },
+                            { editor.editRoute(SeasonCompetitionRoundEditorInfo(param, it)) },
                             { coroutineScope.launch { viewModel.delete(it) } })
                     }
                 }
@@ -107,7 +102,7 @@ private fun SeasonCompetitionView(navController : NavController, param : SeasonC
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SeasonCompetitionRoundEditor(navController: NavController, info : SeasonCompetitionRoundEditorInfo) {
+private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo) {
     val seasonParameter = parametersOf(info.param.seasonId)
     val viewModel : SeasonCompetitionRoundViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
@@ -149,7 +144,7 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
         PreferableMaterialTheme {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                topBar = { CreateTopBar(navController, title, "Return to season competition rounds") },
+                topBar = { CreateTopBar(title, "Return to season competition rounds") },
                 content = { paddingValues ->
                     Column(modifier = Modifier.padding(paddingValues).fillMaxWidth()) {
                         val modifier = Modifier.padding(0.dp)
@@ -185,40 +180,37 @@ private fun SeasonCompetitionRoundEditor(navController: NavController, info : Se
                         }
                     }
                 }, bottomBar = {
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                when (info.competitionRound) {
-                                    is SeasonCompetitionRound -> {
-                                        viewModel.update(
-                                            SeasonCompetitionRound(
-                                                info.competitionRound.seasonId,
-                                                info.competitionRound.competitionId,
-                                                round.value,
-                                                description.value.trim(),
-                                                week.intValue,
-                                                optional.value
-                                            )
+                    BottomBarWithButton(enabled = !description.value.isEmpty() && validRound.value) {
+                        coroutineScope.launch {
+                            when (info.competitionRound) {
+                                is SeasonCompetitionRound -> {
+                                    viewModel.update(
+                                        SeasonCompetitionRound(
+                                            info.competitionRound.seasonId,
+                                            info.competitionRound.competitionId,
+                                            round.value,
+                                            description.value.trim(),
+                                            week.intValue,
+                                            optional.value
                                         )
-                                    }
-                                    else -> {
-                                        viewModel.insert(
-                                            SeasonCompetitionRound(
-                                                info.param.seasonId,
-                                                info.param.competitionId,
-                                                round.value,
-                                                description.value.trim(),
-                                                week.intValue,
-                                                optional.value
-                                            )
-                                        )
-                                    }
+                                    )
                                 }
-                                navController.popBackStack()
+                                else -> {
+                                    viewModel.insert(
+                                        SeasonCompetitionRound(
+                                            info.param.seasonId,
+                                            info.param.competitionId,
+                                            round.value,
+                                            description.value.trim(),
+                                            week.intValue,
+                                            optional.value
+                                        )
+                                    )
+                                }
                             }
-                        },
-                        enabled = !description.value.isEmpty() && validRound.value
-                    ) { ViewText(stringResource(Res.string.ok)) }
+                            appNavController.popBackStack()
+                        }
+                    }
                 })
         }
     }

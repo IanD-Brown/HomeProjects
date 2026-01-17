@@ -19,6 +19,7 @@ import io.github.iandbrown.sportplanner.ui.NavigateSeasonTeam
 import io.github.iandbrown.sportplanner.ui.NavigateSeasonTeamCategory
 import io.github.iandbrown.sportplanner.ui.NavigateTeamCategory
 import io.github.iandbrown.sportplanner.ui.appFileKitDialogSettings
+import io.github.iandbrown.sportplanner.ui.appNavController
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 
 @Composable
@@ -27,6 +28,8 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
     PreferableMaterialTheme {
         val navController = rememberNavController()
 
+        appNavController = navController
+
         NavHost(navController, startDestination = "home") {
 
             composable("home") {
@@ -34,39 +37,39 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
             }
 
             composable(getRoute(Editors.ASSOCIATIONS)) {
-                NavigateAssociation(navController, getArgument(it))
+                NavigateAssociation(getArgument(it))
             }
 
             composable(getRoute(Editors.COMPETITIONS)) {
-                NavigateCompetitions(navController, getArgument(it))
+                NavigateCompetitions(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASONS)) {
-                NavigateSeason(navController, getArgument(it))
+                NavigateSeason(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_BREAK)) {
-                NavigateSeasonBreak(navController, getArgument(it))
+                NavigateSeasonBreak(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_COMPETITION_ROUND)) {
-                NavigateSeasonCompetitionRound(navController, getArgument(it))
+                NavigateSeasonCompetitionRound(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_FIXTURES)) {
-                NavigateFixtures(navController, getArgument(it))
+                NavigateFixtures(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_TEAMS)) {
-                NavigateSeasonTeam(navController, getArgument(it))
+                NavigateSeasonTeam(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASON_TEAM_CATEGORY)) {
-                NavigateSeasonTeamCategory(navController, getArgument(it))
+                NavigateSeasonTeamCategory(getArgument(it))
             }
 
             composable(getRoute(Editors.TEAM_CATEGORIES)) {
-                NavigateTeamCategory(navController, getArgument(it))
+                NavigateTeamCategory(getArgument(it))
             }
         }
     }

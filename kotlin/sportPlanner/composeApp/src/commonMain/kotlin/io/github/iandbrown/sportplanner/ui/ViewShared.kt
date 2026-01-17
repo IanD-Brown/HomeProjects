@@ -69,11 +69,11 @@ val fontSize = 16.sp
 const val OK = "OK"
 
 var appFileKitDialogSettings : FileKitDialogSettings? = null
+lateinit var appNavController : NavController
 
 @Composable
 fun ViewCommon(
     baseUiState: BaseUiState,
-    navController: NavController,
     title: String,
     floatingActionButton: @Composable () -> Unit = {},
     description: String = "Return to home screen",
@@ -89,7 +89,7 @@ fun ViewCommon(
     } else if (baseUiState.hasData()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { CreateTopBar(navController, title, description, confirm, confirmAction) },
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
             floatingActionButton = floatingActionButton,
             bottomBar = bottomBar,
             content = content)
@@ -98,11 +98,12 @@ fun ViewCommon(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CreateTopBar(navController: NavController,
-                 title: String,
-                 description: String,
-                 confirm : () -> Boolean,
-                 confirmAction : () -> Unit) {
+private fun CreateTopBar(
+    title: String,
+    description: String,
+    confirm: () -> Boolean,
+    confirmAction: () -> Unit
+) {
     var isDialogOpen by remember { mutableStateOf(false) }
     val navState = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
@@ -116,7 +117,7 @@ private fun CreateTopBar(navController: NavController,
             if (confirm()) {
                 isDialogOpen = true
             } else {
-                navController.navigateUp()
+                appNavController.navigateUp()
             }
         }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
@@ -126,12 +127,12 @@ private fun CreateTopBar(navController: NavController,
         AlertDialog(
             onDismissRequest = {},
             dismissButton = {
-                Button(onClick = { isDialogOpen = closeConfirmDialog(navController) {} }) {
+                Button(onClick = { isDialogOpen = closeConfirmDialog(appNavController) {} }) {
                     Text("Discard changes")
                 }
             },
             confirmButton = {
-                Button(onClick = { isDialogOpen = closeConfirmDialog(navController, confirmAction) }) {
+                Button(onClick = { isDialogOpen = closeConfirmDialog(appNavController, confirmAction) }) {
                     Text("Save")
                 }
             },
@@ -148,18 +149,18 @@ private fun closeConfirmDialog(navController: NavController, confirmAction : () 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateTopBar(navController: NavController, title: String, description: String) {
+fun CreateTopBar(title: String, description: String) {
     TopAppBar(title = { Text(title) }, navigationIcon = {
-        IconButton(onClick = { navController.navigateUp() }) {
+        IconButton(onClick = { appNavController.navigateUp() }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
         }
     })
 }
 
 @Composable
-fun CreateFloatingAction(navController: NavController, route: String) {
+fun CreateFloatingAction(route: String) {
     FloatingActionButton(onClick = {
-        navController.navigate(route)
+        appNavController.navigate(route)
     }, content = {
         Icon(
             imageVector = Icons.Default.Add, contentDescription = "image", tint = Color.White
@@ -259,13 +260,22 @@ fun SpacedViewText(value : String, modifier: Modifier = Modifier) {
 fun SpacedIcon(imageVector: ImageVector,
                contentDescription: String?,
                tint: Color = MaterialTheme.colorScheme.onSurface,
-               onClick : () -> Unit) {
+               onClick : () -> String) {
     Spacer(modifier = Modifier.size(16.dp))
     ClickableIcon(imageVector, contentDescription, tint, onClick)
 }
 
 @Composable
-fun ItemButtons(editClick : () -> Unit, deleteClick : () -> Unit) {
+fun SpacedIconOld(imageVector: ImageVector,
+               contentDescription: String?,
+               tint: Color = MaterialTheme.colorScheme.onSurface,
+               onClick : () -> Unit) {
+    Spacer(modifier = Modifier.size(16.dp))
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
+}
+
+@Composable
+fun ItemButtons(editClick : () -> String, deleteClick : () -> Unit) {
     Spacer(modifier = Modifier.size(16.dp))
     EditButton(editClick)
     Spacer(modifier = Modifier.size(16.dp))
@@ -378,21 +388,21 @@ fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
     DayDate.isMondayIn(IntRange(seasonCompetition.startDate, seasonCompetition.endDate), DayDate(utcMs).value())
 
 @Composable
-fun EditButton(onClick : () -> Unit) =
-    ClickableIcon(Icons.Default.Edit, "edit", Color.Green, onClick)
+fun EditButton(route : () -> String) =
+    ClickableIcon(Icons.Default.Edit, "edit", Color.Green, route)
 
 @Composable
 fun DeleteButton(onClick : () -> Unit) =
-    ClickableIcon(Icons.Default.Delete, "delete", Color.Red, onClick)
+    Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
 
 @Composable
 fun ClickableIcon(
     imageVector: ImageVector,
     contentDescription: String?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: () -> Unit
+    onClick: () -> String
 ) {
-    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = { appNavController.navigate(onClick())}), tint)
 }
 
 class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridCells {
@@ -465,10 +475,20 @@ fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Bo
 }
 
 @Composable
-fun BottomBarWithButton(value : String = OK, onClick : () -> Unit) {
+fun BottomBarWithButtonN(value : String = OK, enabled: Boolean = true, onClick : () -> String) {
     Row {
         ReadonlyViewText("", Modifier.weight(4f))
-        OutlinedTextButton(value, Modifier.weight(1f)){
+        OutlinedTextButton(value, Modifier.weight(1f), enabled){
+            appNavController.navigate(onClick())
+        }
+    }
+}
+
+@Composable
+fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) {
+    Row {
+        ReadonlyViewText("", Modifier.weight(4f))
+        OutlinedTextButton(value, Modifier.weight(1f), enabled){
             onClick()
         }
     }

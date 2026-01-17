@@ -17,8 +17,8 @@ private const val table = "Competitions"
 data class Competition(
     @PrimaryKey(autoGenerate = true)
     val id: Short = 0,
-    var name: String,
-    var type: Short
+    val name: String,
+    val type: Short
 )
 
 @Dao

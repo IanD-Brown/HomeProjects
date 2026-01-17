@@ -14,7 +14,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
@@ -28,9 +27,9 @@ class SeasonTeamCategoryViewModel : BaseViewModel<SeasonTeamCategoryDao, SeasonT
 }
 
 @Composable
-fun NavigateSeasonTeamCategory(navController: NavController, argument: String?) {
+fun NavigateSeasonTeamCategory(argument: String?) {
     if (argument != null && argument.startsWith("View&")) {
-        SeasonTeamCategoryEditor(navController, Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
+        SeasonTeamCategoryEditor(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
     }
 }
 
@@ -47,7 +46,7 @@ private enum class EditorState(val display: String) {
     }
 }
 @Composable
-private fun SeasonTeamCategoryEditor(navController: NavController, param: SeasonCompetitionParam) {
+private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamCategoryViewModel = koinInject()
     val state = viewModel.uiState.collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
@@ -58,58 +57,58 @@ private fun SeasonTeamCategoryEditor(navController: NavController, param: Season
     val gameStructureStates = remember { mutableStateListOf<Short>() }
     val lockedStates = remember { mutableStateListOf<Boolean>() }
 
-    ViewCommon(MergedState(state.value, teamCategoryState.value),
-        navController,
+    ViewCommon(
+        MergedState(state.value, teamCategoryState.value),
         "Season: ${param.seasonName} Competition: ${param.competitionName}",
-        {},
-        "Return to Seasons screen",
-        {
+        description = "Return to Seasons screen",
+        bottomBar = {
             BottomBarWithButton(isLocked.display) {
                 if (isLocked == EditorState.DIRTY) {
-                        coroutineScope.launch {
-                            save(viewModel, param, teamCategoryList, gameStructureStates, lockedStates)
-                        }
+                    coroutineScope.launch {
+                        save(viewModel, param, teamCategoryList, gameStructureStates, lockedStates)
                     }
-                    isLocked = isLocked.onClick()
                 }
-        }) { paddingValues ->
-        teamCategoryList = teamCategoryState.value.data?.sortedBy { it.name.trim().uppercase() }!!
-        val seasonTeamCategories = state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }
-            ?.associateBy { it.teamCategoryId }
-        LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Team Category") }
-            item { ReadonlyViewText("Match Structure")}
-            item { ReadonlyViewText("Locked")}
-            val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
-            var index = 0
-            for (teamCategory in teamCategoryList) {
-                val seasonTeamCategory = seasonTeamCategories?.get(teamCategory.id)
-                gameStructureStates += seasonTeamCategory?.games ?: 0
-                lockedStates += seasonTeamCategory?.locked ?: false
-                val itemIndex = index++
-                item { ReadonlyViewText(teamCategory.name) }
-                item {
-                    DropdownList(
-                        matchStructureNamesList,
-                        gameStructureStates[itemIndex].toInt(),
-                        isLocked = { isLocked == EditorState.LOCKED }) {
+                isLocked = isLocked.onClick()
+            }
+        },
+        content = { paddingValues ->
+            teamCategoryList = teamCategoryState.value.data?.sortedBy { it.name.trim().uppercase() }!!
+            val seasonTeamCategories = state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }
+                ?.associateBy { it.teamCategoryId }
+            LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
+                item { ReadonlyViewText("Team Category") }
+                item { ReadonlyViewText("Match Structure")}
+                item { ReadonlyViewText("Locked")}
+                val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
+                var index = 0
+                for (teamCategory in teamCategoryList) {
+                    val seasonTeamCategory = seasonTeamCategories?.get(teamCategory.id)
+                    gameStructureStates += seasonTeamCategory?.games ?: 0
+                    lockedStates += seasonTeamCategory?.locked ?: false
+                    val itemIndex = index++
+                    item { ReadonlyViewText(teamCategory.name) }
+                    item {
+                        DropdownList(
+                            matchStructureNamesList,
+                            gameStructureStates[itemIndex].toInt(),
+                            isLocked = { isLocked == EditorState.LOCKED }) {
                             gameStructureStates[itemIndex] = it.toShort()
                             isLocked = EditorState.DIRTY
                         }
-                }
-                item {
-                    Checkbox(
-                        checked = lockedStates[itemIndex],
-                        enabled = isLocked != EditorState.LOCKED,
-                        onCheckedChange = {
-                            lockedStates[itemIndex] = it
-                            isLocked = EditorState.DIRTY
-                        }
-                    )
+                    }
+                    item {
+                        Checkbox(
+                            checked = lockedStates[itemIndex],
+                            enabled = isLocked != EditorState.LOCKED,
+                            onCheckedChange = {
+                                lockedStates[itemIndex] = it
+                                isLocked = EditorState.DIRTY
+                            }
+                        )
+                    }
                 }
             }
-        }
-    }
+        })
 }
 
 private suspend fun save(

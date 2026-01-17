@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonFixture
@@ -84,19 +83,19 @@ class SeasonFixtureViewModel : ViewModel {
 private val editor = Editors.SEASON_FIXTURES
 
 @Composable
-fun NavigateFixtures(navController: NavController, argument : String?) =
+fun NavigateFixtures(argument: String?) =
     when {
         argument == null -> {}
         argument.startsWith("Summary") -> {
             val param = argument.substring("Summary&".length)
-            SummaryFixtureView(navController, Json.decodeFromString<Season>(param))
+            SummaryFixtureView(Json.decodeFromString<Season>(param))
         }
-        argument.startsWith("View") -> FixtureView(navController)
-        else -> FixtureTableView(navController, Json.decodeFromString<Season>(argument))
+        argument.startsWith("View") -> FixtureView()
+        else -> FixtureTableView(Json.decodeFromString<Season>(argument))
     }
 
 @Composable
-private fun FixtureView(navController: NavController) {
+private fun FixtureView() {
     val seasonState by koinInject<SeasonViewModel>().uiState.collectAsState()
     val calculating = remember {mutableStateOf(false)}
     val coroutineScope = rememberCoroutineScope()
@@ -106,8 +105,7 @@ private fun FixtureView(navController: NavController) {
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
     } else {
-        ViewCommon(seasonState, navController, "Fixtures", {})
-        { paddingValues ->
+        ViewCommon(seasonState, "Fixtures", content = { paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
                 items(
                     items = seasonState.data?.sortedByDescending { it.name.trim().uppercase() }!!,
@@ -117,12 +115,12 @@ private fun FixtureView(navController: NavController) {
                             ViewText(it.name)
                         }
                         SpacedIcon(Icons.Filled.Summarize, "Show fixture summaries") {
-                            navController.navigate("${editor.name}/Summary&${Json.encodeToString(it)}")
+                            "${editor.name}/Summary&${Json.encodeToString(it)}"
                         }
                         SpacedIcon(Icons.Filled.GridView, "Show fixtures") {
-                            navController.navigate(editor.editRoute(it))
+                            editor.editRoute(it)
                         }
-                        SpacedIcon(Icons.Filled.Calculate, "Calculate fixtures") {
+                        SpacedIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
                             calculating.value = true
                             coroutineScope.launch {
                                 val timeTaken = measureTime { calcFixtures(it.id) }
@@ -133,14 +131,14 @@ private fun FixtureView(navController: NavController) {
                     }
                 }
             }
-        }
+        })
     }
 }
 
 private enum class SumType {HOME_TEAM, AWAY_TEAM}
 
 @Composable
-private fun SummaryFixtureView(navController : NavController, season : Season) {
+private fun SummaryFixtureView(season: Season) {
     val seasonParameter = parametersOf(season.id)
     val state by koinViewModel<SeasonFixtureViewModel> { parametersOf(season.id) }.uiState.collectAsState()
     val associationState by koinInject<AssociationViewModel>().uiState.collectAsState()
@@ -149,11 +147,12 @@ private fun SummaryFixtureView(navController : NavController, season : Season) {
     val seasonCompetitionState by koinInject<SeasonCompetitionViewModel>{ seasonParameter }.uiState.collectAsState()
     val competitionFilter = remember { mutableStateOf(0.toShort()) }
 
-    ViewCommon(MergedState(state, associationState, competitionState, seasonTeamsState, seasonCompetitionState),
-        navController,
+    ViewCommon(
+        MergedState(state, associationState, competitionState, seasonTeamsState, seasonCompetitionState),
         "Season fixture Summary",
         { },
-        "Return to seasons screen", content = {paddingValues ->
+        "Return to seasons screen",
+        content = {paddingValues ->
             val countsByTeamAndCategory = mutableMapOf<Triple<String, String, SumType>, Int>()
             val associationNameMap = associationState.data?.associateBy({it.id}, {it.name})
             val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
@@ -215,7 +214,7 @@ private fun SummaryFixtureView(navController : NavController, season : Season) {
 }
 
 @Composable
-private fun FixtureTableView(navController : NavController, season : Season) {
+private fun FixtureTableView(season: Season) {
     val viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) }
     val associationState by koinInject<AssociationViewModel>().uiState.collectAsState()
     val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState()
@@ -226,8 +225,8 @@ private fun FixtureTableView(navController : NavController, season : Season) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    ViewCommon(MergedState(state.value, associationState, teamCategoryState, seasonTeamsState),
-        navController,
+    ViewCommon(
+        MergedState(state.value, associationState, teamCategoryState, seasonTeamsState),
         "Season fixtures",
         {
             FloatingActionButton(onClick = {

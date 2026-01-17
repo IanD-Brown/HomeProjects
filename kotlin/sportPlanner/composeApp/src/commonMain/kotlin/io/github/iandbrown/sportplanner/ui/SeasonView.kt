@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.Season
@@ -59,11 +58,8 @@ private val editor : Editors = Editors.SEASONS
 @Serializable
 data class SeasonCompetitionParam(val seasonId : Short, val seasonName : String, val competitionId : Short, val competitionName : String)
 
-var internalNavController : NavController? = null
-
 @Composable
-fun NavigateSeason(navController : NavController, argument : String?) {
-    internalNavController = navController
+fun NavigateSeason(argument: String?) {
     when (argument) {
         "View" -> SeasonListView()
         "Add" -> SeasonEditor()
@@ -80,10 +76,9 @@ private fun SeasonListView() {
 
     ViewCommon(
         MergedState(seasonCompViewState.value, competitionState.value),
-        internalNavController!!,
         "Seasons",
         {  },
-        bottomBar = { BottomBarWithButton("+") {internalNavController?.navigate(editor.addRoute())} },
+        bottomBar = { BottomBarWithButtonN("+") {editor.addRoute()} },
         content = { paddingValues ->
             var seasonId : Short? = null
 
@@ -94,9 +89,9 @@ private fun SeasonListView() {
                         item(key = "${seasonCompView.seasonId}Blank") { ViewText("") }
 
                         item(key = "${seasonCompView.seasonId}Breaks") { ClickableIcon(Icons.Default.Splitscreen, "manage season breaks") {
-                            internalNavController?.navigate(Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)))
+                            Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))
                         }}
-                        item(key = "${seasonCompView.seasonId}Edit") { EditButton { internalNavController?.navigate(editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))) }}
+                        item(key = "${seasonCompView.seasonId}Edit") { EditButton { editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)) }}
                         item { DeleteButton { seasonCompViewModel.deleteSeason(seasonCompView.seasonId) }}
 
                         seasonId = seasonCompView.seasonId
@@ -109,7 +104,7 @@ private fun SeasonListView() {
                     item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Rounds") {
                         if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
                             ClickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
-                                internalNavController?.navigate(Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                                Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView))
                             }
                         } else {
                             Icon(Blank, "")
@@ -117,10 +112,10 @@ private fun SeasonListView() {
                         }
                     }
                     item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Teams") { ClickableIcon(Icons.Default.Accessibility, "manage teams") {
-                        internalNavController?.navigate(Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                        Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView))
                     }}
                     item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Structure") { ClickableIcon(Icons.Default._123, "manage match structure") {
-                        internalNavController?.navigate(Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView)))
+                        Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView))
                     }}
                 }
             }
@@ -146,20 +141,18 @@ private fun SeasonEditor(season : Season? = null) {
 
     ViewCommon(
         MergedState(competitionState.value, seasonCompetitionState.value),
-        internalNavController!!,
         title,
-        {},
-        "Return to seasons",
-        {
+        description = "Return to seasons",
+        bottomBar = {
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
-                OutlinedTextButton("ok", Modifier.weight(1f), name.isNotBlank()) {
+                OutlinedTextButton(OK, Modifier.weight(1f), name.isNotBlank()) {
                     save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, database)
-                    internalNavController?.popBackStack()
+                    appNavController.popBackStack()
                 }
             }
         },
-        {
+        confirm = {
             if (season == null) {
                 name.isNotEmpty()
             } else if (season.name != name) {
@@ -170,7 +163,7 @@ private fun SeasonEditor(season : Season? = null) {
                     ?.any { it.endDate != endDates[it.competitionId] }!!
             }
         },
-        {save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, database)},
+        confirmAction = {save(coroutineScope, season, viewModel, name, competitionState, startDates, endDates, database)},
         content = { paddingValues ->
             val competitionList = competitionState.value.data?.sortedBy { it.name.trim().uppercase() }
             if (season != null) {

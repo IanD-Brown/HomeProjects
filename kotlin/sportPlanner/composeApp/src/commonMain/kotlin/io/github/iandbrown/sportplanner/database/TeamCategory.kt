@@ -15,8 +15,8 @@ private const val table = "TeamCategories"
 data class TeamCategory (
     @PrimaryKey(autoGenerate = true)
     val id : Short = 0,
-    var name: String,
-    var matchDay: Short)
+    val name: String,
+    val matchDay: Short)
 
 @Dao
 interface TeamCategoryDao : BaseDao<TeamCategory> {

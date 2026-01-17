@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
@@ -29,16 +28,16 @@ class SeasonTeamViewModel : BaseViewModel<SeasonTeamDao, SeasonTeam>() {
 }
 
 @Composable
-fun NavigateSeasonTeam(navController: NavController, argument: String?) {
+fun NavigateSeasonTeam(argument: String?) {
     when {
         argument == null -> {}
-        argument.startsWith("View&") -> SeasonTeamEditor(navController, Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
-        argument.startsWith("ByCategory&") -> SeasonTeamByCategory(navController, Json.decodeFromString<SeasonCompetitionParam>(argument.substring(11)))
+        argument.startsWith("View&") -> SeasonTeamEditor(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
+        argument.startsWith("ByCategory&") -> SeasonTeamByCategory(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(11)))
     }
 }
 
 @Composable
-private fun SeasonTeamEditor(navController: NavController, param: SeasonCompetitionParam) {
+private fun SeasonTeamEditor(param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamViewModel = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
@@ -51,15 +50,13 @@ private fun SeasonTeamEditor(navController: NavController, param: SeasonCompetit
 
     ViewCommon(
         MergedState(state.value, associationState.value, teamCategory.value),
-        navController,
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
-        {},
-        "Return to Seasons screen",
-        {
+        description = "Return to Seasons screen",
+        bottomBar = {
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
                 OutlinedTextButton("By Category", Modifier.weight(1.3f), isLocked) {
-                    navController.navigate("${Editors.SEASON_TEAMS.name}/ByCategory&${Json.encodeToString(param)}")
+                    appNavController.navigate("${Editors.SEASON_TEAMS.name}/ByCategory&${Json.encodeToString(param)}")
                 }
                 OutlinedTextButton(value = buttonText,modifier = Modifier.weight(1f)){
                     if (!isLocked && edits.isNotEmpty()) {
@@ -83,38 +80,39 @@ private fun SeasonTeamEditor(navController: NavController, param: SeasonCompetit
                     isLocked = !isLocked
                 }
             }
-        }
-    ) { paddingValues ->
-        val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
-        val associationList = associationState.value.data?.sortedBy { it.name.trim().uppercase() }
-        for (seasonTeam in state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }!!) {
-            values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
-        }
-
-        LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategoryList?.size!!),
-            modifier = Modifier.padding(paddingValues).fillMaxWidth()) {
-            item { ReadonlyViewText("") }
-            for (teamCategory in teamCategoryList) {
-                item { ReadonlyViewText(teamCategory.name) }
+        },
+        content = { paddingValues ->
+            val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
+            val associationList = associationState.value.data?.sortedBy { it.name.trim().uppercase() }
+            for (seasonTeam in state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }!!) {
+                values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
             }
-            for (association in associationList!!) {
-                item { ReadonlyViewText(association.name) }
-                for (team in teamCategoryList) {
-                    item {
-                        val key = Pair(association.id, team.id)
-                        val value = if (edits.contains(key)) edits[key] else values.getOrDefault(key, 0)
-                        if (isLocked) {
-                            ReadonlyViewText(value?.toString() ?: "")
-                        } else {
-                            ViewTextField(
-                                value = value.toString(),
-                                onValueChange = {matchStructure(it) { number -> edits[key] = number } })
+
+            LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategoryList?.size!!),
+                modifier = Modifier.padding(paddingValues).fillMaxWidth()) {
+                item { ReadonlyViewText("") }
+                for (teamCategory in teamCategoryList) {
+                    item { ReadonlyViewText(teamCategory.name) }
+                }
+                for (association in associationList!!) {
+                    item { ReadonlyViewText(association.name) }
+                    for (team in teamCategoryList) {
+                        item {
+                            val key = Pair(association.id, team.id)
+                            val value = if (edits.contains(key)) edits[key] else values.getOrDefault(key, 0)
+                            if (isLocked) {
+                                ReadonlyViewText(value?.toString() ?: "")
+                            } else {
+                                ViewTextField(
+                                    value = value.toString(),
+                                    onValueChange = {matchStructure(it) { number -> edits[key] = number } })
+                            }
                         }
                     }
                 }
             }
         }
-    }
+    )
 }
 
 private fun matchStructure(value: String, editFun: (Short) -> Unit) {
@@ -129,7 +127,7 @@ private fun matchStructure(value: String, editFun: (Short) -> Unit) {
 }
 
 @Composable
-private fun SeasonTeamByCategory(navController: NavController, param: SeasonCompetitionParam) {
+private fun SeasonTeamByCategory(param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamViewModel = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
@@ -141,11 +139,9 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
 
     ViewCommon(
         MergedState(state.value, teamCategory.value, associationState.value),
-        navController,
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
-        {},
-        "Return to Season teams screen",
-        {
+        description = "Return to Season teams screen",
+        bottomBar = {
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
                 OutlinedTextButton(buttonText, Modifier.weight(1f)){
@@ -170,39 +166,39 @@ private fun SeasonTeamByCategory(navController: NavController, param: SeasonComp
                     isLocked = !isLocked
                 }
             }
-        }
-    ) { paddingValues ->
-        val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
-        val values = countByTeamCategory(teamCategoryList!!,
-            associationState.value.data?.count()!!,
-            state.value.data?.
-                filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }!!)
+        },
+        content = { paddingValues ->
+            val teamCategoryList = teamCategory.value.data?.sortedBy { it.name.uppercase().trim() }
+            val values = countByTeamCategory(teamCategoryList!!,
+                associationState.value.data?.count()!!,
+                state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }!!)
 
-        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Team Category") }
-            item { ReadonlyViewText("Team Count") }
-            for (teamCategory in teamCategoryList) {
-                item { ReadonlyViewText(teamCategory.name) }
-                item {
-                    val key = teamCategory.id
-                    val value = if (edits.contains(key)) {
-                        edits[key]?.toString()!!
-                    } else if (values.contains(key) && values[key]!!.toInt() != -1) {
-                        values[key]?.toString()!!
-                    } else {
-                        ""
-                    }
-                    if (isLocked) {
-                        ReadonlyViewText(value)
-                    } else {
-                        ViewTextField(
-                            value = value,
-                            onValueChange = {matchStructure(it) { number -> edits[key] = number } })
+            LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
+                item { ReadonlyViewText("Team Category") }
+                item { ReadonlyViewText("Team Count") }
+                for (teamCategory in teamCategoryList) {
+                    item { ReadonlyViewText(teamCategory.name) }
+                    item {
+                        val key = teamCategory.id
+                        val value = if (edits.contains(key)) {
+                            edits[key]?.toString()!!
+                        } else if (values.contains(key) && values[key]!!.toInt() != -1) {
+                            values[key]?.toString()!!
+                        } else {
+                            ""
+                        }
+                        if (isLocked) {
+                            ReadonlyViewText(value)
+                        } else {
+                            ViewTextField(
+                                value = value,
+                                onValueChange = {matchStructure(it) { number -> edits[key] = number } })
+                        }
                     }
                 }
             }
         }
-    }
+    )
 }
 
 fun countByTeamCategory(teamCategoryList: List<TeamCategory>, associationCount: Int, seasonTeams: List<SeasonTeam>) : Map<Short, Short> {

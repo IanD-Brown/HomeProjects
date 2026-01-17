@@ -23,8 +23,8 @@ data class SeasonBreak(
     @PrimaryKey(autoGenerate = true)
     val id: Short = 0,
     val seasonId : Short,
-    var name: String,
-    var week: Int
+    val name: String,
+    val week: Int
 )
 
 @Dao
