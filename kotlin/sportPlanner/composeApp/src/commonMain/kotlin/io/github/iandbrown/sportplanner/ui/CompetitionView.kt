@@ -53,8 +53,7 @@ private fun CompetitionView() {
     ViewCommon(
         state.value,
         "Competitions",
-        { CreateFloatingAction(editor.addRoute()) },
-        content = { paddingValues ->
+        bottomBar = { BottomBarWithButton("+") { editor.addRoute() }}) { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
                 item { ViewText("Name") }
                 item { ViewText("Type") }
@@ -67,7 +66,7 @@ private fun CompetitionView() {
                     item { DeleteButton { viewModel.delete(competition) } }
                 }
             }
-        })
+        }
 }
 
 @Composable

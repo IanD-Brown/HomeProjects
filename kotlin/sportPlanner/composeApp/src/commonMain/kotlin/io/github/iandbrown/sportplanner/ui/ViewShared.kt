@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -28,7 +27,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,7 +73,6 @@ lateinit var appNavController : NavController
 fun ViewCommon(
     baseUiState: BaseUiState,
     title: String,
-    floatingActionButton: @Composable () -> Unit = {},
     description: String = "Return to home screen",
     bottomBar: @Composable () -> Unit = {},
     confirm: () -> Boolean = { false },
@@ -90,7 +87,6 @@ fun ViewCommon(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = { CreateTopBar(title, description, confirm, confirmAction) },
-            floatingActionButton = floatingActionButton,
             bottomBar = bottomBar,
             content = content)
     }
@@ -145,27 +141,6 @@ private fun closeConfirmDialog(navController: NavController, confirmAction : () 
     confirmAction()
     navController.navigateUp()
     return false
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CreateTopBar(title: String, description: String) {
-    TopAppBar(title = { Text(title) }, navigationIcon = {
-        IconButton(onClick = { appNavController.navigateUp() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
-        }
-    })
-}
-
-@Composable
-fun CreateFloatingAction(route: String) {
-    FloatingActionButton(onClick = {
-        appNavController.navigate(route)
-    }, content = {
-        Icon(
-            imageVector = Icons.Default.Add, contentDescription = "image", tint = Color.White
-        )
-    })
 }
 
 @Composable
@@ -254,24 +229,6 @@ fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
 fun SpacedViewText(value : String, modifier: Modifier = Modifier) {
     Spacer(modifier = Modifier.size(16.dp))
     ViewText(value, modifier)
-}
-
-@Composable
-fun SpacedIcon(imageVector: ImageVector,
-               contentDescription: String?,
-               tint: Color = MaterialTheme.colorScheme.onSurface,
-               onClick : () -> String) {
-    Spacer(modifier = Modifier.size(16.dp))
-    ClickableIcon(imageVector, contentDescription, tint, onClick)
-}
-
-@Composable
-fun SpacedIconOld(imageVector: ImageVector,
-               contentDescription: String?,
-               tint: Color = MaterialTheme.colorScheme.onSurface,
-               onClick : () -> Unit) {
-    Spacer(modifier = Modifier.size(16.dp))
-    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
 }
 
 @Composable
@@ -403,6 +360,16 @@ fun ClickableIcon(
     onClick: () -> String
 ) {
     Icon(imageVector, contentDescription, Modifier.clickable(onClick = { appNavController.navigate(onClick())}), tint)
+}
+
+@Composable
+fun ClickableIconOld(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
 }
 
 class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridCells {

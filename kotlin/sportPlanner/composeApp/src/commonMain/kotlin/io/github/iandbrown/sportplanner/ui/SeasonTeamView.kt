@@ -22,8 +22,9 @@ import kotlin.collections.set
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
-class SeasonTeamViewModel : BaseViewModel<SeasonTeamDao, SeasonTeam>() {
+class SeasonTeamViewModel(seasonId : Short) : BaseSeasonViewModel<SeasonTeamDao, SeasonTeam>(seasonId) {
     override fun getDao(db: AppDatabase): SeasonTeamDao = db.getSeasonTeamDao()
 }
 
@@ -38,7 +39,7 @@ fun NavigateSeasonTeam(argument: String?) {
 
 @Composable
 private fun SeasonTeamEditor(param: SeasonCompetitionParam) {
-    val viewModel: SeasonTeamViewModel = koinInject()
+    val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId) }
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
     val associationState = koinInject<AssociationViewModel>().uiState.collectAsState()
@@ -128,7 +129,7 @@ private fun matchStructure(value: String, editFun: (Short) -> Unit) {
 
 @Composable
 private fun SeasonTeamByCategory(param: SeasonCompetitionParam) {
-    val viewModel: SeasonTeamViewModel = koinInject()
+    val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId)}
     val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
     val teamCategory = koinInject<TeamCategoryViewModel>().uiState.collectAsState()
@@ -142,29 +143,26 @@ private fun SeasonTeamByCategory(param: SeasonCompetitionParam) {
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
         description = "Return to Season teams screen",
         bottomBar = {
-            Row {
-                ReadonlyViewText("", Modifier.weight(4f))
-                OutlinedTextButton(buttonText, Modifier.weight(1f)){
-                    if (!isLocked && edits.isNotEmpty()) {
-                        coroutineScope.launch {
-                            for ((key, count) in edits) {
-                                for (association in associationState.value.data!!) {
-                                    viewModel.insert(
-                                        SeasonTeam(
-                                            seasonId = param.seasonId,
-                                            teamCategoryId = key,
-                                            associationId = association.id,
-                                            competitionId = param.competitionId,
-                                            count = count
-                                        )
+            BottomBarWithButton(buttonText) {
+                if (!isLocked && edits.isNotEmpty()) {
+                    coroutineScope.launch {
+                        for ((key, count) in edits) {
+                            for (association in associationState.value.data!!) {
+                                viewModel.insert(
+                                    SeasonTeam(
+                                        seasonId = param.seasonId,
+                                        teamCategoryId = key,
+                                        associationId = association.id,
+                                        competitionId = param.competitionId,
+                                        count = count
                                     )
-                                }
+                                )
                             }
-                            edits.clear()
                         }
+                        edits.clear()
                     }
-                    isLocked = !isLocked
                 }
+                isLocked = !isLocked
             }
         },
         content = { paddingValues ->

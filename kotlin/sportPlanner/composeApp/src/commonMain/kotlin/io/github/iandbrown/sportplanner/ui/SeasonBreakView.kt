@@ -49,7 +49,6 @@ private fun SeasonBreakView(param: Season) {
     ViewCommon(
         state.value,
         "Season breaks in ${param.name}",
-        {  },
         bottomBar = { BottomBarWithButtonN("+") { editor.editRoute(SeasonBreakEditorInfo(param)) }},
         content = { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2),

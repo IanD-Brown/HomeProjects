@@ -14,11 +14,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -106,29 +103,27 @@ private fun FixtureView() {
         }
     } else {
         ViewCommon(seasonState, "Fixtures", content = { paddingValues ->
-            LazyColumn(modifier = Modifier.padding(paddingValues)) {
-                items(
-                    items = seasonState.data?.sortedByDescending { it.name.trim().uppercase() }!!,
-                    key = { it.id }) {
-                    Row(Modifier.fillMaxWidth()) {
-                        Column(Modifier.weight(1f)) {
-                            ViewText(it.name)
+            LazyVerticalGrid(columns = WeightedIconGridCells(3, 1), Modifier.padding(paddingValues)) {
+                item { ViewText("Season") }
+                item { Icon(Blank, "") }
+                item { Icon(Blank, "") }
+                item { Icon(Blank, "") }
+                for (season in seasonState.data?.sortedByDescending { it.name.trim().uppercase() }!!) {
+                    item { ViewText(season.name) }
+                    item { ClickableIcon(Icons.Filled.Summarize, "Show fixture summaries") {
+                        "${editor.name}/Summary&${Json.encodeToString(season)}"
+                    }}
+                    item { ClickableIcon(Icons.Filled.GridView, "Show fixtures") {
+                        editor.editRoute(season)
+                    }}
+                    item { ClickableIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
+                        calculating.value = true
+                        coroutineScope.launch {
+                            val timeTaken = measureTime { calcFixtures(season.id) }
+                            println("Fixtures calculated in $timeTaken")
                         }
-                        SpacedIcon(Icons.Filled.Summarize, "Show fixture summaries") {
-                            "${editor.name}/Summary&${Json.encodeToString(it)}"
-                        }
-                        SpacedIcon(Icons.Filled.GridView, "Show fixtures") {
-                            editor.editRoute(it)
-                        }
-                        SpacedIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
-                            calculating.value = true
-                            coroutineScope.launch {
-                                val timeTaken = measureTime { calcFixtures(it.id) }
-                                println("Fixtures calculated in $timeTaken")
-                            }
-                            calculating.value = false
-                        }
-                    }
+                        calculating.value = false
+                    }}
                 }
             }
         })
@@ -143,14 +138,13 @@ private fun SummaryFixtureView(season: Season) {
     val state by koinViewModel<SeasonFixtureViewModel> { parametersOf(season.id) }.uiState.collectAsState()
     val associationState by koinInject<AssociationViewModel>().uiState.collectAsState()
     val competitionState by koinInject<CompetitionViewModel>().uiState.collectAsState()
-    val seasonTeamsState by koinInject<SeasonTeamViewModel>().uiState.collectAsState()
+    val seasonTeamsState by koinInject<SeasonTeamViewModel>{seasonParameter}.uiState.collectAsState()
     val seasonCompetitionState by koinInject<SeasonCompetitionViewModel>{ seasonParameter }.uiState.collectAsState()
     val competitionFilter = remember { mutableStateOf(0.toShort()) }
 
     ViewCommon(
         MergedState(state, associationState, competitionState, seasonTeamsState, seasonCompetitionState),
         "Season fixture Summary",
-        { },
         "Return to seasons screen",
         content = {paddingValues ->
             val countsByTeamAndCategory = mutableMapOf<Triple<String, String, SumType>, Int>()
@@ -215,10 +209,11 @@ private fun SummaryFixtureView(season: Season) {
 
 @Composable
 private fun FixtureTableView(season: Season) {
-    val viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) }
+    val seasonParameters = parametersOf(season.id)
+    val viewModel : SeasonFixtureViewModel = koinViewModel { seasonParameters }
     val associationState by koinInject<AssociationViewModel>().uiState.collectAsState()
     val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState()
-    val seasonTeamsState by koinInject<SeasonTeamViewModel>().uiState.collectAsState()
+    val seasonTeamsState by koinInject<SeasonTeamViewModel> {seasonParameters}.uiState.collectAsState()
     val state = viewModel.uiState.collectAsState()
     val filterAssociation = remember { mutableStateOf("") }
     val filterTeamCategory = remember { mutableStateOf("") }
@@ -228,8 +223,9 @@ private fun FixtureTableView(season: Season) {
     ViewCommon(
         MergedState(state.value, associationState, teamCategoryState, seasonTeamsState),
         "Season fixtures",
+        "Return to seasons screen",
         {
-            FloatingActionButton(onClick = {
+            BottomBarWithButton("Export") {
                 coroutineScope.launch {
                     val associationNameMap =
                         associationState.data?.associateBy({ it.id }, { it.name })
@@ -257,11 +253,8 @@ private fun FixtureTableView(season: Season) {
                         }
                     }
                 }
-            }, content = {
-                Icon(imageVector = Icons.Default.FileDownload, contentDescription = "export", tint = Color.White)
-            })
+            }
         },
-        "Return to seasons screen",
         content = { paddingValues ->
             Column(verticalArrangement = Arrangement.Center) {
                 Row(modifier = Modifier.fillMaxWidth().padding(paddingValues), content = {
@@ -406,7 +399,7 @@ private suspend fun calcFixtures(seasonId : Short) {
     }
 
     val teamsByCategoryAndCompetition = mutableMapOf<Pair<Short, Short>, Int>()
-    for (seasonTeam in seasonTeamDao.getAll()) {
+    for (seasonTeam in seasonTeamDao.get(seasonId)) {
         val key = Pair(seasonTeam.teamCategoryId, seasonTeam.competitionId)
         teamsByCategoryAndCompetition[key] = teamsByCategoryAndCompetition.getOrPut(key) { 0 } + seasonTeam.count
     }
@@ -414,7 +407,7 @@ private suspend fun calcFixtures(seasonId : Short) {
     for (fixture in leagueGames.scheduleFixtures(seasonId,
         seasonWeeks,
         db.getTeamCategoryDao().getAll(),
-        db.getSeasonTeamCategoryDao().getBySeason(seasonId),
+        db.getSeasonTeamCategoryDao().get(seasonId),
         db.getSeasonCompRoundViewDao().getBySeason(seasonId),
         teamsByCategoryAndCompetition,
         activeLeagueCompetitions.map {it.competitionId}.toSet())) {

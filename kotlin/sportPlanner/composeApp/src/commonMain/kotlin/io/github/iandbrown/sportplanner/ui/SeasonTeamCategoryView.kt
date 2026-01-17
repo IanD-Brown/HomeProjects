@@ -21,8 +21,9 @@ import io.github.iandbrown.sportplanner.database.TeamCategory
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
-class SeasonTeamCategoryViewModel : BaseViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>() {
+class SeasonTeamCategoryViewModel(seasonId : Short) : BaseSeasonViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(seasonId) {
     override fun getDao(db: AppDatabase): SeasonTeamCategoryDao = db.getSeasonTeamCategoryDao()
 }
 
@@ -47,7 +48,8 @@ private enum class EditorState(val display: String) {
 }
 @Composable
 private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
-    val viewModel: SeasonTeamCategoryViewModel = koinInject()
+    val seasonParams = parametersOf(param.seasonId)
+    val viewModel: SeasonTeamCategoryViewModel = koinInject {seasonParams}
     val state = viewModel.uiState.collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
     val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
@@ -111,7 +113,7 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
         })
 }
 
-private suspend fun save(
+private fun save(
     viewModel: SeasonTeamCategoryViewModel,
     param: SeasonCompetitionParam,
     teamCategoryList: List<TeamCategory>,

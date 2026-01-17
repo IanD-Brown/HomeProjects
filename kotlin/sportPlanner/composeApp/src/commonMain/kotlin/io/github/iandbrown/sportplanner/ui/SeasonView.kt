@@ -77,7 +77,6 @@ private fun SeasonListView() {
     ViewCommon(
         MergedState(seasonCompViewState.value, competitionState.value),
         "Seasons",
-        {  },
         bottomBar = { BottomBarWithButtonN("+") {editor.addRoute()} },
         content = { paddingValues ->
             var seasonId : Short? = null

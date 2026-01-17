@@ -45,16 +45,13 @@ data class SeasonTeam(
     val competitionId: Short,
     val associationId: Short,
     val teamCategoryId: Short,
-    var count: Short
+    val count: Short
 )
 
 @Dao
-interface SeasonTeamDao : BaseDao<SeasonTeam> {
-    @Query("SELECT * FROM $table")
-    override suspend fun getAll(): List<SeasonTeam>
-
-    @Query("SELECT count(1) FROM $table")
-    override suspend fun count(): Int
+interface SeasonTeamDao : BaseSeasonDao<SeasonTeam> {
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    override suspend fun get(seasonId : Short): List<SeasonTeam>
 
     @Query("SELECT * FROM $table WHERE seasonId=:seasonId AND competitionId = :competitionId AND teamCategoryId = :teamCategoryId")
     suspend fun getTeams(seasonId : Short, competitionId : Short, teamCategoryId : Short) : List<SeasonTeam>

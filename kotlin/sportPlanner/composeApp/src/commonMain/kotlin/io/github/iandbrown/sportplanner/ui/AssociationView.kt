@@ -48,8 +48,9 @@ private fun AssociationEditor() {
     ViewCommon(
         state.value,
         "Associations",
-        { CreateFloatingAction(editor.addRoute()) },
-        content = { paddingValues ->
+        bottomBar = {
+            BottomBarWithButtonN("+") {editor.addRoute()}
+        }){ paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues), content = {
                 items(
                     items = state.value.data?.sortedBy { it.name.uppercase().trim() }!!,
@@ -69,7 +70,7 @@ private fun AssociationEditor() {
 
                 }
             })
-        })
+        }
 }
 
 @Composable

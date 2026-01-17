@@ -52,8 +52,7 @@ private fun TeamCategoryEditor() {
     ViewCommon(
         state.value,
         "Team Categories",
-        { CreateFloatingAction(editor.addRoute()) },
-        content = { paddingValues ->
+        bottomBar = {BottomBarWithButton("+") { editor.addRoute() }}) { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
                 item { ViewText("Name") }
                 item { ViewText("Match Day") }
@@ -66,7 +65,7 @@ private fun TeamCategoryEditor() {
                     item { DeleteButton { viewModel.delete(teamCategory) } }
                 }
             }
-        })
+        }
 }
 
 @Composable
