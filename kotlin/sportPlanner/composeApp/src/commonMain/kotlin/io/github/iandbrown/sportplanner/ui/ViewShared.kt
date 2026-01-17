@@ -249,7 +249,7 @@ fun DropdownList(
     onItemClick: (Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedText by remember { mutableStateOf(itemList[selectedIndex]) }
+    var selectedText by remember { mutableStateOf(if (itemList.isNotEmpty()) itemList[selectedIndex] else "") }
 
     // Up Icon when expanded and down icon when collapsed
     val icon = if (expanded)

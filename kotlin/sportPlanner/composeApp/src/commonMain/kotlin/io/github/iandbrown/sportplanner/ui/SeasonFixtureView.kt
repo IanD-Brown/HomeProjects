@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -140,7 +141,7 @@ private fun SummaryFixtureView(season: Season) {
     val competitionState by koinInject<CompetitionViewModel>().uiState.collectAsState()
     val seasonTeamsState by koinInject<SeasonTeamViewModel>{seasonParameter}.uiState.collectAsState()
     val seasonCompetitionState by koinInject<SeasonCompetitionViewModel>{ seasonParameter }.uiState.collectAsState()
-    val competitionFilter = remember { mutableStateOf(0.toShort()) }
+    var competitionFilter by remember { mutableStateOf(0.toShort()) }
 
     ViewCommon(
         MergedState(state, associationState, competitionState, seasonTeamsState, seasonCompetitionState),
@@ -152,7 +153,7 @@ private fun SummaryFixtureView(season: Season) {
             val teamCounts = getTeamCounts(seasonTeamsState, season, associationNameMap)
             val teamCategories = sortedSetOf<String>()
             val teams = sortedSetOf<String>()
-            val filteredFixtures = state.data?.filter { it.competitionId == competitionFilter.value && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0 )}
+            val filteredFixtures = state.data?.filter { it.competitionId == competitionFilter && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0 )}
             for (seasonFixture in filteredFixtures!!) {
                 teamCategories += seasonFixture.teamCategoryName
                 val homeTeamName = teamName(seasonFixture, true, teamCounts)
@@ -166,20 +167,20 @@ private fun SummaryFixtureView(season: Season) {
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
                     val competitionLookup = competitionState.data?.associateBy { it.id }
-                    val competitionNameToId =
-                        competitionState.data?.associateBy({ it.name }, { it.id })
+                    val competitionNameToId = competitionState.data?.associateBy({ it.name }, { it.id })
                     val competitionList = seasonCompetitionState.data?.filter {
-                        it.seasonId == season.id && competitionLookup?.get(it.competitionId)?.type == 0.toShort()
+                        competitionLookup?.get(it.competitionId)?.type == 0.toShort()
                     }?.map { competitionLookup?.get(it.competitionId)?.name!! }!!
-                    val initialCompetition = competitionNameToId?.get(competitionList[0])!!
-                    if (competitionFilter.value != initialCompetition) {
-                        competitionFilter.value = initialCompetition
+                    val initialCompetition = if (competitionList.isNotEmpty())  competitionNameToId?.get(competitionList[0])!! else 0.toShort()
+                    if (competitionFilter != initialCompetition) {
+                        competitionFilter = initialCompetition
                     }
                     DropdownList(
                         competitionList,
                         0,
                         label = "Competition"
-                    ) { competitionFilter.value = competitionNameToId[competitionList[it]]!! }
+                    ) { val competitionName = competitionList[it]
+                        competitionFilter = competitionNameToId?.get(competitionName)!! }
                 })
                 LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size)) {
                     item { ViewText("") }
