@@ -31,5 +31,5 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = "io.github.iandbrown.photo.Organiser"
+    mainClass = "io.github.iandbrown.photo.Organiser2"
 }

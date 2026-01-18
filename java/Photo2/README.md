@@ -1,8 +1,6 @@
-This is an adapted photo organiser specific for handling photos from an android phone.  The main adaption is to the method copyFiles where the filter is changed from name.startsWith("_PANA") to name.equals("Camera")
+Multi-purpose photo handling.  Checks for .jpg files in the source directory hierarchy existing in the destination and compares their sha - when different a modified name is used to copy
 
-to run under linux.
-
-first find the phone details after plugging it into a USB cable and enabling usage for file transfer by running
+When handling photos from an android phone (under linux). First find the phone details after plugging it into a USB cable and enabling usage for file transfer by running
 
     'ls -l /run/user/1000/gvfs'
 
