@@ -6,6 +6,7 @@ import androidx.room.Query
 
 private const val viewName = "SeasonFixtureView"
 
+// Used as an input into scheduling fixtures via direct dao usage (not view a ViewModel)
 @DatabaseView(viewName = viewName,
     value = "SELECT f.id AS id," +
         "f.seasonId AS seasonId, " +

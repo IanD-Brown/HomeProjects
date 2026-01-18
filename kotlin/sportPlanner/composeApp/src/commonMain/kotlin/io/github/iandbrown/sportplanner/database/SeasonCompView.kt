@@ -6,6 +6,7 @@ import androidx.room.Query
 
 private const val viewName = "SeasonCompView"
 
+// Used to build the view of all seasons and their competitions
 @DatabaseView(viewName = viewName,
     value = "SELECT " +
             "s.id AS seasonId, " +
