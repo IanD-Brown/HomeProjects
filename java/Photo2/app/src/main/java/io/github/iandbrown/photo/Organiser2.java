@@ -114,7 +114,7 @@ public class Organiser2 implements Callable<Integer> {
                     byte[] destinationSha = getSha(monthDayFolder.toPath().resolve(sourceFileName));
 
                     if (Arrays.equals(sha, destinationSha)) {
-                        IO.println("file existed with same content " + file.getFileName().toString());
+                        System.out.println("file existed with same content " + file.getFileName().toString());
                         return;
                     }
                     sourceFileName = versionFileName(file.getFileName().toString(), version++);
@@ -122,7 +122,7 @@ public class Organiser2 implements Callable<Integer> {
             }
 
             if (test) {
-                IO.println("Test copy file " + file.getFileName().toString() + " to " + year + "/" + monthDay);
+                System.out.println("Test copy file " + file.getFileName().toString() + " to " + year + "/" + monthDay);
                 return;
             }
              copyFile(file.toFile(), monthDayFolder.toPath().resolve(sourceFileName).toFile());
@@ -134,7 +134,7 @@ public class Organiser2 implements Callable<Integer> {
     static private void copyFile(File inputFile, File outputFile) throws IOException {
         if (!outputFile.exists()) {
             if (!outputFile.createNewFile())
-                IO.println("Problem creating file");
+                System.out.println("Problem creating file");
             try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(inputFile), 4096);
                  BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile), 4096)) {
                 int c;
@@ -157,9 +157,9 @@ public class Organiser2 implements Callable<Integer> {
 
     private void createIfAbsent(File file) {
         if (!file.exists()) {
-            IO.println("Creating directory: " + file.getPath());
+            System.out.println("Creating directory: " + file.getPath());
             if (!file.mkdir())
-                IO.println("Problem making directory");
+                System.out.println("Problem making directory");
         }
     }
 
@@ -175,7 +175,7 @@ public class Organiser2 implements Callable<Integer> {
         return digest.digest(data);
     }
 
-    static void main(String... args) {
+    public static void main(String... args) {
         System.exit(new CommandLine(new Organiser2()).execute(args));
     }
 }
