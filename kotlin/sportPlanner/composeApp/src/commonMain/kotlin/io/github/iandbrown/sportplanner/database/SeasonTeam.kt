@@ -41,18 +41,18 @@ private const val table = "SeasonTeams"
         )]
 )
 data class SeasonTeam(
-    val seasonId: Short,
-    val competitionId: Short,
-    val associationId: Short,
-    val teamCategoryId: Short,
+    val seasonId: SeasonId,
+    val competitionId: CompetitionId,
+    val associationId: AssociationId,
+    val teamCategoryId: TeamCategoryId,
     val count: Short
 )
 
 @Dao
 interface SeasonTeamDao : BaseSeasonDao<SeasonTeam> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    override suspend fun get(seasonId : Short): List<SeasonTeam>
+    override suspend fun get(seasonId : SeasonId): List<SeasonTeam>
 
     @Query("SELECT * FROM $table WHERE seasonId=:seasonId AND competitionId = :competitionId AND teamCategoryId = :teamCategoryId")
-    suspend fun getTeams(seasonId : Short, competitionId : Short, teamCategoryId : Short) : List<SeasonTeam>
+    suspend fun getTeams(seasonId : SeasonId, competitionId : CompetitionId, teamCategoryId : TeamCategoryId) : List<SeasonTeam>
 }

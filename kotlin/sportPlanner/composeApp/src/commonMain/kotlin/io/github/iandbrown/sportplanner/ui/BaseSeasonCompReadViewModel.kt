@@ -3,23 +3,26 @@ package io.github.iandbrown.sportplanner.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.AppDatabase
-import io.github.iandbrown.sportplanner.database.BaseSeasonDao
-import kotlin.getValue
+import io.github.iandbrown.sportplanner.database.BaseSeasonCompReadDao
+import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.SeasonId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject
 
-abstract class BaseSeasonViewModel<SEASON_DAO : BaseSeasonDao<SEASON_ENTITY>, SEASON_ENTITY> : ViewModel  {
-    val dao : SEASON_DAO
-    private val _uiState = MutableStateFlow(UiState<SEASON_ENTITY>(true))
+abstract class BaseSeasonCompReadViewModel<DAO : BaseSeasonCompReadDao<ENTITY>, ENTITY> : ViewModel {
+    val dao : DAO
+    private val _uiState = MutableStateFlow(UiState<ENTITY>(true))
     val uiState = _uiState.asStateFlow()
     private val coroutineScope = viewModelScope
-    private val _seasonId : Short
+    private val _seasonId : SeasonId
+    private val _competitionId : CompetitionId
 
-    constructor(seasonId : Short) {
+    constructor(seasonId : SeasonId, competitionId : CompetitionId) {
         _seasonId = seasonId
+        _competitionId = competitionId
         val database : AppDatabase by inject(AppDatabase::class.java)
         dao = getDao(database)
         readAll()
@@ -29,33 +32,12 @@ abstract class BaseSeasonViewModel<SEASON_DAO : BaseSeasonDao<SEASON_ENTITY>, SE
         _uiState.value = UiState(isLoading = true)
         coroutineScope.launch {
             flow {
-                emit(dao.get(_seasonId))
+                emit(dao.get(_seasonId, _competitionId))
             }.collect {
                 _uiState.value = UiState(data = it, isLoading = false)
             }
         }
     }
 
-    abstract fun getDao(db : AppDatabase) : SEASON_DAO
-
-    fun insert(entity : SEASON_ENTITY) {
-        coroutineScope.launch {
-            dao.insert(entity)
-            readAll()
-        }
-    }
-
-    fun update(entity : SEASON_ENTITY) {
-        coroutineScope.launch {
-            dao.update(entity)
-            readAll()
-        }
-    }
-
-    fun delete(entity : SEASON_ENTITY) {
-        coroutineScope.launch {
-            dao.delete(entity)
-            readAll()
-        }
-    }
+    abstract fun getDao(db : AppDatabase) : DAO
 }

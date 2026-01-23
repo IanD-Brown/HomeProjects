@@ -14,9 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SEASON_BREAK("Season Break", false),
@@ -37,8 +35,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview
-fun HomeScreen(navController: NavController) {
+fun HomeScreen() {
     Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
         TopAppBar(title = { Text("Season Planner") }, actions = {
             IconButton(onClick = AppState.switchThemeCallback) {
@@ -49,7 +46,7 @@ fun HomeScreen(navController: NavController) {
         LazyColumn(modifier = Modifier.padding(paddingValues), content = {
             items(items = Editors.entries.filter { it.showOnHome }.toTypedArray(), key = { entry -> entry.ordinal }) { editor ->
                 OutlinedTextButton(value = editor.displayName)
-                { navController.navigate(editor.viewRoute()) }
+                { appNavController.navigate(editor.viewRoute()) }
             }
         })
     })

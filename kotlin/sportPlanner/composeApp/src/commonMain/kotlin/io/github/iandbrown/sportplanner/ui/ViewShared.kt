@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -47,7 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -236,7 +234,7 @@ fun ItemButtons(editClick : () -> String, deleteClick : () -> Unit) {
     Spacer(modifier = Modifier.size(16.dp))
     EditButton(editClick)
     Spacer(modifier = Modifier.size(16.dp))
-    DeleteButton(deleteClick)
+    DeleteButton(onClick = deleteClick)
 }
 
 @Composable
@@ -251,45 +249,47 @@ fun DropdownList(
     var expanded by remember { mutableStateOf(false) }
     var selectedText by remember { mutableStateOf(if (itemList.isNotEmpty()) itemList[selectedIndex] else "") }
 
-    // Up Icon when expanded and down icon when collapsed
-    val icon = if (expanded)
-        Icons.Filled.KeyboardArrowUp
-    else
-        Icons.Filled.KeyboardArrowDown
-
-    Box(
-        contentAlignment = Alignment.CenterStart,
-        modifier = modifier
-            .fillMaxWidth().padding(0.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .clickable {
-                if (!isLocked()) {
-                    expanded = !expanded
+    if (isLocked()) {
+        ReadonlyViewText(selectedText, modifier)
+    } else {
+        // Up Icon when expanded and down icon when collapsed
+        val icon = if (expanded)
+            Icons.Filled.KeyboardArrowUp
+        else
+            Icons.Filled.KeyboardArrowDown
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = modifier
+                .fillMaxWidth().padding(0.dp)
+                .clickable {
+                    if (!isLocked()) {
+                        expanded = !expanded
+                    }
+                },
+        ) {
+            ViewTextField(
+                value = selectedText,
+                label = label,
+                trailingIcon = {
+                    if (!isLocked()) {
+                        Icon(
+                            icon, "contentDescription",
+                            Modifier.clickable { expanded = !expanded })
+                    }
                 }
-            },
-    ) {
-        ViewTextField(
-            value = selectedText,
-            label = label,
-            trailingIcon = {
-                if (!isLocked()) {
-                    Icon(
-                        icon, "contentDescription",
-                        Modifier.clickable { expanded = !expanded })
-                }
-            }
-        ) {}
-        if (!isLocked()  && expanded) {
-            DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
-                itemList.forEach { label ->
-                    DropdownMenuItem(
-                        text = { ViewText(label) },
-                        onClick = {
-                            selectedText = label
-                            onItemClick(itemList.indexOf(label))
-                            expanded = false
-                        }
-                    )
+            ) {}
+            if (!isLocked() && expanded) {
+                DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
+                    itemList.forEach { label ->
+                        DropdownMenuItem(
+                            text = { ViewText(label) },
+                            onClick = {
+                                selectedText = label
+                                onItemClick(itemList.indexOf(label))
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -349,8 +349,12 @@ fun EditButton(route : () -> String) =
     ClickableIcon(Icons.Default.Edit, "edit", Color.Green, route)
 
 @Composable
-fun DeleteButton(onClick : () -> Unit) =
-    Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+fun DeleteButton(disabled: Boolean = false, onClick : () -> Unit) =
+    if (disabled) {
+        Icon(Icons.Default.Delete, "delete", tint = Color(0x99990000))
+    } else {
+        Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+    }
 
 @Composable
 fun ClickableIcon(
@@ -451,12 +455,20 @@ fun BottomBarWithButtonN(value : String = OK, enabled: Boolean = true, onClick :
     }
 }
 
+data class ButtonSettings(var value : String = OK, var enabled: Boolean = true, var onClick : () -> Unit)
+
 @Composable
-fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) {
+fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
+    BottomBarWithButtons(ButtonSettings(value, enabled, onClick))
+
+@Composable
+fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     Row {
         ReadonlyViewText("", Modifier.weight(4f))
-        OutlinedTextButton(value, Modifier.weight(1f), enabled){
-            onClick()
+        for (button in buttonSettings) {
+            OutlinedTextButton(button.value, Modifier.weight(1f), button.enabled) {
+                button.onClick()
+            }
         }
     }
 }

@@ -100,19 +100,24 @@ private fun SeasonListView() {
                         val endDate = DayDate(seasonCompView.endDate).toString()
                         val join = if (startDate.isNotBlank() || endDate.isNotBlank()) "to" else ""
                         ViewText("$startDate $join $endDate") }
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Rounds") {
-                        if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
+
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}BlankIcon") {
+                        Icon(Blank, "")
+                    }
+
+                    if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
+                        item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Rounds") {
                             ClickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
                                 Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView))
                             }
-                        } else {
-                            Icon(Blank, "")
-
+                        }
+                    } else {
+                        item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Teams") {
+                            ClickableIcon(Icons.Default.Accessibility, "manage teams") {
+                                Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView))
+                            }
                         }
                     }
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Teams") { ClickableIcon(Icons.Default.Accessibility, "manage teams") {
-                        Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView))
-                    }}
                     item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Structure") { ClickableIcon(Icons.Default._123, "manage match structure") {
                         Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView))
                     }}

@@ -25,8 +25,8 @@ private const val table = "SeasonCompetitions"
         childColumns = ["competitionId"],
         onDelete = ForeignKey.CASCADE)])
 data class SeasonCompetition(
-    val seasonId : Short,
-    val competitionId : Short,
+    val seasonId : SeasonId,
+    val competitionId : CompetitionId,
     var startDate: Int,
     var endDate: Int
 ) {
@@ -36,10 +36,10 @@ data class SeasonCompetition(
 @Dao
 interface SeasonCompetitionDao : BaseSeasonDao<SeasonCompetition> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    override suspend fun get(seasonId : Short): List<SeasonCompetition>
+    override suspend fun get(seasonId : SeasonId): List<SeasonCompetition>
 
     @Query("SELECT * FROM $table "+
             "WHERE seasonId = :seasonId AND startDate > 0 AND endDate > startDate " +
             "AND competitionId IN (SELECT id FROM Competitions WHERE type = 0)")
-    suspend fun getActiveLeagueCompetitions(seasonId: Short) : List<SeasonCompetition>
+    suspend fun getActiveLeagueCompetitions(seasonId: SeasonId) : List<SeasonCompetition>
 }

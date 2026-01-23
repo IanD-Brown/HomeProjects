@@ -7,7 +7,6 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
 
-
 private const val table = "SeasonFixtures"
 
 @Entity(tableName = table,
@@ -36,21 +35,9 @@ data class SeasonFixture(
 )
 
 @Dao
-interface SeasonFixtureDao : BaseDao<SeasonFixture> {
-    @Query("SELECT * FROM $table")
-    override suspend fun getAll(): List<SeasonFixture>
-
-    @Query("SELECT count(1) FROM $table")
-    override suspend fun count(): Int
-
+interface SeasonFixtureDao : BaseSeasonDao<SeasonFixture> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    suspend fun getBySeason(seasonId: Short): List<SeasonFixture>
-
-    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND teamCategoryId = :teamCategoryId")
-    suspend fun getBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short): List<SeasonFixture>
-
-    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND (homeAssociationId = :associationId OR awayAssociationId = :associationId)")
-    suspend fun getBySeasonAssociation(seasonId: Short, associationId: Short): List<SeasonFixture>
+    override suspend fun get(seasonId: Short): List<SeasonFixture>
 
     @Query("DELETE FROM $table WHERE seasonId = :seasonId AND teamCategoryId = :teamCategoryId AND competitionId = :competitionId")
     suspend fun deleteBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short, competitionId: Short)

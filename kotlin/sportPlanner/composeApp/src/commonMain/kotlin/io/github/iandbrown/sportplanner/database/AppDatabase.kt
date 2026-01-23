@@ -6,7 +6,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-private const val version = 7
+private const val version = 8
 private const val majorVersion = 3
 
 @Database(entities = [
@@ -16,17 +16,16 @@ private const val majorVersion = 3
     SeasonBreak::class,
     SeasonCompetition::class,
     SeasonCompetitionRound::class,
+    SeasonCupFixture::class,
     SeasonFixture::class,
     SeasonTeam::class,
     SeasonTeamCategory::class,
     TeamCategory::class],
-    views = [SeasonFixtureView::class, SeasonCompRoundView::class, SeasonCompView::class],
+    views = [SeasonFixtureView::class, SeasonCompRoundView::class, SeasonCompView::class, SeasonCupFixtureView::class],
     version = version,
     autoMigrations = [
-        AutoMigration(from = 3, to = 4),
-        AutoMigration(from = 4, to = 5),
-        AutoMigration(from = 5, to = 6),
-        AutoMigration(from = 6, to = 7)
+        AutoMigration(from = 6, to = 7),
+        AutoMigration(from = 7, to = 8)
     ])
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase: RoomDatabase() {
@@ -37,6 +36,8 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getSeasonCompRoundViewDao() : SeasonCompRoundViewDao
     abstract fun getSeasonCompetitionDao() : SeasonCompetitionDao
     abstract fun getSeasonCompetitionRoundDao() : SeasonCompetitionRoundDao
+    abstract fun getSeasonCupFixtureDao() : SeasonCupFixtureDao
+    abstract fun getSeasonCupFixtureViewDao() : SeasonCupFixtureViewDao
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonFixtureDao() : SeasonFixtureDao
     abstract fun getSeasonFixtureViewDao() : SeasonFixtureViewDao

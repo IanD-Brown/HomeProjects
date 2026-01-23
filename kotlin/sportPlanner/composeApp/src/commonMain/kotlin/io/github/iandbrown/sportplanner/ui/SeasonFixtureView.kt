@@ -31,11 +31,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.AppDatabase
+import io.github.iandbrown.sportplanner.database.AssociationName
+import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonFixture
 import io.github.iandbrown.sportplanner.database.SeasonFixtureView
 import io.github.iandbrown.sportplanner.database.SeasonFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonTeam
+import io.github.iandbrown.sportplanner.database.TeamCategoryId
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
 import io.github.iandbrown.sportplanner.logic.SeasonWeeks.Companion.createSeasonWeeks
@@ -55,9 +58,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 
-private typealias TeamCategoryId = Short
-private typealias AssociationName = String
-private typealias CompetitionId = Short
 private typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 private typealias TeamCountMap = Map<TeamCountKey, Short>
 
@@ -354,7 +354,7 @@ private fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCountMap : 
     }
 }
 
-private fun teamName(association : String, number : Short) : String {
+fun teamName(association : String, number : Short) : String {
     val postfix = when (number) {
         0.toShort() -> ""
         1.toShort() -> " A"

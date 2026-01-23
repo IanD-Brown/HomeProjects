@@ -1,18 +1,18 @@
 package io.github.iandbrown.sportplanner.logic
 
+import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundView
 import io.github.iandbrown.sportplanner.database.SeasonFixture
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.database.TeamCategoryId
+import io.github.iandbrown.sportplanner.database.TeamNumber
 import kotlin.collections.component1
 import kotlin.collections.component2
 
 private enum class Location { HOME, AWAY }
 
-private typealias AssociationId = Short
-private typealias TeamCategoryId = Short
-private typealias TeamNumber = Short
 private typealias Team = Triple<TeamCategoryId, AssociationId, TeamNumber>
 private typealias GamePreference = MutableMap<Team, Location>
 

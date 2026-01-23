@@ -33,7 +33,7 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
         NavHost(navController, startDestination = "home") {
 
             composable("home") {
-                HomeScreen(navController)
+                HomeScreen()
             }
 
             composable(getRoute(Editors.ASSOCIATIONS)) {
