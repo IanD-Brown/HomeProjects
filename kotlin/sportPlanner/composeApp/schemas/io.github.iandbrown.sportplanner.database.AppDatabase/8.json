@@ -1,0 +1,882 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "0372dd48f0f8641675d4be701512d981",
+    "entities": [
+      {
+        "tableName": "Associations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_Associations_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Associations_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "Competitions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `type` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_Competitions_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Competitions_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "Seasons",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_Seasons_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Seasons_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonBreaks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `seasonId` INTEGER NOT NULL, `name` TEXT NOT NULL, `week` INTEGER NOT NULL, FOREIGN KEY(`seasonId`) REFERENCES `Seasons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "week",
+            "columnName": "week",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonBreaks_seasonId_name",
+            "unique": true,
+            "columnNames": [
+              "seasonId",
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_SeasonBreaks_seasonId_name` ON `${TABLE_NAME}` (`seasonId`, `name`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Seasons",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonCompetitions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seasonId` INTEGER NOT NULL, `competitionId` INTEGER NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, PRIMARY KEY(`seasonId`, `competitionId`), FOREIGN KEY(`seasonId`) REFERENCES `Seasons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`competitionId`) REFERENCES `Competitions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "endDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seasonId",
+            "competitionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonCompetitions_seasonId",
+            "unique": false,
+            "columnNames": [
+              "seasonId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonCompetitions_seasonId` ON `${TABLE_NAME}` (`seasonId`)"
+          },
+          {
+            "name": "index_SeasonCompetitions_competitionId",
+            "unique": false,
+            "columnNames": [
+              "competitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonCompetitions_competitionId` ON `${TABLE_NAME}` (`competitionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Seasons",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "Competitions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "competitionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonCompetitionRounds",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seasonId` INTEGER NOT NULL, `competitionId` INTEGER NOT NULL, `round` INTEGER NOT NULL, `description` TEXT NOT NULL, `week` INTEGER NOT NULL, `optional` INTEGER NOT NULL, PRIMARY KEY(`seasonId`, `competitionId`, `round`), FOREIGN KEY(`seasonId`) REFERENCES `Seasons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`competitionId`) REFERENCES `Competitions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "round",
+            "columnName": "round",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "week",
+            "columnName": "week",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "optional",
+            "columnName": "optional",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seasonId",
+            "competitionId",
+            "round"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonCompetitionRounds_seasonId",
+            "unique": false,
+            "columnNames": [
+              "seasonId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonCompetitionRounds_seasonId` ON `${TABLE_NAME}` (`seasonId`)"
+          },
+          {
+            "name": "index_SeasonCompetitionRounds_competitionId",
+            "unique": false,
+            "columnNames": [
+              "competitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonCompetitionRounds_competitionId` ON `${TABLE_NAME}` (`competitionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Seasons",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "Competitions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "competitionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonCupFixtures",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `seasonId` INTEGER NOT NULL, `competitionId` INTEGER NOT NULL, `round` INTEGER NOT NULL, `teamCategoryId` INTEGER NOT NULL, `homeAssociationId` INTEGER NOT NULL, `homeTeamNumber` INTEGER NOT NULL, `awayAssociationId` INTEGER NOT NULL, `awayTeamNumber` INTEGER NOT NULL, `homePending` INTEGER NOT NULL, `awayPending` INTEGER NOT NULL, `result` INTEGER NOT NULL, FOREIGN KEY(`seasonId`, `competitionId`, `round`) REFERENCES `SeasonCompetitionRounds`(`seasonId`, `competitionId`, `round`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "round",
+            "columnName": "round",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamCategoryId",
+            "columnName": "teamCategoryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeAssociationId",
+            "columnName": "homeAssociationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeTeamNumber",
+            "columnName": "homeTeamNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayAssociationId",
+            "columnName": "awayAssociationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayTeamNumber",
+            "columnName": "awayTeamNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homePending",
+            "columnName": "homePending",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayPending",
+            "columnName": "awayPending",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "result",
+            "columnName": "result",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonCupFixtures_seasonId_competitionId_round",
+            "unique": false,
+            "columnNames": [
+              "seasonId",
+              "competitionId",
+              "round"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonCupFixtures_seasonId_competitionId_round` ON `${TABLE_NAME}` (`seasonId`, `competitionId`, `round`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "SeasonCompetitionRounds",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId",
+              "competitionId",
+              "round"
+            ],
+            "referencedColumns": [
+              "seasonId",
+              "competitionId",
+              "round"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonFixtures",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `seasonId` INTEGER NOT NULL, `competitionId` INTEGER NOT NULL, `teamCategoryId` INTEGER NOT NULL, `date` INTEGER NOT NULL, `message` TEXT, `homeAssociationId` INTEGER NOT NULL, `homeTeamNumber` INTEGER NOT NULL, `awayAssociationId` INTEGER NOT NULL, `awayTeamNumber` INTEGER NOT NULL, FOREIGN KEY(`seasonId`) REFERENCES `Seasons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamCategoryId",
+            "columnName": "teamCategoryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "message",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "homeAssociationId",
+            "columnName": "homeAssociationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeTeamNumber",
+            "columnName": "homeTeamNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayAssociationId",
+            "columnName": "awayAssociationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayTeamNumber",
+            "columnName": "awayTeamNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonFixtures_seasonId_teamCategoryId_date_homeAssociationId_homeTeamNumber",
+            "unique": true,
+            "columnNames": [
+              "seasonId",
+              "teamCategoryId",
+              "date",
+              "homeAssociationId",
+              "homeTeamNumber"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_SeasonFixtures_seasonId_teamCategoryId_date_homeAssociationId_homeTeamNumber` ON `${TABLE_NAME}` (`seasonId`, `teamCategoryId`, `date`, `homeAssociationId`, `homeTeamNumber`)"
+          },
+          {
+            "name": "index_SeasonFixtures_seasonId_teamCategoryId_date_awayAssociationId_awayTeamNumber",
+            "unique": true,
+            "columnNames": [
+              "seasonId",
+              "teamCategoryId",
+              "date",
+              "awayAssociationId",
+              "awayTeamNumber"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_SeasonFixtures_seasonId_teamCategoryId_date_awayAssociationId_awayTeamNumber` ON `${TABLE_NAME}` (`seasonId`, `teamCategoryId`, `date`, `awayAssociationId`, `awayTeamNumber`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Seasons",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonTeams",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seasonId` INTEGER NOT NULL, `competitionId` INTEGER NOT NULL, `associationId` INTEGER NOT NULL, `teamCategoryId` INTEGER NOT NULL, `count` INTEGER NOT NULL, PRIMARY KEY(`seasonId`, `teamCategoryId`, `associationId`, `competitionId`), FOREIGN KEY(`seasonId`) REFERENCES `Seasons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`teamCategoryId`) REFERENCES `TeamCategories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`associationId`) REFERENCES `Associations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`competitionId`) REFERENCES `Competitions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "associationId",
+            "columnName": "associationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamCategoryId",
+            "columnName": "teamCategoryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "count",
+            "columnName": "count",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seasonId",
+            "teamCategoryId",
+            "associationId",
+            "competitionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonTeams_seasonId",
+            "unique": false,
+            "columnNames": [
+              "seasonId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeams_seasonId` ON `${TABLE_NAME}` (`seasonId`)"
+          },
+          {
+            "name": "index_SeasonTeams_teamCategoryId",
+            "unique": false,
+            "columnNames": [
+              "teamCategoryId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeams_teamCategoryId` ON `${TABLE_NAME}` (`teamCategoryId`)"
+          },
+          {
+            "name": "index_SeasonTeams_associationId",
+            "unique": false,
+            "columnNames": [
+              "associationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeams_associationId` ON `${TABLE_NAME}` (`associationId`)"
+          },
+          {
+            "name": "index_SeasonTeams_competitionId",
+            "unique": false,
+            "columnNames": [
+              "competitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeams_competitionId` ON `${TABLE_NAME}` (`competitionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Seasons",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "TeamCategories",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "teamCategoryId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "Associations",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "associationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "Competitions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "competitionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SeasonTeamCategories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seasonId` INTEGER NOT NULL, `competitionId` INTEGER NOT NULL, `teamCategoryId` INTEGER NOT NULL, `games` INTEGER NOT NULL, `locked` INTEGER NOT NULL, PRIMARY KEY(`seasonId`, `competitionId`, `teamCategoryId`), FOREIGN KEY(`seasonId`) REFERENCES `Seasons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`competitionId`) REFERENCES `Competitions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`teamCategoryId`) REFERENCES `TeamCategories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "seasonId",
+            "columnName": "seasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamCategoryId",
+            "columnName": "teamCategoryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "games",
+            "columnName": "games",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locked",
+            "columnName": "locked",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seasonId",
+            "competitionId",
+            "teamCategoryId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SeasonTeamCategories_seasonId",
+            "unique": false,
+            "columnNames": [
+              "seasonId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeamCategories_seasonId` ON `${TABLE_NAME}` (`seasonId`)"
+          },
+          {
+            "name": "index_SeasonTeamCategories_competitionId",
+            "unique": false,
+            "columnNames": [
+              "competitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeamCategories_competitionId` ON `${TABLE_NAME}` (`competitionId`)"
+          },
+          {
+            "name": "index_SeasonTeamCategories_teamCategoryId",
+            "unique": false,
+            "columnNames": [
+              "teamCategoryId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SeasonTeamCategories_teamCategoryId` ON `${TABLE_NAME}` (`teamCategoryId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Seasons",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "seasonId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "Competitions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "competitionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "TeamCategories",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "teamCategoryId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "TeamCategories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `matchDay` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchDay",
+            "columnName": "matchDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_TeamCategories_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_TeamCategories_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      }
+    ],
+    "views": [
+      {
+        "viewName": "SeasonFixtureView",
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT f.id AS id,f.seasonId AS seasonId, f.competitionId AS competitionId, f.teamCategoryId AS teamCategoryId, tc.name AS teamCategoryName, f.date, f.message, h.name AS homeAssociation, f.homeTeamNumber AS homeTeamNumber, a.name AS awayAssociation, f.awayTeamNumber AS awayTeamNumber FROM SeasonFixtures f LEFT JOIN TeamCategories tc ON tc.id = f.teamCategoryId LEFT JOIN Associations h ON h.id = f.homeAssociationId LEFT JOIN Associations a ON a.id = f.awayAssociationId"
+      },
+      {
+        "viewName": "SeasonCompRoundView",
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT r.seasonId AS seasonId, r.description AS description, r.week AS week, r.optional AS optional, stc.teamCategoryId FROM SeasonCompetitionRounds r, SeasonTeamCategories stc WHERE stc.seasonId = r.seasonId AND stc.competitionId = r.competitionId AND stc.locked = 0"
+      },
+      {
+        "viewName": "SeasonCompView",
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT s.id AS seasonId, s.name AS seasonName, c.id AS competitionId, c.name AS competitionName, c.type AS competitionType, sc.startDate, sc.endDate FROM seasons s, Competitions c  LEFT JOIN SeasonCompetitions sc ON sc.seasonId = s.id AND sc.competitionId = c.id ORDER BY s.name DESC, c.name"
+      },
+      {
+        "viewName": "SeasonCupFixtureView",
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT scf.id AS id, scf.seasonId AS seasonId, scf.competitionId AS competitionId, scf.teamCategoryId AS teamCategoryId, tc.name AS teamCategoryName, scf.round AS round, h.name AS homeAssociation, scf.homeTeamNumber AS homeTeamNumber, a.name AS awayAssociation, scf.awayTeamNumber AS awayTeamNumber, scf.homePending AS homePending, scf.awayPending AS awayPending, scf.result AS result FROM SeasonCupFixtures scf LEFT JOIN TeamCategories tc ON tc.id = scf.teamCategoryId LEFT JOIN Associations h ON h.id = scf.homeAssociationId LEFT JOIN Associations a ON a.id = scf.awayAssociationId"
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0372dd48f0f8641675d4be701512d981')"
+    ]
+  }
+}
