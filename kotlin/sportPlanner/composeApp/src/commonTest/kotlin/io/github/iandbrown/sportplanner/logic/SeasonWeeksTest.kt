@@ -1,7 +1,7 @@
 package io.github.iandbrown.sportplanner.logic
 
 import io.github.iandbrown.sportplanner.database.SeasonBreak
-import io.github.iandbrown.sportplanner.database.SeasonCompetition
+import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldNotContain
@@ -34,7 +34,7 @@ class SeasonWeeksTest : BehaviorSpec({
     given("a cup competition with a start date of 0 and valid league competition") {
         val seasonCompetitions = listOf(
             createSeasonCompetition(1, "01/09/2025", "21/09/2025"), // League
-            SeasonCompetition(1.toShort(), 2.toShort(), 0, getDayDateVal("05/10/2025"))
+            SeasonCompView(1.toShort(), "", 2.toShort(), "", 1.toShort(), 0, getDayDateVal("05/10/2025"))
         )
         val breaks = emptyList<SeasonBreak>()
 
@@ -98,10 +98,13 @@ private fun createSeasonCompetition(
     competitionId: Int,
     startDate: String,
     endDate: String
-): SeasonCompetition =
-    SeasonCompetition(
+): SeasonCompView =
+    SeasonCompView(
         1.toShort(),
+        "",
         competitionId.toShort(),
+        "",
+        0.toShort(),
         getDayDateVal(startDate),
         getDayDateVal(endDate)
     )

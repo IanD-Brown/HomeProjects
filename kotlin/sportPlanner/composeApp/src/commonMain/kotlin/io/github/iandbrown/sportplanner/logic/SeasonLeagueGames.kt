@@ -1,6 +1,7 @@
 package io.github.iandbrown.sportplanner.logic
 
 import io.github.iandbrown.sportplanner.database.AssociationId
+import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundView
 import io.github.iandbrown.sportplanner.database.SeasonFixture
 import io.github.iandbrown.sportplanner.database.SeasonTeam
@@ -48,7 +49,7 @@ private class FixtureScheduler(
             for (week in seasonWeeks.competitionWeeks(competitionId)!!) {
                 for (teamCategories in teamCategoriesByMatchDay.values) {
                     val compRoundsForWeekAndSeason = seasonCompetitionRounds
-                        .filter { it.seasonId == seasonId && it.week == week }
+                        .filter { it.week == week }
                     scheduleWeek(teamCategories, compRoundsForWeekAndSeason)
                         .forEach { (teamCategoryId, games) ->
                             games.forEach { game -> fixtures.add(fixtureOf(seasonId, competitionId, teamCategoryId, week, game))}}
@@ -156,8 +157,8 @@ class SeasonLeagueGames {
         allTeamCategories: List<TeamCategory>,
         seasonTeamCategories: List<SeasonTeamCategory>,
         seasonCompetitionRounds: List<SeasonCompRoundView>,
-        teamsByCategoryAndCompetition: Map<Pair<Short, Short>, Int>,
-        activeLeagueCompetitions: Set<Short>
+        teamsByCategoryAndCompetition: Map<Pair<TeamCategoryId, CompetitionId>, Int>,
+        activeLeagueCompetitions: Set<CompetitionId>
     ) : List<SeasonFixture> =
         FixtureScheduler(seasonWeeks,
             allTeamCategories,

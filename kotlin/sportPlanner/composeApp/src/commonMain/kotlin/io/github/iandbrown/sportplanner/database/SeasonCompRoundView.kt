@@ -13,14 +13,15 @@ private const val viewName = "SeasonCompRoundView"
             "r.description AS description, " +
             "r.week AS week, " +
             "r.optional AS optional, " +
-            "stc.teamCategoryId " +
-            "FROM SeasonCompetitionRounds r, SeasonTeamCategories stc " +
-            "WHERE stc.seasonId = r.seasonId " +
-            "AND stc.competitionId = r.competitionId " +
-            "AND stc.locked = 0")
+            "st.teamCategoryId " +
+            "FROM SeasonCompetitionRounds r, SeasonTeams st " +
+            "WHERE st.seasonId = r.seasonId " +
+            "AND st.competitionId = r.competitionId " +
+            "AND st.count > 0"
+)
 
 data class SeasonCompRoundView(
-    val seasonId: Short,
+    val seasonId: SeasonId,
     val description: String,
     val week: Int,
     val optional: Boolean,
@@ -30,5 +31,5 @@ data class SeasonCompRoundView(
 @Dao
 interface SeasonCompRoundViewDao {
     @Query("SELECT * FROM $viewName WHERE seasonId = :seasonId")
-    suspend fun getBySeason(seasonId : Short): List<SeasonCompRoundView>
+    suspend fun getBySeason(seasonId : SeasonId): List<SeasonCompRoundView>
 }

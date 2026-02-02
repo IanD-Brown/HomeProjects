@@ -12,17 +12,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.java.KoinJavaComponent.inject
 
-class TeamCategoryViewModel : BaseViewModel<TeamCategoryDao, TeamCategory>() {
-    override fun getDao(db: AppDatabase): TeamCategoryDao = db.getTeamCategoryDao()
-}
+class TeamCategoryViewModel :
+    BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(
+        inject<TeamCategoryDao>(TeamCategoryDao::class.java).value
+    )
 
 private val editor = Editors.TEAM_CATEGORIES
 private enum class Day(val display : String) {
@@ -47,18 +48,17 @@ fun NavigateTeamCategory(argument: String?) {
 @Composable
 private fun TeamCategoryEditor() {
     val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
-    val state = viewModel.uiState.collectAsState()
+    val state = viewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
-        state.value,
         "Team Categories",
-        bottomBar = {BottomBarWithButton("+") { editor.addRoute() }}) { paddingValues ->
+        bottomBar = {BottomBarWithButtonN("+") { editor.addRoute() }}) { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
                 item { ViewText("Name") }
                 item { ViewText("Match Day") }
                 item {}
                 item {}
-                for (teamCategory in state.value.data?.sortedBy { it.name.uppercase().trim() }!!) {
+                for (teamCategory in state.value.sortedBy { it.name.uppercase().trim() }) {
                     item { ViewText(teamCategory.name) }
                     item { ViewText(Day.entries[teamCategory.matchDay.toInt()].display) }
                     item { EditButton {editor.editRoute(teamCategory) } }
@@ -77,7 +77,6 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
     val title = if (editCategory == null) "Add TeamCategory" else "Edit TeamCategory"
 
     ViewCommon(
-        SimpleState(),
         title,
         description = "Return to teamCategories",
         bottomBar = {

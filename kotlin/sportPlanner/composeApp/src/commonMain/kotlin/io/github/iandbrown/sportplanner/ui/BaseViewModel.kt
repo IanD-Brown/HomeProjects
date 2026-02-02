@@ -2,89 +2,129 @@ package io.github.iandbrown.sportplanner.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.iandbrown.sportplanner.database.BaseReadDao
+import io.github.iandbrown.sportplanner.database.BaseSeasonCompReadDao
+import io.github.iandbrown.sportplanner.database.BaseSeasonReadDao
+import io.github.iandbrown.sportplanner.database.BaseWriteDao
+import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.SeasonId
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import io.github.iandbrown.sportplanner.database.AppDatabase
-import io.github.iandbrown.sportplanner.database.BaseDao
-import org.koin.java.KoinJavaComponent.inject
 
-abstract class BaseViewModel<DAO : BaseDao<ENTITY>, ENTITY> : ViewModel {
-    val dao : DAO
-    internal val _uiState = MutableStateFlow(UiState<ENTITY>(true))
-    val uiState = _uiState.asStateFlow()
-    private val fullRead : Boolean
-    private val coroutineScope = viewModelScope
+open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : ViewModel() {
+    val uiState = read()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
 
-    constructor(readAll : Boolean = true) {
-        val database : AppDatabase by inject(AppDatabase::class.java)
-        dao = getDao(database)
-        fullRead = readAll
-        readAll()
+    fun read() : Flow<List<ENTITY>> = dao.get()
+}
+
+
+open class BaseSeasonReadViewModel<DAO : BaseSeasonReadDao<ENTITY>, ENTITY>(private var seasonId: SeasonId, private val dao: DAO) : ViewModel() {
+    var uiState : Flow<List<ENTITY>> = read()
+
+    private fun read() : Flow<List<ENTITY>> =
+        dao.get(seasonId)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList()
+            )
+}
+
+open class BaseSeasonCompReadViewModel<DAO : BaseSeasonCompReadDao<ENTITY>, ENTITY> : ViewModel {
+    private val _seasonId : SeasonId
+    private val _competitionId : CompetitionId
+    protected val dao : DAO
+    var uiState : Flow<List<ENTITY>>
+
+    constructor(seasonId: SeasonId, competitionId: CompetitionId, dataAccessObject: DAO) {
+        _seasonId = seasonId
+        _competitionId = competitionId
+        dao = dataAccessObject
+        uiState = read()
     }
-    
-    abstract fun getDao(db : AppDatabase) : DAO
 
-    private fun readAll() {
-        if (fullRead) {
-            _uiState.value = UiState(isLoading = true)
-            viewModelScope.launch {
-                getAll().collect {
-                    _uiState.value = UiState(data = it, isLoading = false)
-                }
-            }
+    private fun read() : Flow<List<ENTITY>> =
+        dao.get(_seasonId, _competitionId)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList()
+            )
+}
+
+open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao)
+        where DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>
+{
+    var uiState: StateFlow<List<ENTITY>> = read()
+
+    override fun read(): StateFlow<List<ENTITY>> = dao.get()
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList()
+            )
+
+}
+
+abstract class BaseSeasonCompCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId, val competitionId : CompetitionId, dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao)
+        where DAO : BaseSeasonCompReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>
+{
+    val uiState: StateFlow<List<ENTITY>> = read()
+
+    override fun read(): StateFlow<List<ENTITY>> =
+        dao.get(seasonId, competitionId)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList()
+            )
+}
+
+abstract class BaseSeasonCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId, dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao)
+        where DAO : BaseSeasonReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>
+{
+    val uiState: StateFlow<List<ENTITY>> = read()
+
+    override fun read(): StateFlow<List<ENTITY>> =
+        dao.get(seasonId)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList()
+            )
+}
+
+abstract class BaseCRUDViewModel<DAO: BaseWriteDao<ENTITY>, ENTITY>(protected val dao : DAO) : ViewModel() {
+    protected abstract fun read(): StateFlow<List<ENTITY>>
+
+    fun insert(entity: ENTITY) : Long {
+        var result = 0L
+        viewModelScope.launch {
+            result = dao.insert(entity)
+            read()
+        }
+        return result
+    }
+
+    fun update(entity: ENTITY) {
+        viewModelScope.launch {
+            dao.update(entity)
+            read()
         }
     }
 
-    suspend fun update(entity : ENTITY) {
-        dao.update(entity)
-        readAll()
-    }
-
-    suspend fun insert(entity : ENTITY) : Long {
-        val newId = dao.insert(entity)
-        readAll()
-        return newId
-    }
-
-    fun delete(entity : ENTITY) {
-        _uiState.value = UiState(isLoading = true)
-        coroutineScope.launch {
+    fun delete(entity: ENTITY) {
+        viewModelScope.launch {
             dao.delete(entity)
-            readAll()
+            read()
         }
     }
-
-    private fun getAll(): Flow<List<ENTITY>> =
-        flow {
-            emit(dao.getAll())
-        }
-}
-
-interface BaseUiState {
-    fun loadingInProgress() : Boolean
-    fun hasData() : Boolean
-}
-
-class SimpleState : BaseUiState {
-    override fun loadingInProgress(): Boolean = true
-
-    override fun hasData(): Boolean = false
-}
-
-class MergedState(vararg val states : BaseUiState) : BaseUiState {
-    override fun loadingInProgress(): Boolean = states.any {it.loadingInProgress()}
-    override fun hasData(): Boolean = states.all { it.hasData()}
-}
-
-data class UiState<ENTITY>(
-    val isLoading: Boolean,
-    val data: List<ENTITY>? = null,
-    val error: String? = null,
-) : BaseUiState {
-    override fun loadingInProgress(): Boolean = isLoading
-
-    override fun hasData(): Boolean = data != null
 }

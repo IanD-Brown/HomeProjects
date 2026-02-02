@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.GridView
@@ -30,6 +31,8 @@ import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.SeasonCompetition
+import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixture
@@ -43,7 +46,6 @@ import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
 import kotlin.random.Random
 import kotlin.time.measureTime
-import kotlin.use
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
@@ -54,38 +56,62 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 
-class SeasonCompetitionRoundViewModel(seasonId : SeasonId) : BaseSeasonViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(seasonId) {
-    override fun getDao(db: AppDatabase): SeasonCompetitionRoundDao = db.getSeasonCompetitionRoundDao()
-}
+class SeasonCompetitionRoundViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
+    BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(
+        seasonId,
+        competitionId,
+        inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value
+    )
 
-class SeasonCupFixtureViewModel(seasonId : SeasonId, competitionId :
-CompetitionId) : BaseSeasonCompReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(seasonId, competitionId) {
-    override fun getDao(db: AppDatabase): SeasonCupFixtureViewDao = db.getSeasonCupFixtureViewDao()
-
+class SeasonCupFixtureViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
+    BaseSeasonCompReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(
+        seasonId,
+        competitionId,
+        inject<SeasonCupFixtureViewDao>(SeasonCupFixtureViewDao::class.java).value
+    ) {
     suspend fun setResult(id: Long, result: Short) = dao.setResult(id, result)
 }
 
-private val editor : Editors = Editors.SEASON_COMPETITION_ROUND
+class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
+    BaseSeasonCompCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(
+        seasonId,
+        competitionId,
+        inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value
+    )
+
+
+private val editor: Editors = Editors.SEASON_COMPETITION_ROUND
+
 @Serializable
-private data class SeasonCompetitionRoundEditorInfo(val param : SeasonCompetitionParam, val competitionRound : SeasonCompetitionRound? = null)
+private data class SeasonCompetitionRoundEditorInfo(
+    val param: SeasonCompetitionParam,
+    val competitionRound: SeasonCompetitionRound? = null
+)
 
 @Composable
 fun NavigateSeasonCompetitionRound(argument: String?) {
     when {
         argument == null -> {}
-        argument.startsWith("View&") -> SeasonCompetitionView(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
-        argument.startsWith("Fixtures&") -> SeasonCupFixtureView(Json.decodeFromString<SeasonCompetitionRoundEditorInfo>(argument.substring(9)))
-        else -> SeasonCompetitionRoundEditor(Json.decodeFromString<SeasonCompetitionRoundEditorInfo>(argument))
+        argument.startsWith("View&") -> SeasonCompetitionView(
+            Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5))
+        )
+        argument.startsWith("Fixtures&") -> SeasonCupFixtureView(
+            Json.decodeFromString<SeasonCompetitionRoundEditorInfo>(argument.substring(9))
+        )
+        else -> SeasonCompetitionRoundEditor(
+            Json.decodeFromString<SeasonCompetitionRoundEditorInfo>(argument)
+        )
     }
 }
 
 @Composable
 private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
-    val seasonParameter = parametersOf(param.seasonId)
-    val viewModel : SeasonCompetitionRoundViewModel = koinInject {seasonParameter}
-    val state = viewModel.uiState.collectAsState()
+    val seasonParameter = parametersOf(param.seasonId, param.competitionId)
+    val viewModel: SeasonCompetitionRoundViewModel = koinInject { seasonParameter }
+    val state = viewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
-    var calculating by remember {mutableStateOf(false)}
+    var calculating by remember { mutableStateOf(false) }
+    val gridState = rememberLazyGridState()
 
     if (calculating) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -93,7 +119,6 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
         }
     } else {
         ViewCommon(
-            state.value,
             "Competition rounds in ${param.seasonName} for ${param.competitionName}",
             bottomBar = {
                 BottomBarWithButtonN("+") {
@@ -101,11 +126,12 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                 }
             },
             content = { paddingValues ->
-                val values = state.value.data?.filter { it.competitionId == param.competitionId }
-                    ?.sortedBy { it.round }!!
+                val values = state.value.filter { it.competitionId == param.competitionId }
+                    .sortedBy { it.round }
                 LazyVerticalGrid(
                     columns = WeightedIconGridCells(4, 1, 2, 2, 2),
-                    Modifier.padding(paddingValues)
+                    Modifier.padding(paddingValues),
+                    gridState
                 ) {
                     item { ViewText("Round") }
                     item { ViewText("Description") }
@@ -119,7 +145,13 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                         item { ViewText(it.round.toString()) }
                         item { ViewText(it.description) }
                         item { ViewText(DayDate(it.week).toString()) }
-                        item { Checkbox(checked = it.optional, onCheckedChange = null, enabled = false) }
+                        item {
+                            Checkbox(
+                                checked = it.optional,
+                                onCheckedChange = null,
+                                enabled = false
+                            )
+                        }
                         item {
                             ClickableIcon(Icons.Filled.GridView, "Show fixtures") {
                                 "${editor.name}/Fixtures&${
@@ -133,14 +165,37 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                             ClickableIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
                                 calculating = true
                                 coroutineScope.launch {
-                                    val timeTaken = measureTime { calcCupFixtures(param.seasonId, param.competitionId, it.round) }
+                                    val timeTaken = measureTime {
+                                        calcCupFixtures(
+                                            param.seasonId,
+                                            param.competitionId,
+                                            it.round
+                                        )
+                                    }
                                     println("Cup fixtures calculated in $timeTaken")
                                 }
                                 calculating = false
                             }
                         }
-                        item { EditButton { editor.editRoute(SeasonCompetitionRoundEditorInfo(param, it)) } }
-                        item { DeleteButton(it != values[values.lastIndex]) { coroutineScope.launch { viewModel.delete(it) } } }
+                        item {
+                            EditButton {
+                                editor.editRoute(
+                                    SeasonCompetitionRoundEditorInfo(
+                                        param,
+                                        it
+                                    )
+                                )
+                            }
+                        }
+                        item {
+                            DeleteButton(it != values[values.lastIndex]) {
+                                coroutineScope.launch {
+                                    viewModel.delete(
+                                        it
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             })
@@ -149,57 +204,52 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
 
 @Composable
 private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo) {
-    val seasonParameter = parametersOf(info.param.seasonId)
-    val viewModel : SeasonCompetitionRoundViewModel = koinInject {seasonParameter}
+    val viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(info.param.seasonId, info.param.competitionId) }
     val state = viewModel.uiState.collectAsState()
-    val seasonCompetitionState = koinInject<SeasonCompetitionViewModel>{seasonParameter}.uiState.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
+    val seasonCompetitionViewModel = koinInject<SeasonCompetitionViewModel> { parametersOf(info.param.seasonId, info.param.competitionId) }
+    val seasonCompetitionState = seasonCompetitionViewModel.uiState.collectAsState()
     val description = remember { mutableStateOf("") }
     val week = remember { mutableIntStateOf(0) }
-    val optional = remember {mutableStateOf( false )}
+    val optional = remember { mutableStateOf(false) }
     val validRound = remember { mutableStateOf(true) }
-    val title = if (info.competitionRound == null) "Add Competition round" else "Edit Competition round"
-    val round = remember {mutableStateOf<Short>(0)}
+    val title =
+        if (info.competitionRound == null) "Add Competition round" else "Edit Competition round"
+    val round = remember { mutableStateOf<Short>(0) }
 
     ViewCommon(
-        MergedState(state.value, seasonCompetitionState.value),
         title,
         bottomBar = {
             BottomBarWithButton(enabled = !description.value.isEmpty() && validRound.value) {
-                coroutineScope.launch {
-                    when (info.competitionRound) {
-                        is SeasonCompetitionRound -> {
-                            viewModel.update(
-                                SeasonCompetitionRound(
-                                    info.competitionRound.seasonId,
-                                    info.competitionRound.competitionId,
-                                    round.value,
-                                    description.value.trim(),
-                                    week.intValue,
-                                    optional.value
-                                )
+                when (info.competitionRound) {
+                    is SeasonCompetitionRound -> {
+                        viewModel.update(
+                            SeasonCompetitionRound(
+                                info.competitionRound.seasonId,
+                                info.competitionRound.competitionId,
+                                round.value,
+                                description.value.trim(),
+                                week.intValue,
+                                optional.value
                             )
-                        }
-                        else -> {
-                            viewModel.insert(
-                                SeasonCompetitionRound(
-                                    info.param.seasonId,
-                                    info.param.competitionId,
-                                    round.value,
-                                    description.value.trim(),
-                                    week.intValue,
-                                    optional.value
-                                )
-                            )
-                        }
+                        )
                     }
-                    appNavController.popBackStack()
+                    else -> {
+                        viewModel.insert(
+                            SeasonCompetitionRound(
+                                info.param.seasonId,
+                                info.param.competitionId,
+                                round.value,
+                                description.value.trim(),
+                                week.intValue,
+                                optional.value
+                            )
+                        )
+                    }
                 }
+                appNavController.popBackStack()
             }
         }) { paddingValues ->
-        val rounds = getRounds(state.value.data!!, info)
-        val season = seasonCompetitionState.value.data
-            ?.first { it.competitionId == info.param.competitionId }!!
+        val rounds = getRounds(state.value)
 
         when (info.competitionRound) {
             is SeasonCompetitionRound -> {
@@ -208,6 +258,7 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
                 week.intValue = info.competitionRound.week
                 optional.value = info.competitionRound.optional
             }
+
             else -> {
                 if (rounds.isEmpty()) {
                     round.value = 1.toShort()
@@ -238,7 +289,9 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
             }
             item { ViewTextField(description.value) { description.value = it } }
             item {
-                DatePickerView(week.intValue, Modifier, { utcMs -> isMondayIn(season, utcMs) }) {
+                DatePickerView(week.intValue,
+                    Modifier,
+                    { utcMs -> isMondayIn(seasonCompetitionState.value.first(), utcMs) }) {
                     week.intValue = it
                 }
             }
@@ -247,59 +300,47 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
     }
 }
 
-private enum class FixtureResult(var display : String) {UN_PLAYED(""), HOME_WIN("Home win"), AWAY_WIN("Away win")}
+private enum class FixtureResult(var display: String) {
+    UN_PLAYED(""), HOME_WIN("Home win"), AWAY_WIN(
+        "Away win"
+    )
+}
 
 @Composable
 private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
     val coroutineScope = rememberCoroutineScope()
     val seasonCompParameter = parametersOf(info.param.seasonId, info.param.competitionId)
     val viewModel = koinInject<SeasonCupFixtureViewModel> { seasonCompParameter }
-    val state = viewModel.uiState.collectAsState()
-    val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState()
+    val state = viewModel.uiState.collectAsState(emptyList())
+    val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState(emptyList())
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
     val filterTeamCategory = remember { mutableStateOf("") }
-    var fixturesById : Map<Long, SeasonCupFixtureView> = mutableMapOf()
+    var fixturesById: Map<Long, SeasonCupFixtureView> = mutableMapOf()
     val withTeamCategory = filterTeamCategory.value.isBlank()
 
-    ViewCommon(MergedState(state.value, teamCategoryState),
+    ViewCommon(
         "${info.param.seasonName} ${info.param.competitionName} Round ${info.competitionRound?.round} Fixtures",
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Export", edits.isEmpty()) {
                     coroutineScope.launch {
-                        val file = FileKit.openFileSaver(suggestedName = "cupFixtures", extension = "csv")
-                         val sink = file?.sink(append = false)?.buffered()
+                        val file =
+                            FileKit.openFileSaver(suggestedName = "cupFixtures", extension = "csv")
+                        val sink = file?.sink(append = false)?.buffered()
 
                         sink.use { bufferedSink ->
-                            val fixtures = state.value.data?.filter {it.round == info.competitionRound?.round &&
-                                    (withTeamCategory || it.teamCategoryName == filterTeamCategory.value) }
                             if (withTeamCategory) {
                                 bufferedSink?.writeString("Team Category,")
                             }
                             bufferedSink?.writeString("Home,Away\n")
-                            for (fixture in fixtures!!) {
+                            getFixtures(state.value, info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
+                                    teamCategoryName, home, away, _, _, _ ->
                                 if (withTeamCategory) {
-                                    bufferedSink?.writeString("${fixture.teamCategoryName},")
+                                    bufferedSink?.writeString("$teamCategoryName,")
                                 }
-                                bufferedSink?.writeString(
-                                    "${
-                                        teamDescription(
-                                            fixturesById,
-                                            fixture.homePending,
-                                            fixture.homeAssociation,
-                                            fixture.homeTeamNumber
-                                        )
-                                    },${
-                                        teamDescription(
-                                            fixturesById,
-                                            fixture.awayPending,
-                                            fixture.awayAssociation,
-                                            fixture.awayTeamNumber
-                                        )
-                                    }\n"
-                                )
+                                bufferedSink?.writeString("$home,$away\n")
                             }
                         }
                     }
@@ -312,11 +353,10 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
                 }
             )
         },
-        confirm = { edits.isNotEmpty()},
-        confirmAction = { saveResults(coroutineScope, edits, viewModel) }) {paddingValues ->
-        fixturesById = state.value.data?.
-            associateBy { it.id }!!
-        val teamCategoryList = listOf("") + teamCategoryState.data?.map { it.name }!!
+        confirm = { edits.isNotEmpty() },
+        confirmAction = { saveResults(coroutineScope, edits, viewModel) }) { paddingValues ->
+        fixturesById = state.value.associateBy { it.id }
+        val teamCategoryList = listOf("") + teamCategoryState.map { it.name }
         val columns = if (withTeamCategory) 4 else 3
 
         LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
@@ -333,21 +373,55 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
             item { ViewText("Home") }
             item { ViewText("Away") }
             item { ViewText("Winner") }
-            for (fixture in state.value.data?.filter { it.round == info.competitionRound?.round && (withTeamCategory || filterTeamCategory.value == it.teamCategoryName) }!!) {
+            getFixtures(state.value, info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
+                teamCategoryName, home, away, result, fixtureId, blankAwayAssociation ->
                 if (withTeamCategory) {
-                    item { ViewText(fixture.teamCategoryName) }
+                    item { ViewText(teamCategoryName) }
                 }
-                item { ViewText(teamDescription(fixturesById, fixture.homePending, fixture.homeAssociation, fixture.homeTeamNumber)) }
-                item { ViewText(teamDescription(fixturesById, fixture.awayPending, fixture.awayAssociation, fixture.awayTeamNumber)) }
-                item { DropdownList(
-                    itemList = FixtureResult.entries.map { it.display },
-                    selectedIndex = fixture.result.toInt(),
-                    isLocked = { isLocked || fixture.awayAssociation.isBlank() },
-                ) { edits[fixture.id] = it.toShort() } }
+                item { ViewText(home) }
+                item { ViewText(away) }
+                item {
+                    DropdownList(
+                        itemList = FixtureResult.entries.map { it.display },
+                        selectedIndex = result.toInt(),
+                        isLocked = { isLocked || blankAwayAssociation },
+                    ) { edits[fixtureId] = it.toShort() }
+                }
             }
         }
     }
 }
+
+private fun getFixtures(
+    allFixtures: List<SeasonCupFixtureView>,
+    round: Short,
+    filterTeamCategory: String,
+    fixturesById: Map<Long, SeasonCupFixtureView>,
+    fixtureConsumer: (String, String, String, Short, Long, Boolean) -> Unit
+) {
+    allFixtures
+        .filter { it.round == round && (filterTeamCategory.isBlank() || filterTeamCategory == it.teamCategoryName)  }
+        .forEach {fixture ->
+            fixtureConsumer(
+                fixture.teamCategoryName,
+                teamDescription(
+                    fixturesById,
+                    fixture.homePending,
+                    fixture.homeAssociation,
+                    fixture.homeTeamNumber
+                ),
+                teamDescription(
+                    fixturesById,
+                    fixture.awayPending,
+                    fixture.awayAssociation,
+                    fixture.awayTeamNumber
+                ),
+                fixture.result,
+                fixture.id,
+                fixture.awayAssociation.isBlank())
+        }
+}
+
 
 private fun teamDescription(
     fixturesById: Map<Long, SeasonCupFixtureView>,
@@ -358,8 +432,18 @@ private fun teamDescription(
     if (pendingFixtureId > 0) {
         val previousFixture = fixturesById[pendingFixtureId]
         if (previousFixture != null) {
-            val homeTeam = teamDescription(fixturesById, -1L, previousFixture.homeAssociation, previousFixture.homeTeamNumber)
-            val awayTeam = teamDescription(fixturesById, -1L, previousFixture.awayAssociation, previousFixture.awayTeamNumber)
+            val homeTeam = teamDescription(
+                fixturesById,
+                -1L,
+                previousFixture.homeAssociation,
+                previousFixture.homeTeamNumber
+            )
+            val awayTeam = teamDescription(
+                fixturesById,
+                -1L,
+                previousFixture.awayAssociation,
+                previousFixture.awayTeamNumber
+            )
             return when (previousFixture.result) {
                 FixtureResult.HOME_WIN.ordinal.toShort() -> homeTeam
                 FixtureResult.AWAY_WIN.ordinal.toShort() -> awayTeam
@@ -370,7 +454,11 @@ private fun teamDescription(
     return teamName(associationName, teamNumber)
 }
 
-private fun saveResults(coroutineScope: CoroutineScope, edits: SnapshotStateMap<Long, Short>, viewModel: SeasonCupFixtureViewModel) {
+private fun saveResults(
+    coroutineScope: CoroutineScope,
+    edits: SnapshotStateMap<Long, Short>,
+    viewModel: SeasonCupFixtureViewModel
+) {
     coroutineScope.launch {
         edits.forEach { (key, result) ->
             viewModel.setResult(key, result)
@@ -379,21 +467,29 @@ private fun saveResults(coroutineScope: CoroutineScope, edits: SnapshotStateMap<
     }
 }
 
-private fun getRounds(data: List<SeasonCompetitionRound>, info: SeasonCompetitionRoundEditorInfo): Set<Short> {
-    return data.filter { it.competitionId == info.param.competitionId }
-        .map { it.round }
-        .toSet()
-}
+private fun getRounds(data: List<SeasonCompetitionRound>): Set<Short> =
+    data.map { it.round }.toSet()
 
-data class CupFixtureTeams(val homeAssociation: AssociationId, val homeTeamNumber: TeamNumber, val awayAssociation: AssociationId, val awayTeamNumber: TeamNumber)
-private suspend fun calcCupFixtures(seasonId: SeasonId, competitionId: CompetitionId, round: Short) {
-    val db : AppDatabase by inject(AppDatabase::class.java)
+data class CupFixtureTeams(
+    val homeAssociation: AssociationId,
+    val homeTeamNumber: TeamNumber,
+    val awayAssociation: AssociationId,
+    val awayTeamNumber: TeamNumber
+)
+
+private suspend fun calcCupFixtures(
+    seasonId: SeasonId,
+    competitionId: CompetitionId,
+    round: Short
+) {
+    val db: AppDatabase by inject(AppDatabase::class.java)
     val seasonTeamDao = db.getSeasonTeamDao()
     val dao = db.getSeasonCupFixtureDao()
 
     dao.deleteByRound(seasonId, competitionId, round)
 
-    for (teamCategory in db.getTeamCategoryDao().getAll()) {
+    val teamCategories = db.getTeamCategoryDao().getAsList()
+    for (teamCategory in teamCategories) {
         if (round == 1.toShort()) {
             val competitionTeams =
                 seasonTeamDao.getTeams(seasonId, competitionId, teamCategory.id)
@@ -420,8 +516,9 @@ private suspend fun calcCupFixtures(seasonId: SeasonId, competitionId: Competiti
                     )
                 }
         } else {
-            val previousRoundFixtures = dao.get(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
-                .shuffled(Random(System.currentTimeMillis()))
+            val previousRoundFixtures =
+                dao.get(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
+                    .shuffled(Random(System.currentTimeMillis()))
             for (i in 0..<previousRoundFixtures.size step 2) {
                 val home = previousRoundFixtures[i]
                 val away = previousRoundFixtures[i + 1]
@@ -444,21 +541,22 @@ private suspend fun calcCupFixtures(seasonId: SeasonId, competitionId: Competiti
     }
 }
 
-private fun winningAssociation(fixture: SeasonCupFixture) : AssociationId
-    = when (fixture.result) {
-        FixtureResult.HOME_WIN.ordinal.toShort() -> fixture.homeAssociationId
-        FixtureResult.AWAY_WIN.ordinal.toShort() -> fixture.awayAssociationId
-        else -> if (fixture.awayAssociationId == 0.toShort()) fixture.homeAssociationId else 0.toShort()
-    }
+private fun winningAssociation(fixture: SeasonCupFixture): AssociationId = when (fixture.result) {
+    FixtureResult.HOME_WIN.ordinal.toShort() -> fixture.homeAssociationId
+    FixtureResult.AWAY_WIN.ordinal.toShort() -> fixture.awayAssociationId
+    else -> if (fixture.awayAssociationId == 0.toShort()) fixture.homeAssociationId else 0.toShort()
+}
 
-private fun winningTeamNumber(fixture: SeasonCupFixture) : TeamNumber
-        = when (fixture.result) {
+private fun winningTeamNumber(fixture: SeasonCupFixture): TeamNumber = when (fixture.result) {
     1.toShort() -> fixture.homeTeamNumber
     2.toShort() -> fixture.awayTeamNumber
     else -> if (fixture.awayAssociationId == 0.toShort()) fixture.homeTeamNumber else 0.toShort()
 }
 
-fun planFixtures(gameCount: Int, teams: List<Pair<AssociationId, TeamNumber>>) : List<CupFixtureTeams> {
+fun planFixtures(
+    gameCount: Int,
+    teams: List<Pair<AssociationId, TeamNumber>>
+): List<CupFixtureTeams> {
     val result = mutableListOf<CupFixtureTeams>()
     val competitionTeams = teams.toMutableList()
     for (i in gameCount - 1 downTo 0) {

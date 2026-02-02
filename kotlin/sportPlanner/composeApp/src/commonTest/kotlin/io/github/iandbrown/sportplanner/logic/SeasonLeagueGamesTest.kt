@@ -1,7 +1,7 @@
 package io.github.iandbrown.sportplanner.logic
 
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundView
-import io.github.iandbrown.sportplanner.database.SeasonCompetition
+import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategory
@@ -85,7 +85,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
 
         `when`("the fixtures are scheduled") {
             val seasonCompetitions = listOf(
-                createSeasonCompetition(1, "01/09/2025", "24/11/2025")
+                createSeasonCompView(1, "01/09/2025", "24/11/2025")
             )
             val seasonWeeks = SeasonWeeks(seasonCompetitions, emptyList())
             val competitionRounds = listOf(
@@ -124,8 +124,16 @@ private fun buildAllTeams(teams: List<SeasonTeam>): List<Pair<Short, Short>> = t
     }
 }
 
-private fun createSeasonCompetition(competitionId: Int, startDate: String, endDate: String): SeasonCompetition =
-    SeasonCompetition(1.toShort(), competitionId.toShort(), getDayDateVal(startDate), getDayDateVal(endDate))
+private fun createSeasonCompView(competitionId: Int, startDate: String, endDate: String): SeasonCompView =
+    SeasonCompView(
+        1.toShort(),
+        "",
+        competitionId.toShort(),
+        "",
+        0.toShort(),
+        getDayDateVal(startDate),
+        getDayDateVal(endDate)
+    )
 
 private fun getDayDateVal(date: String): Int {
     return DayDate(date).value()

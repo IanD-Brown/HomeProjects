@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -69,7 +68,6 @@ lateinit var appNavController : NavController
 
 @Composable
 fun ViewCommon(
-    baseUiState: BaseUiState,
     title: String,
     description: String = "Return to home screen",
     bottomBar: @Composable () -> Unit = {},
@@ -77,17 +75,11 @@ fun ViewCommon(
     confirmAction: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
-    if (baseUiState.loadingInProgress()) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
-        }
-    } else if (baseUiState.hasData()) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
-            bottomBar = bottomBar,
-            content = content)
-    }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+        bottomBar = bottomBar,
+        content = content)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -250,7 +242,7 @@ fun DropdownList(
     var selectedText by remember { mutableStateOf(if (itemList.isNotEmpty()) itemList[selectedIndex] else "") }
 
     if (isLocked()) {
-        ReadonlyViewText(selectedText, modifier)
+        ViewText(selectedText, modifier)
     } else {
         // Up Icon when expanded and down icon when collapsed
         val icon = if (expanded)
@@ -455,7 +447,7 @@ fun BottomBarWithButtonN(value : String = OK, enabled: Boolean = true, onClick :
     }
 }
 
-data class ButtonSettings(var value : String = OK, var enabled: Boolean = true, var onClick : () -> Unit)
+data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val onClick : () -> Unit)
 
 @Composable
 fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
@@ -465,9 +457,9 @@ fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : 
 fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     Row {
         ReadonlyViewText("", Modifier.weight(4f))
-        for (button in buttonSettings) {
-            OutlinedTextButton(button.value, Modifier.weight(1f), button.enabled) {
-                button.onClick()
+        for (buttonSetting in buttonSettings) {
+            OutlinedTextButton(buttonSetting.value, Modifier.weight(1f), buttonSetting.enabled) {
+                buttonSetting.onClick()
             }
         }
     }

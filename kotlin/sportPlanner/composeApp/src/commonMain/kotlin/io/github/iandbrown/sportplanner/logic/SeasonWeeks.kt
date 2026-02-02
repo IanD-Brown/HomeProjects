@@ -1,8 +1,10 @@
 package io.github.iandbrown.sportplanner.logic
 
 import io.github.iandbrown.sportplanner.database.AppDatabase
+import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.SeasonBreak
-import io.github.iandbrown.sportplanner.database.SeasonCompetition
+import io.github.iandbrown.sportplanner.database.SeasonCompView
+import io.github.iandbrown.sportplanner.database.SeasonId
 import org.koin.core.component.KoinComponent
 import org.koin.java.KoinJavaComponent
 
@@ -10,19 +12,19 @@ class SeasonWeeks {
     companion object : KoinComponent {
         private val db: AppDatabase by KoinJavaComponent.inject(AppDatabase::class.java)
 
-        suspend fun createSeasonWeeks(seasonId: Short): SeasonWeeks {
+        suspend fun createSeasonWeeks(seasonId: SeasonId): SeasonWeeks {
             return SeasonWeeks(
-                db.getSeasonCompetitionDao().get(seasonId),
-                db.getSeasonBreakDao().get(seasonId)
+                db.getSeasonCompViewDao().getAsList(seasonId),
+                db.getSeasonBreakDao().getAsList(seasonId)
             )
         }
     }
 
     private val breakWeeks: Map<Int, String>
-    private val competitionWeeks: Map<Short, List<Int>>
+    private val competitionWeeks: Map<CompetitionId, List<Int>>
 
-    constructor(seasonCompetitions: List<SeasonCompetition>, breaks: List<SeasonBreak>) {
-        val validSeasonCompetitions = seasonCompetitions.filter { it.isValid() }
+    constructor(seasonCompetitions: List<SeasonCompView>, breaks: List<SeasonBreak>) {
+        val validSeasonCompetitions = seasonCompetitions.filter { it.startDate in 1..it.endDate }
         val seasonStart = validSeasonCompetitions.minOfOrNull { it.startDate } ?: 0
         val seasonEnd = validSeasonCompetitions.maxOfOrNull { it.endDate } ?: 0
 
@@ -33,7 +35,7 @@ class SeasonWeeks {
         breakWeeks = breaks.filter { DayDate.isMondayIn(IntRange(dayDate.value(), seasonEnd), it.week) }
             .associateBy({ it.week }, { it.name })
 
-        competitionWeeks = mutableMapOf<Short, MutableList<Int>>()
+        competitionWeeks = mutableMapOf<CompetitionId, MutableList<Int>>()
 
         while (dayDate.isValid() && dayDate.value() <= seasonEnd) {
             if (!breakWeeks.contains(dayDate.value())) {

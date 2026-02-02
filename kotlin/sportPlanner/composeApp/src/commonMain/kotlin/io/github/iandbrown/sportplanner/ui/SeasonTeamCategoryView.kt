@@ -7,25 +7,30 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
-import io.github.iandbrown.sportplanner.database.AppDatabase
+import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.database.TeamCategoryId
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
+import org.koin.java.KoinJavaComponent.inject
 
-class SeasonTeamCategoryViewModel(seasonId : Short) : BaseSeasonViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(seasonId) {
-    override fun getDao(db: AppDatabase): SeasonTeamCategoryDao = db.getSeasonTeamCategoryDao()
-}
+class SeasonTeamCategoryViewModel(seasonId : SeasonId, competitionId : CompetitionId) :
+    BaseSeasonCompCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(
+        seasonId,
+        competitionId,
+        inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value
+    )
 
 @Composable
 fun NavigateSeasonTeamCategory(argument: String?) {
@@ -46,21 +51,21 @@ private enum class EditorState(val display: String) {
         DIRTY -> LOCKED
     }
 }
+
 @Composable
 private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
-    val seasonParams = parametersOf(param.seasonId)
+    val seasonParams = parametersOf(param.seasonId, param.competitionId)
     val viewModel: SeasonTeamCategoryViewModel = koinInject {seasonParams}
     val state = viewModel.uiState.collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
-    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
+    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
     var isLocked by remember { mutableStateOf(EditorState.LOCKED) }
     var teamCategoryList = listOf<TeamCategory>()
-    val gameStructureStates = remember { mutableStateListOf<Short>() }
-    val lockedStates = remember { mutableStateListOf<Boolean>() }
+    val gameStructureStates = remember { mutableStateMapOf<TeamCategoryId, Short>() }
+    val lockedStates = remember { mutableStateMapOf<TeamCategoryId, Boolean>() }
 
     ViewCommon(
-        MergedState(state.value, teamCategoryState.value),
         "Season: ${param.seasonName} Competition: ${param.competitionName}",
         description = "Return to Seasons screen",
         bottomBar = {
@@ -74,36 +79,37 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
             }
         },
         content = { paddingValues ->
-            teamCategoryList = teamCategoryState.value.data?.sortedBy { it.name.trim().uppercase() }!!
-            val seasonTeamCategories = state.value.data?.filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }
-                ?.associateBy { it.teamCategoryId }
+            state.value.forEach {
+                if (!gameStructureStates.contains(it.teamCategoryId)) {
+                    gameStructureStates[it.teamCategoryId] = it.games
+                }
+                if (!lockedStates.contains(it.teamCategoryId)) {
+                    lockedStates[it.teamCategoryId] = it.locked
+                }
+            }
+            teamCategoryList = teamCategoryState.value.sortedBy { it.name.trim().uppercase() }
             LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Team Category") }
                 item { ReadonlyViewText("Match Structure")}
                 item { ReadonlyViewText("Locked")}
                 val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
-                var index = 0
                 for (teamCategory in teamCategoryList) {
-                    val seasonTeamCategory = seasonTeamCategories?.get(teamCategory.id)
-                    gameStructureStates += seasonTeamCategory?.games ?: 0
-                    lockedStates += seasonTeamCategory?.locked ?: false
-                    val itemIndex = index++
                     item { ReadonlyViewText(teamCategory.name) }
                     item {
                         DropdownList(
                             matchStructureNamesList,
-                            gameStructureStates[itemIndex].toInt(),
+                            gameStructureStates[teamCategory.id]?.toInt() ?: 0,
                             isLocked = { isLocked == EditorState.LOCKED }) {
-                            gameStructureStates[itemIndex] = it.toShort()
+                            gameStructureStates[teamCategory.id] = it.toShort()
                             isLocked = EditorState.DIRTY
                         }
                     }
                     item {
                         Checkbox(
-                            checked = lockedStates[itemIndex],
+                            checked = lockedStates[teamCategory.id] ?: false,
                             enabled = isLocked != EditorState.LOCKED,
                             onCheckedChange = {
-                                lockedStates[itemIndex] = it
+                                lockedStates[teamCategory.id] = it
                                 isLocked = EditorState.DIRTY
                             }
                         )
@@ -117,20 +123,18 @@ private fun save(
     viewModel: SeasonTeamCategoryViewModel,
     param: SeasonCompetitionParam,
     teamCategoryList: List<TeamCategory>,
-    gameStructureStates: SnapshotStateList<Short>,
-    lockedStates: SnapshotStateList<Boolean>
+    gameStructureStates: Map<TeamCategoryId, Short>,
+    lockedStates: Map<TeamCategoryId, Boolean>
 ) {
-    teamCategoryList.forEachIndexed { index, item ->
+    teamCategoryList.forEach { item ->
         viewModel.insert(
             SeasonTeamCategory(
                 seasonId = param.seasonId,
                 competitionId = param.competitionId,
                 teamCategoryId = item.id,
-                games = gameStructureStates[index],
-                locked = lockedStates[index]
+                games = gameStructureStates[item.id] ?: 0,
+                locked = lockedStates[item.id] ?: false
             )
         )
     }
-    gameStructureStates.clear()
-    lockedStates.clear()
 }

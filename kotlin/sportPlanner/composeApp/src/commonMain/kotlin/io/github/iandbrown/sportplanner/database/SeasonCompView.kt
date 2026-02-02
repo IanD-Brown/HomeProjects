@@ -3,6 +3,7 @@ package io.github.iandbrown.sportplanner.database
 import androidx.room.Dao
 import androidx.room.DatabaseView
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 private const val viewName = "SeasonCompView"
 
@@ -32,9 +33,12 @@ data class SeasonCompView(
 )
 
 @Dao
-interface SeasonCompViewDao : ReadonlyDao<SeasonCompView> {
+interface SeasonCompViewDao : BaseReadDao<SeasonCompView> {
     @Query("SELECT * FROM $viewName")
-    override suspend fun getAll(): List<SeasonCompView>
+    override fun get(): Flow<List<SeasonCompView>>
+
+    @Query("SELECT * FROM $viewName WHERE seasonId = :seasonId")
+    suspend fun getAsList(seasonId: SeasonId): List<SeasonCompView>
 
     @Query("DELETE FROM seasons WHERE id = :seasonId")
     suspend fun deleteSeason(seasonId : Short)

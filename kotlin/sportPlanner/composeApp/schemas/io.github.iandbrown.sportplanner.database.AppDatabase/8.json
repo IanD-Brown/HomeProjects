@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "0372dd48f0f8641675d4be701512d981",
+    "identityHash": "32cb9222109d5580483d8bcc0c582528",
     "entities": [
       {
         "tableName": "Associations",
@@ -858,12 +858,8 @@
     ],
     "views": [
       {
-        "viewName": "SeasonFixtureView",
-        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT f.id AS id,f.seasonId AS seasonId, f.competitionId AS competitionId, f.teamCategoryId AS teamCategoryId, tc.name AS teamCategoryName, f.date, f.message, h.name AS homeAssociation, f.homeTeamNumber AS homeTeamNumber, a.name AS awayAssociation, f.awayTeamNumber AS awayTeamNumber FROM SeasonFixtures f LEFT JOIN TeamCategories tc ON tc.id = f.teamCategoryId LEFT JOIN Associations h ON h.id = f.homeAssociationId LEFT JOIN Associations a ON a.id = f.awayAssociationId"
-      },
-      {
         "viewName": "SeasonCompRoundView",
-        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT r.seasonId AS seasonId, r.description AS description, r.week AS week, r.optional AS optional, stc.teamCategoryId FROM SeasonCompetitionRounds r, SeasonTeamCategories stc WHERE stc.seasonId = r.seasonId AND stc.competitionId = r.competitionId AND stc.locked = 0"
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT r.seasonId AS seasonId, r.description AS description, r.week AS week, r.optional AS optional, st.teamCategoryId FROM SeasonCompetitionRounds r, SeasonTeams st WHERE st.seasonId = r.seasonId AND st.competitionId = r.competitionId AND st.count > 0"
       },
       {
         "viewName": "SeasonCompView",
@@ -872,11 +868,19 @@
       {
         "viewName": "SeasonCupFixtureView",
         "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT scf.id AS id, scf.seasonId AS seasonId, scf.competitionId AS competitionId, scf.teamCategoryId AS teamCategoryId, tc.name AS teamCategoryName, scf.round AS round, h.name AS homeAssociation, scf.homeTeamNumber AS homeTeamNumber, a.name AS awayAssociation, scf.awayTeamNumber AS awayTeamNumber, scf.homePending AS homePending, scf.awayPending AS awayPending, scf.result AS result FROM SeasonCupFixtures scf LEFT JOIN TeamCategories tc ON tc.id = scf.teamCategoryId LEFT JOIN Associations h ON h.id = scf.homeAssociationId LEFT JOIN Associations a ON a.id = scf.awayAssociationId"
+      },
+      {
+        "viewName": "SeasonFixtureView",
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT f.id AS id,f.seasonId AS seasonId, f.competitionId AS competitionId, f.teamCategoryId AS teamCategoryId, tc.name AS teamCategoryName, f.date, f.message, h.name AS homeAssociation, f.homeTeamNumber AS homeTeamNumber, a.name AS awayAssociation, f.awayTeamNumber AS awayTeamNumber FROM SeasonFixtures f LEFT JOIN TeamCategories tc ON tc.id = f.teamCategoryId LEFT JOIN Associations h ON h.id = f.homeAssociationId LEFT JOIN Associations a ON a.id = f.awayAssociationId"
+      },
+      {
+        "viewName": "SeasonLeagueTeamView",
+        "createSql": "CREATE VIEW `${VIEW_NAME}` AS SELECT st.seasonId, st.teamCategoryId, a.name AS associationName, st.competitionId, st.count FROM SeasonTeams st, Associations a WHERE st.competitionId IN (SELECT id FROM Competitions WHERE type = 0) AND a.id = st.associationId"
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0372dd48f0f8641675d4be701512d981')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '32cb9222109d5580483d8bcc0c582528')"
     ]
   }
 }

@@ -21,7 +21,12 @@ private const val majorVersion = 3
     SeasonTeam::class,
     SeasonTeamCategory::class,
     TeamCategory::class],
-    views = [SeasonFixtureView::class, SeasonCompRoundView::class, SeasonCompView::class, SeasonCupFixtureView::class],
+    views = [
+        SeasonCompRoundView::class,
+        SeasonCompView::class,
+        SeasonCupFixtureView::class,
+        SeasonFixtureView::class,
+        SeasonLeagueTeamView::class],
     version = version,
     autoMigrations = [
         AutoMigration(from = 6, to = 7),
@@ -41,6 +46,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonFixtureDao() : SeasonFixtureDao
     abstract fun getSeasonFixtureViewDao() : SeasonFixtureViewDao
+    abstract fun getSeasonLeagueTeamViewDao() : SeasonLeagueTeamViewDao
     abstract fun getSeasonTeamCategoryDao() : SeasonTeamCategoryDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao
     abstract fun getTeamCategoryDao() : TeamCategoryDao

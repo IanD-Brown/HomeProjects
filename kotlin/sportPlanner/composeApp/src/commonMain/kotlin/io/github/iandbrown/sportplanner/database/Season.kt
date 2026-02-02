@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "Seasons"
@@ -13,15 +14,15 @@ private const val table = "Seasons"
 @Entity(tableName = table, indices = [Index(value = ["name"], unique = true)])
 data class Season(
     @PrimaryKey(autoGenerate = true)
-    val id: Short = 0,
+    val id: SeasonId = 0,
     val name: String
 )
 
 @Dao
-interface SeasonDao : BaseDao<Season> {
+interface SeasonDao : BaseReadDao<Season>, BaseWriteDao<Season> {
     @Query("SELECT * FROM $table")
-    override suspend fun getAll(): List<Season>
+    override fun get(): Flow<List<Season>>
 
-    @Query("SELECT count(1) FROM $table")
-    override suspend fun count(): Int
+    @Query("SELECT id FROM $table WHERE name = :name")
+    suspend fun getSeasonId(name : String) : Int?
 }

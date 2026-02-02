@@ -75,6 +75,15 @@ public fun io.github.iandbrown.sportplanner.ui.ClickableIconOld(imageVector: and
     - onClick: STABLE (function type)
 
 @Composable
+private fun io.github.iandbrown.sportplanner.ui.CompetitionFilter(seasonCompViews: kotlin.collections.List<io.github.iandbrown.sportplanner.database.SeasonCompView>, selectedCompetitionId: kotlin.Short, onClick: kotlin.Function1<kotlin.Short, kotlin.Unit>): kotlin.Unit
+  skippable: false
+  restartable: true
+  params:
+    - seasonCompViews: RUNTIME (requires runtime check)
+    - selectedCompetitionId: STABLE (primitive type)
+    - onClick: STABLE (function type)
+
+@Composable
 private fun io.github.iandbrown.sportplanner.ui.CompetitionView(): kotlin.Unit
   skippable: true
   restartable: true
@@ -347,11 +356,10 @@ private fun io.github.iandbrown.sportplanner.ui.TeamCategoryEditor(): kotlin.Uni
   params:
 
 @Composable
-public fun io.github.iandbrown.sportplanner.ui.ViewCommon(baseUiState: io.github.iandbrown.sportplanner.ui.BaseUiState, title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
-  skippable: false
+public fun io.github.iandbrown.sportplanner.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
+  skippable: true
   restartable: true
   params:
-    - baseUiState: RUNTIME (requires runtime check)
     - title: STABLE (String is immutable)
     - description: STABLE (String is immutable)
     - bottomBar: STABLE (composable function type)

@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 private const val table = "SeasonCupFixtures"
 
@@ -34,9 +35,9 @@ data class SeasonCupFixture(
 )
 
 @Dao
-interface SeasonCupFixtureDao : BaseSeasonDao<SeasonCupFixture> {
-    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    override suspend fun get(seasonId: SeasonId): List<SeasonCupFixture>
+interface SeasonCupFixtureDao : BaseSeasonCompReadDao<SeasonCupFixture>, BaseWriteDao<SeasonCupFixture> {
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
+    override fun get(seasonId: SeasonId, competitionId: CompetitionId): Flow<List<SeasonCupFixture>>
 
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId AND teamCategoryId = :teamCategoryId AND round = :round")
     suspend fun get(seasonId: SeasonId, competitionId: CompetitionId, teamCategoryId: TeamCategoryId, round: Short): List<SeasonCupFixture>

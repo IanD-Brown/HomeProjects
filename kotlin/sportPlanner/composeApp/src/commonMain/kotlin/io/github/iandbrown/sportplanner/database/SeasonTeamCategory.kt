@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "SeasonTeamCategories"
@@ -35,17 +36,20 @@ private const val table = "SeasonTeamCategories"
         )]
 )
 data class SeasonTeamCategory(
-    val seasonId: Short,
-    val competitionId: Short,
-    val teamCategoryId: Short,
+    val seasonId: SeasonId,
+    val competitionId: CompetitionId,
+    val teamCategoryId: TeamCategoryId,
     val games: Short,
     val locked: Boolean
 )
 
 @Dao
-interface SeasonTeamCategoryDao : BaseSeasonDao<SeasonTeamCategory> {
+interface SeasonTeamCategoryDao : BaseSeasonCompReadDao<SeasonTeamCategory>, BaseWriteDao<SeasonTeamCategory> {
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
+    override fun get(seasonId : SeasonId, competitionId: CompetitionId): Flow<List<SeasonTeamCategory>>
+
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    override suspend fun get(seasonId : Short): List<SeasonTeamCategory>
+    suspend fun getBySeasonId(seasonId : SeasonId): List<SeasonTeamCategory>
 
     @Query("SELECT * FROM $table "+
             "WHERE seasonId = :seasonId AND competitionId = :competitionId AND locked = 0")

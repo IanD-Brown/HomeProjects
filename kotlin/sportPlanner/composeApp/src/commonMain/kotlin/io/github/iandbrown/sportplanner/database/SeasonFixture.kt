@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 private const val table = "SeasonFixtures"
 
@@ -23,25 +24,25 @@ private const val table = "SeasonFixtures"
 data class SeasonFixture(
     @PrimaryKey(autoGenerate = true)
     val id : Long = 0,
-    val seasonId : Short,
-    val competitionId : Short,
-    val teamCategoryId : Short,
+    val seasonId : SeasonId,
+    val competitionId : CompetitionId,
+    val teamCategoryId : TeamCategoryId,
     val date : Int,
     val message : String?,
-    val homeAssociationId : Short,
-    val homeTeamNumber : Short,
-    val awayAssociationId : Short,
-    val awayTeamNumber : Short,
+    val homeAssociationId : AssociationId,
+    val homeTeamNumber : TeamNumber,
+    val awayAssociationId : AssociationId,
+    val awayTeamNumber : TeamNumber,
 )
 
 @Dao
-interface SeasonFixtureDao : BaseSeasonDao<SeasonFixture> {
-    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    override suspend fun get(seasonId: Short): List<SeasonFixture>
+interface SeasonFixtureDao : BaseSeasonCompReadDao<SeasonFixture>, BaseWriteDao<SeasonFixture> {
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
+    override fun get(seasonId: SeasonId, competitionId: CompetitionId): Flow<List<SeasonFixture>>
 
     @Query("DELETE FROM $table WHERE seasonId = :seasonId AND teamCategoryId = :teamCategoryId AND competitionId = :competitionId")
-    suspend fun deleteBySeasonTeamCategory(seasonId: Short, teamCategoryId: Short, competitionId: Short)
+    suspend fun deleteBySeasonTeamCategory(seasonId: SeasonId, teamCategoryId: TeamCategoryId, competitionId: CompetitionId)
 
     @Query("DELETE FROM $table WHERE seasonId = :seasonId")
-    suspend fun deleteBySeason(seasonId: Short)
+    suspend fun deleteBySeason(seasonId: SeasonId)
 }

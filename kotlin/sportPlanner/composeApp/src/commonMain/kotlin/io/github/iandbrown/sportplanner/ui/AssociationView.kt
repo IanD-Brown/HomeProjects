@@ -17,17 +17,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.java.KoinJavaComponent.inject
 
-class AssociationViewModel : BaseViewModel<AssociationDao, Association>() {
-    override fun getDao(db: AppDatabase): AssociationDao = db.getAssociationDao()
-}
+class AssociationViewModel : BaseConfigCRUDViewModel<AssociationDao, Association>(inject<AssociationDao>(AssociationDao::class.java).value)
 
 private val editor = Editors.ASSOCIATIONS
 
@@ -43,17 +41,16 @@ fun NavigateAssociation(argument: String?) {
 @Composable
 private fun AssociationEditor() {
     val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
-    val state = viewModel.uiState.collectAsState()
+    val state = viewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
-        state.value,
         "Associations",
         bottomBar = {
             BottomBarWithButtonN("+") {editor.addRoute()}
         }){ paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues), content = {
                 items(
-                    items = state.value.data?.sortedBy { it.name.uppercase().trim() }!!,
+                    items = state.value.sortedBy { it.name.uppercase().trim() },
                     key = { association -> association.id }) { association ->
                     Row(
                         modifier = Modifier.fillMaxWidth(), content = {
@@ -81,7 +78,6 @@ private fun EditAssociation(association: Association?) {
     val title = if (association == null) "Add Association" else "Edit Association"
 
     ViewCommon(
-        SimpleState(),
         title,
         description = "Return to associations",
         bottomBar = {
