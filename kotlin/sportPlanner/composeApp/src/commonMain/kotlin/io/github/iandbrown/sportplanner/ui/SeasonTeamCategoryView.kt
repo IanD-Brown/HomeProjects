@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.CompetitionId
@@ -19,7 +18,6 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -59,7 +57,8 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
     val state = viewModel.uiState.collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
     val teamCategoryState = teamCategoryViewModel.uiState.collectAsState(emptyList())
-    val coroutineScope = rememberCoroutineScope()
+    val seasonTeamViewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
+    val seasonTeamState = seasonTeamViewModel.uiState.collectAsState(emptyList())
     var isLocked by remember { mutableStateOf(EditorState.LOCKED) }
     var teamCategoryList = listOf<TeamCategory>()
     val gameStructureStates = remember { mutableStateMapOf<TeamCategoryId, Short>() }
@@ -71,9 +70,7 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
         bottomBar = {
             BottomBarWithButton(isLocked.display) {
                 if (isLocked == EditorState.DIRTY) {
-                    coroutineScope.launch {
-                        save(viewModel, param, teamCategoryList, gameStructureStates, lockedStates)
-                    }
+                    save(viewModel, param, teamCategoryList, gameStructureStates, lockedStates)
                 }
                 isLocked = isLocked.onClick()
             }
@@ -87,14 +84,21 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                     lockedStates[it.teamCategoryId] = it.locked
                 }
             }
+            val teamCounts = mutableMapOf<TeamCategoryId, Int>()
+            for (seasonTeam in seasonTeamState.value) {
+                teamCounts[seasonTeam.teamCategoryId] = teamCounts.getOrDefault(seasonTeam.teamCategoryId, 0) + 1
+            }
+
             teamCategoryList = teamCategoryState.value.sortedBy { it.name.trim().uppercase() }
-            LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
+            LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Team Category") }
+                item { ReadonlyViewText("Team Count") }
                 item { ReadonlyViewText("Match Structure")}
                 item { ReadonlyViewText("Locked")}
                 val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
                 for (teamCategory in teamCategoryList) {
                     item { ReadonlyViewText(teamCategory.name) }
+                    item { ReadonlyViewText(teamCounts[teamCategory.id].toString()) }
                     item {
                         DropdownList(
                             matchStructureNamesList,

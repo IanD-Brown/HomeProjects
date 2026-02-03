@@ -27,6 +27,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.AssociationName
@@ -46,7 +47,6 @@ import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
 import kotlin.random.Random
 import kotlin.time.measureTime
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
@@ -69,7 +69,7 @@ class SeasonCupFixtureViewModel(seasonId: SeasonId, competitionId: CompetitionId
         competitionId,
         inject<SeasonCupFixtureViewDao>(SeasonCupFixtureViewDao::class.java).value
     ) {
-    suspend fun setResult(id: Long, result: Short) = dao.setResult(id, result)
+    fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
 
 class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
@@ -189,11 +189,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                         }
                         item {
                             DeleteButton(it != values[values.lastIndex]) {
-                                coroutineScope.launch {
-                                    viewModel.delete(
-                                        it
-                                    )
-                                }
+                                viewModel.delete(it)
                             }
                         }
                     }
@@ -347,14 +343,14 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
                 },
                 ButtonSettings(buttonText) {
                     if (!isLocked && edits.isNotEmpty()) {
-                        saveResults(coroutineScope, edits, viewModel)
+                        saveResults(edits, viewModel)
                     }
                     isLocked = !isLocked
                 }
             )
         },
         confirm = { edits.isNotEmpty() },
-        confirmAction = { saveResults(coroutineScope, edits, viewModel) }) { paddingValues ->
+        confirmAction = { saveResults(edits, viewModel) }) { paddingValues ->
         fixturesById = state.value.associateBy { it.id }
         val teamCategoryList = listOf("") + teamCategoryState.map { it.name }
         val columns = if (withTeamCategory) 4 else 3
@@ -454,17 +450,11 @@ private fun teamDescription(
     return teamName(associationName, teamNumber)
 }
 
-private fun saveResults(
-    coroutineScope: CoroutineScope,
-    edits: SnapshotStateMap<Long, Short>,
-    viewModel: SeasonCupFixtureViewModel
-) {
-    coroutineScope.launch {
-        edits.forEach { (key, result) ->
-            viewModel.setResult(key, result)
-        }
-        edits.clear()
+private fun saveResults(edits: SnapshotStateMap<Long, Short>, viewModel: SeasonCupFixtureViewModel) {
+    edits.forEach { (key, result) ->
+        viewModel.setResult(key, result)
     }
+    edits.clear()
 }
 
 private fun getRounds(data: List<SeasonCompetitionRound>): Set<Short> =

@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.CompetitionId
@@ -19,7 +18,6 @@ import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -44,7 +42,6 @@ fun NavigateSeasonTeam(argument: String?) {
 @Composable
 private fun SeasonTeamEditor(param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
-    val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
     val associationState = koinInject<AssociationViewModel>().uiState.collectAsState(emptyList())
     val teamCategory = koinInject<TeamCategoryViewModel>().uiState.collectAsState(emptyList())
@@ -64,22 +61,20 @@ private fun SeasonTeamEditor(param: SeasonCompetitionParam) {
                 }
                 OutlinedTextButton(value = buttonText,modifier = Modifier.weight(1f)){
                     if (!isLocked && edits.isNotEmpty()) {
-                        coroutineScope.launch {
-                            for ((key, count) in edits) {
-                                if (values.getOrDefault(key, 0) != count) {
-                                    viewModel.insert(
-                                        SeasonTeam(
-                                            seasonId = param.seasonId,
-                                            teamCategoryId = key.second,
-                                            associationId = key.first,
-                                            competitionId = param.competitionId,
-                                            count = count
-                                        )
+                        for ((key, count) in edits) {
+                            if (values.getOrDefault(key, 0) != count) {
+                                viewModel.insert(
+                                    SeasonTeam(
+                                        seasonId = param.seasonId,
+                                        teamCategoryId = key.second,
+                                        associationId = key.first,
+                                        competitionId = param.competitionId,
+                                        count = count
                                     )
-                                }
+                                )
                             }
-                            edits.clear()
                         }
+                        edits.clear()
                     }
                     isLocked = !isLocked
                 }
@@ -133,7 +128,6 @@ private fun matchStructure(value: String, editFun: (Short) -> Unit) {
 @Composable
 private fun SeasonTeamByCategory(param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId)}
-    val coroutineScope = rememberCoroutineScope()
     val state = viewModel.uiState.collectAsState()
     val teamCategory = koinInject<TeamCategoryViewModel>().uiState.collectAsState(emptyList())
     val associationState = koinInject<AssociationViewModel>().uiState.collectAsState(emptyList())
@@ -147,22 +141,20 @@ private fun SeasonTeamByCategory(param: SeasonCompetitionParam) {
         bottomBar = {
             BottomBarWithButton(buttonText) {
                 if (!isLocked && edits.isNotEmpty()) {
-                    coroutineScope.launch {
-                        for ((key, count) in edits) {
-                            for (association in associationState.value) {
-                                viewModel.insert(
-                                    SeasonTeam(
-                                        seasonId = param.seasonId,
-                                        teamCategoryId = key,
-                                        associationId = association.id,
-                                        competitionId = param.competitionId,
-                                        count = count
-                                    )
+                    for ((key, count) in edits) {
+                        for (association in associationState.value) {
+                            viewModel.insert(
+                                SeasonTeam(
+                                    seasonId = param.seasonId,
+                                    teamCategoryId = key,
+                                    associationId = association.id,
+                                    competitionId = param.competitionId,
+                                    count = count
                                 )
-                            }
+                            )
                         }
-                        edits.clear()
                     }
+                    edits.clear()
                 }
                 isLocked = !isLocked
             }

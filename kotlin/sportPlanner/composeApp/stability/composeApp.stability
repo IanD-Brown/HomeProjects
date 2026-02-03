@@ -158,6 +158,13 @@ private fun io.github.iandbrown.sportplanner.ui.EditTeamCategory(editCategory: i
     - editCategory: STABLE (class with no mutable properties)
 
 @Composable
+private fun io.github.iandbrown.sportplanner.ui.FixtureDateView(season: io.github.iandbrown.sportplanner.database.Season): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - season: STABLE (class with no mutable properties)
+
+@Composable
 private fun io.github.iandbrown.sportplanner.ui.FixtureTableView(season: io.github.iandbrown.sportplanner.database.Season): kotlin.Unit
   skippable: true
   restartable: true

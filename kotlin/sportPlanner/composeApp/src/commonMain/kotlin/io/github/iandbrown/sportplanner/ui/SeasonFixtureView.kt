@@ -191,21 +191,23 @@ private fun SummaryFixtureView(season: Season) {
                         }
                     }
                 })
-                LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size)) {
+                LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size + 1)) {
+                    item { ViewText("") }
                     item { ViewText("") }
                     for (teamCategory in teamCategories) {
                         item { ViewText(teamCategory) }
                     }
                     for (team in teams) {
-                        item { ViewText("$team HOME") }
+                        item { ViewText(team) }
+                        item { ViewText("HOME") }
                         for (teamCategory in teamCategories) {
                             item {
                                 val key = Triple(team, teamCategory, SumType.HOME_TEAM)
                                 ViewText("${countsByTeamAndCategory[key] ?: 0}")
                             }
                         }
-                        val blankTeam = "".padEnd(team.length, ' ')
-                        item { ViewText("$blankTeam AWAY") }
+                        item { ViewText("") }
+                        item { ViewText("AWAY") }
                         for (teamCategory in teamCategories) {
                             item {
                                 val key = Triple(team, teamCategory, SumType.AWAY_TEAM)

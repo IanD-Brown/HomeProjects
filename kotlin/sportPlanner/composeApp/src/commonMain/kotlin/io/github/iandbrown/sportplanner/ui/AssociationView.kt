@@ -13,14 +13,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.java.KoinJavaComponent.inject
@@ -73,7 +70,6 @@ private fun AssociationEditor() {
 @Composable
 private fun EditAssociation(association: Association?) {
     val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
-    val coroutineScope = rememberCoroutineScope()
     var name by remember { mutableStateOf(association?.name ?: "") }
     val title = if (association == null) "Add Association" else "Edit Association"
 
@@ -82,12 +78,12 @@ private fun EditAssociation(association: Association?) {
         description = "Return to associations",
         bottomBar = {
             BottomBarWithButton(enabled = name.isNotEmpty()) {
-                save(coroutineScope, association, viewModel, name)
+                save(association, viewModel, name)
                 appNavController.popBackStack()
             }
         },
         confirm = {name.isNotEmpty() && (association == null || name != association.name)},
-        confirmAction = {save(coroutineScope, association, viewModel, name)},
+        confirmAction = {save(association, viewModel, name)},
         content = { paddingValues ->
             Row(modifier = Modifier.padding(paddingValues), content = {
                 ViewTextField(value = name, label = "Name :") { name = it }
@@ -95,11 +91,9 @@ private fun EditAssociation(association: Association?) {
         })
 }
 
-private fun save(coroutineScope: CoroutineScope, association: Association?, viewModel: AssociationViewModel, name: String) {
-    coroutineScope.launch {
-        if (association == null)
-            viewModel.insert(Association(name = name.trim()))
-        else
-            viewModel.update(Association(association.id, name.trim()))
-    }
-}
+private fun save(association: Association?, viewModel: AssociationViewModel, name: String) {
+    if (association == null)
+        viewModel.insert(Association(name = name.trim()))
+    else
+        viewModel.update(Association(association.id, name.trim()))
+ }

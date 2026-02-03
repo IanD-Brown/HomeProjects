@@ -9,13 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.java.KoinJavaComponent.inject
@@ -71,7 +68,6 @@ private fun TeamCategoryEditor() {
 @Composable
 private fun EditTeamCategory(editCategory: TeamCategory?) {
     val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
-    val coroutineScope = rememberCoroutineScope()
     var name by remember { mutableStateOf(editCategory?.name ?: "") }
     var matchDay by remember { mutableIntStateOf(editCategory?.matchDay?.toInt() ?: 0) }
     val title = if (editCategory == null) "Add TeamCategory" else "Edit TeamCategory"
@@ -81,12 +77,12 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
         description = "Return to teamCategories",
         bottomBar = {
             BottomBarWithButton(enabled = name.isNotEmpty()) {
-                save(coroutineScope, viewModel, editCategory, name, matchDay)
+                save(viewModel, editCategory, name, matchDay)
                 appNavController.popBackStack()
             }
         },
         confirm = {name.isNotEmpty() && (editCategory == null || name != editCategory.name) || (editCategory != null && matchDay.toShort() != editCategory.matchDay)},
-        confirmAction = {save(coroutineScope, viewModel, editCategory, name, matchDay)},
+        confirmAction = {save(viewModel, editCategory, name, matchDay)},
         content = { paddingValues ->
             LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText(value = "Name") }
@@ -100,13 +96,5 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
         })
 }
 
-private fun save(coroutineScope: CoroutineScope, viewModel: TeamCategoryViewModel, editCategory: TeamCategory?, name: String, matchDay: Int) =
-    coroutineScope.launch {
-        viewModel.insert(
-            TeamCategory(
-                editCategory?.id ?: 0.toShort(),
-                name.trim(),
-                matchDay.toShort()
-            )
-        )
-    }
+private fun save(viewModel: TeamCategoryViewModel, editCategory: TeamCategory?, name: String, matchDay: Int) =
+    viewModel.insert(TeamCategory(editCategory?.id ?: 0.toShort(), name.trim(), matchDay.toShort()))
