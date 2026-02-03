@@ -98,7 +98,7 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                 val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
                 for (teamCategory in teamCategoryList) {
                     item { ReadonlyViewText(teamCategory.name) }
-                    item { ReadonlyViewText(teamCounts[teamCategory.id].toString()) }
+                    item { ReadonlyViewText(teamCounts[teamCategory.id]?.toString() ?: "0") }
                     item {
                         DropdownList(
                             matchStructureNamesList,
