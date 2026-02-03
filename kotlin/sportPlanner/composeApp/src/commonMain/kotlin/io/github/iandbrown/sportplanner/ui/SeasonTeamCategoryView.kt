@@ -37,7 +37,7 @@ fun NavigateSeasonTeamCategory(argument: String?) {
     }
 }
 
-private enum class MatchStructures(val display: String) { NONE(""), SINGLE("Single"), HOME_AWAY("Home and away") }
+enum class MatchStructures(val display: String) { NONE(""), SINGLE("Single"), HOME_AWAY("Home and away") }
 private enum class EditorState(val display: String) {
     LOCKED("Edit"),
     EDITING(""),

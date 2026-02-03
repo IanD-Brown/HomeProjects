@@ -10,6 +10,7 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
 import io.github.iandbrown.sportplanner.database.TeamNumber
+import io.github.iandbrown.sportplanner.ui.MatchStructures
 import kotlin.random.Random
 
 private enum class Location { HOME, AWAY }
@@ -75,6 +76,17 @@ private class FixtureScheduler(
         for (plannedGameEntry in plannedGamesByTeamCategoryId) {
             if (!plannedGameEntry.value.isEmpty()) {
                 println("Missing fixtures $plannedGameEntry")
+                fixtures.add(SeasonFixture(
+                    seasonId = seasonId,
+                    competitionId = plannedGameEntry.value[0].competitionId,
+                    teamCategoryId = plannedGameEntry.key,
+                    date = seasonWeeks.competitionWeeks(plannedGameEntry.value[0].competitionId)?.get(0) ?: 0,
+                    message = "INCOMPLETE",
+                    homeAssociationId = 0,
+                    homeTeamNumber = 0,
+                    awayAssociationId = 0,
+                    awayTeamNumber = 0
+                ))
             }
         }
 
@@ -169,8 +181,8 @@ class SeasonLeagueGames {
     fun prepareGames(competitionId: CompetitionId, teamCategoryId: TeamCategoryId, gameStructure: Short, teams: List<SeasonTeam>) {
         val allTeams = expandTeams(teams)
         plannedGamesByTeamCategoryId[teamCategoryId] = when (gameStructure) {
-            1.toShort() -> prepareSingleGames(competitionId, allTeams)
-            2.toShort() -> prepareHomeAndAwayGames(competitionId, allTeams)
+            MatchStructures.SINGLE.ordinal.toShort() -> prepareSingleGames(competitionId, allTeams)
+            MatchStructures.HOME_AWAY.ordinal.toShort() -> prepareHomeAndAwayGames(competitionId, allTeams)
             else -> mutableListOf()
         }
      }
