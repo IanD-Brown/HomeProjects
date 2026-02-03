@@ -106,12 +106,13 @@ fun NavigateSeasonCompetitionRound(argument: String?) {
 
 @Composable
 private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
-    val seasonParameter = parametersOf(param.seasonId, param.competitionId)
-    val viewModel: SeasonCompetitionRoundViewModel = koinInject { seasonParameter }
+    val viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
     val state = viewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
     var calculating by remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState()
+    val seasonCompetitionViewModel = koinInject<SeasonCompetitionViewModel> { parametersOf(param.seasonId, param.competitionId) }
+    val seasonCompetitionState = seasonCompetitionViewModel.uiState.collectAsState()
 
     if (calculating) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -121,7 +122,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
         ViewCommon(
             "Competition rounds in ${param.seasonName} for ${param.competitionName}",
             bottomBar = {
-                BottomBarWithButtonN("+") {
+                BottomBarWithButtonN("+", seasonCompetitionState.value.isNotEmpty()) {
                     editor.editRoute(SeasonCompetitionRoundEditorInfo(param))
                 }
             },
@@ -145,13 +146,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                         item { ViewText(it.round.toString()) }
                         item { ViewText(it.description) }
                         item { ViewText(DayDate(it.week).toString()) }
-                        item {
-                            Checkbox(
-                                checked = it.optional,
-                                onCheckedChange = null,
-                                enabled = false
-                            )
-                        }
+                        item { Checkbox(checked = it.optional, onCheckedChange = null, enabled = false) }
                         item {
                             ClickableIcon(Icons.Filled.GridView, "Show fixtures") {
                                 "${editor.name}/Fixtures&${
@@ -166,11 +161,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                                 calculating = true
                                 coroutineScope.launch {
                                     val timeTaken = measureTime {
-                                        calcCupFixtures(
-                                            param.seasonId,
-                                            param.competitionId,
-                                            it.round
-                                        )
+                                        calcCupFixtures(param.seasonId, param.competitionId, it.round)
                                     }
                                     println("Cup fixtures calculated in $timeTaken")
                                 }
@@ -179,12 +170,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                         }
                         item {
                             EditButton {
-                                editor.editRoute(
-                                    SeasonCompetitionRoundEditorInfo(
-                                        param,
-                                        it
-                                    )
-                                )
+                                editor.editRoute(SeasonCompetitionRoundEditorInfo(param, it))
                             }
                         }
                         item {
