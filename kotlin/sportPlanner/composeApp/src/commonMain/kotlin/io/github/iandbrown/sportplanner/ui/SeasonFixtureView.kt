@@ -366,11 +366,13 @@ private fun FixtureDateView(season: Season) {
                     dateTotal[date] = 0
                     dateByAssociation[date] = mutableMapOf()
                 }
-                dateTotal[date] = (dateTotal[date]!! + 1).toShort()
-                if (dateByAssociation[date]?.contains(home) == false) {
-                    dateByAssociation[date]?.put(home, 0)
+                if (home.isNotBlank()) {
+                    dateTotal[date] = (dateTotal[date]!! + 1).toShort()
+                    if (dateByAssociation[date]?.contains(home) == false) {
+                        dateByAssociation[date]?.put(home, 0)
+                    }
+                    dateByAssociation[date]?.set(home, (dateByAssociation[date]!![home]!! + 1).toShort())
                 }
-                dateByAssociation[date]?.set(home, (dateByAssociation[date]!![home]!! + 1).toShort())
             }
             LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Date") }
