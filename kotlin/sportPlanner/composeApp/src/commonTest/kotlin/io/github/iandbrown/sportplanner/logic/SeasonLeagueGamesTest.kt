@@ -115,6 +115,32 @@ class SeasonLeagueGamesTest : BehaviorSpec({
                 scheduledFixtures.none { it.date == getDayDateVal("08/09/2025") && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) } shouldBe true
             }
         }
+
+        When("the season is too short for the games to be scheduled") {
+            val seasonCompetitions = listOf(
+                createSeasonCompView(1, "01/09/2025", "07/09/2025")
+            )
+            val seasonWeeks = SeasonWeeks(seasonCompetitions, emptyList())
+            val seasonTeamCategories = listOf(
+                SeasonTeamCategory(1, 1, 1, 2, false)
+            )
+            val teamCategories = listOf(TeamCategory(1, "Team category", 1))
+
+            seasonLeagueGames.prepareGames(1, 1, 2, teams)
+            val scheduledFixtures = seasonLeagueGames.scheduleFixtures(
+                1,
+                seasonWeeks,
+                teamCategories,
+                seasonTeamCategories,
+                emptyList(),
+                mapOf(Pair(Pair(1, 1), 3)),
+                setOf(1.toShort())
+            )
+
+            then("a fixture should have the message INCOMPLETE") {
+                scheduledFixtures.filter{it.message == "INCOMPLETE"}.size shouldBe 1
+            }
+        }
     }
 })
 

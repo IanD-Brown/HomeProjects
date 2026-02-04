@@ -123,16 +123,23 @@ private class FixtureScheduler(
         val plannedGames = mutableListOf<PlannedGame>()
         val playingTeams = mutableSetOf<Team>()
         for (force in listOf(false, true)) {
-            if (force && (plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.isEmpty() == true ||
-                        playingTeams.size + 1 >= teamsByCategoryAndCompetition[Pair(teamCategory.teamCategoryId, teamCategory.competitionId)]!!)) {
+            if (plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.isEmpty() == true ||
+                (force && playingTeams.size + 1 >= teamsByCategoryAndCompetition[Pair(teamCategory.teamCategoryId, teamCategory.competitionId)]!!)) {
                 break
             }
 
-            val games = plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.sortedByDescending { game ->
-                val homeTeam = Triple(teamCategory.teamCategoryId, game.homeAssociationId, game.homeTeamNumber)
-                val awayTeam = Triple(teamCategory.teamCategoryId, game.awayAssociationId, game.awayTeamNumber)
-                gamesToSchedule[awayTeam]!!.coerceAtLeast(gamesToSchedule[homeTeam]!!)
+            val gameComparator = Comparator<PlannedGame> { game1, game2 ->
+                val homeTeam1 = teamOf(teamCategory.teamCategoryId, game1, Location.HOME)
+                val awayTeam1 = teamOf(teamCategory.teamCategoryId, game1, Location.AWAY)
+                val homeTeam2 = teamOf(teamCategory.teamCategoryId, game2, Location.HOME)
+                val awayTeam2 = teamOf(teamCategory.teamCategoryId, game2, Location.AWAY)
+                val gamesToSchedule1 = gamesToSchedule[homeTeam1]!!.coerceAtLeast(gamesToSchedule[awayTeam1]!!)
+                val gamesToSchedule2 = gamesToSchedule[homeTeam2]!!.coerceAtLeast(gamesToSchedule[awayTeam2]!!)
+
+                gamesToSchedule2 - gamesToSchedule1
             }
+
+            val games = plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.sortedWith( gameComparator)
 
             for (plannedGame in games!!) {
                 val homeTeam = teamOf(teamCategory.teamCategoryId, plannedGame, Location.HOME)
@@ -228,7 +235,7 @@ class SeasonLeagueGames {
                     )
                 }
         }
-        return games
+        return games.shuffled(random).toMutableList()
     }
 
     private fun prepareSingleGames(competitionId: CompetitionId, teams: List<Pair<AssociationId, TeamNumber>>): MutableList<PlannedGame> {
