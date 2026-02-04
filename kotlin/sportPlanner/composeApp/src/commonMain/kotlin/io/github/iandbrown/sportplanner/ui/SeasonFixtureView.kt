@@ -464,16 +464,17 @@ fun teamName(association : String, number : Short) : String {
     return "$association$postfix"
 }
 
-private suspend fun calcFixtures(seasonId : Short) {
+private suspend fun calcFixtures(seasonId : SeasonId) {
     val db : AppDatabase by inject(AppDatabase::class.java)
     val seasonFixtureDao = db.getSeasonFixtureDao()
     val seasonWeeks = createSeasonWeeks(seasonId)
     val leagueGames = SeasonLeagueGames()
     val seasonTeamDao = db.getSeasonTeamDao()
     val activeLeagueCompetitions = db.getSeasonCompetitionDao().getActiveLeagueCompetitions(seasonId)
+    val seasonTeamCategoryDao = db.getSeasonTeamCategoryDao()
 
     for (activeLeagueCompetition in activeLeagueCompetitions) {
-        for (activeTeamCategory in db.getSeasonTeamCategoryDao().getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
+        for (activeTeamCategory in seasonTeamCategoryDao.getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
             seasonFixtureDao.deleteBySeasonTeamCategory(seasonId, activeTeamCategory.teamCategoryId, activeLeagueCompetition.competitionId)
 
             if (activeTeamCategory.games == 0.toShort()) {
@@ -509,7 +510,7 @@ private suspend fun calcFixtures(seasonId : Short) {
     for (fixture in leagueGames.scheduleFixtures(seasonId,
         seasonWeeks,
         db.getTeamCategoryDao().getAsList(),
-        db.getSeasonTeamCategoryDao().getBySeasonId(seasonId),
+        seasonTeamCategoryDao.getBySeasonId(seasonId),
         db.getSeasonCompRoundViewDao().getBySeason(seasonId),
         teamsByCategoryAndCompetition,
         activeLeagueCompetitions.map {it.competitionId}.toSet())) {

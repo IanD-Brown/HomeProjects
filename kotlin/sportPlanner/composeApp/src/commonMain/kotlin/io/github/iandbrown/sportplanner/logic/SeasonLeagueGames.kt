@@ -60,6 +60,7 @@ private class FixtureScheduler(
             val teamCategoriesByMatchDay = seasonTeamCategories
                 .filter { it.seasonId == seasonId && it.competitionId == competitionId }
                 .filter { !it.locked }
+                .filter { it.games > 0 }
                 .groupBy {teamCategoryIdToMatchDay[it.teamCategoryId]!!}
 
             for (week in seasonWeeks.competitionWeeks(competitionId)!!) {
