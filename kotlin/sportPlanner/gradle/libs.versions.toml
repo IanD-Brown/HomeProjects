@@ -24,7 +24,7 @@ koin-core = "4.1.1"
 androidx-startup = "1.2.0"
 # unit-testing kotest
 kotest-version = "6.1.2"
-kover ="0.9.4"
+kover = "0.9.5"
 filekit = "0.12.0"
 navigationEvent = "1.0.0"
 stability = "0.6.6"
