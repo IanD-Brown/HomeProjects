@@ -28,26 +28,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.skydoves.compose.stability.runtime.TraceRecomposition
-import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
+import io.github.iandbrown.sportplanner.database.SeasonCompRoundViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompView
+import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonFixture
+import io.github.iandbrown.sportplanner.database.SeasonFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonFixtureView
 import io.github.iandbrown.sportplanner.database.SeasonFixtureViewDao
+import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonLeagueTeamView
 import io.github.iandbrown.sportplanner.database.SeasonLeagueTeamViewDao
-import io.github.iandbrown.sportplanner.database.SeasonId
+import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
+import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
+import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
-import io.github.iandbrown.sportplanner.logic.SeasonWeeks.Companion.createSeasonWeeks
+import io.github.iandbrown.sportplanner.logic.SeasonWeeks
+import io.github.iandbrown.sportplanner.logic.SeasonWeeksImpl.Companion.createSeasonWeeks
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
-import kotlin.collections.sortedBy
 import kotlin.time.measureTime
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
@@ -56,7 +62,6 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-import org.koin.java.KoinJavaComponent.inject
 
 private typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 private typealias TeamCountMap = Map<TeamCountKey, Short>
@@ -64,13 +69,13 @@ private typealias TeamCountMap = Map<TeamCountKey, Short>
 class SeasonFixtureViewModel(seasonId: SeasonId) :
     BaseSeasonReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(
         seasonId,
-        inject<SeasonFixtureViewDao>(SeasonFixtureViewDao::class.java).value
+        inject<SeasonFixtureViewDao>().value
     )
 
 class SeasonLeagueTeamViewModel(seasonId: SeasonId) :
     BaseSeasonReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(
         seasonId,
-        inject<SeasonLeagueTeamViewDao>(SeasonLeagueTeamViewDao::class.java).value
+        inject<SeasonLeagueTeamViewDao>().value
     )
 
 private val editor = Editors.SEASON_FIXTURES
@@ -464,14 +469,19 @@ fun teamName(association : String, number : Short) : String {
     return "$association$postfix"
 }
 
-private suspend fun calcFixtures(seasonId : SeasonId) {
-    val db : AppDatabase by inject(AppDatabase::class.java)
-    val seasonFixtureDao = db.getSeasonFixtureDao()
-    val seasonWeeks = createSeasonWeeks(seasonId)
+internal suspend fun calcFixtures(
+    seasonId: SeasonId,
+    seasonFixtureDao: SeasonFixtureDao = inject<SeasonFixtureDao>().value,
+    seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>().value,
+    seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value,
+    seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>().value,
+    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value,
+    seasonCompRoundViewDao: SeasonCompRoundViewDao = inject<SeasonCompRoundViewDao>().value,
+    seasonWeeks: SeasonWeeks? = null
+) {
+    val resolvedSeasonWeeks = seasonWeeks ?: createSeasonWeeks(seasonId)
     val leagueGames = SeasonLeagueGames()
-    val seasonTeamDao = db.getSeasonTeamDao()
-    val activeLeagueCompetitions = db.getSeasonCompetitionDao().getActiveLeagueCompetitions(seasonId)
-    val seasonTeamCategoryDao = db.getSeasonTeamCategoryDao()
+    val activeLeagueCompetitions = seasonCompetitionDao.getActiveLeagueCompetitions(seasonId)
 
     for (activeLeagueCompetition in activeLeagueCompetitions) {
         for (activeTeamCategory in seasonTeamCategoryDao.getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
@@ -481,7 +491,7 @@ private suspend fun calcFixtures(seasonId : SeasonId) {
                 continue
             }
 
-            for (seasonBreak in seasonWeeks.breakWeeks()) {
+            for (seasonBreak in resolvedSeasonWeeks.breakWeeks()) {
                     seasonFixtureDao.insert(SeasonFixture(0,
                         seasonId,
                         activeLeagueCompetition.competitionId,
@@ -497,7 +507,7 @@ private suspend fun calcFixtures(seasonId : SeasonId) {
                 activeLeagueCompetition.competitionId,
                 activeTeamCategory.teamCategoryId,
                 activeTeamCategory.games,
-                seasonTeamDao.getTeams(seasonId, activeTeamCategory.competitionId, activeTeamCategory.teamCategoryId))
+                seasonTeamDao.getTeams(seasonId, activeLeagueCompetition.competitionId, activeTeamCategory.teamCategoryId))
         }
     }
 
@@ -508,10 +518,10 @@ private suspend fun calcFixtures(seasonId : SeasonId) {
     }
 
     for (fixture in leagueGames.scheduleFixtures(seasonId,
-        seasonWeeks,
-        db.getTeamCategoryDao().getAsList(),
+        resolvedSeasonWeeks,
+        teamCategoryDao.getAsList(),
         seasonTeamCategoryDao.getBySeasonId(seasonId),
-        db.getSeasonCompRoundViewDao().getBySeason(seasonId),
+        seasonCompRoundViewDao.getBySeason(seasonId),
         teamsByCategoryAndCompetition,
         activeLeagueCompetitions.map {it.competitionId}.toSet())) {
         seasonFixtureDao.insert(fixture)

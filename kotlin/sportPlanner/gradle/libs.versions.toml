@@ -7,7 +7,7 @@ androidx-activity = "1.12.3"
 androidx-lifecycle = "2.9.6"
 composeHotReload = "1.0.0"
 composeMultiplatform = "1.10.0"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
 # navigation
 navigationCompose = "2.9.1"
@@ -23,11 +23,12 @@ sqliteBundled = "2.6.2"
 koin-core = "4.1.1"
 androidx-startup = "1.2.0"
 # unit-testing kotest
-kotest-version = "6.1.2"
-kover = "0.9.5"
+kotest-version = "6.1.3"
+kover = "0.9.6"
 filekit = "0.12.0"
 navigationEvent = "1.0.0"
 stability = "0.6.6"
+mockkery = "3.1.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -73,3 +74,4 @@ kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version
 kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
 kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}
 stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability" }
+mockkery = { id = "dev.mokkery", version.ref = "mockkery" }

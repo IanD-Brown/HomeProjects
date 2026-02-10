@@ -20,6 +20,10 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
+import org.koin.mp.KoinPlatform.getKoin
+
+// Helper to use Koin inject in top-level functions
+inline fun <reified T : Any> inject() = lazy { getKoin().get<T>() }
 
 private val injectableModules = module {
     viewModelOf(::AssociationViewModel)
@@ -43,8 +47,11 @@ private val injectableModules = module {
     single { get<AppDatabase>().getSeasonCompViewDao() }
     single { get<AppDatabase>().getSeasonCompetitionDao() }
     single { get<AppDatabase>().getSeasonCompetitionRoundDao() }
+    single { get<AppDatabase>().getSeasonCompRoundViewDao() }
+    single { get<AppDatabase>().getSeasonCupFixtureDao() }
     single { get<AppDatabase>().getSeasonCupFixtureViewDao() }
     single { get<AppDatabase>().getSeasonDao() }
+    single { get<AppDatabase>().getSeasonFixtureDao() }
     single { get<AppDatabase>().getSeasonFixtureViewDao() }
     single { get<AppDatabase>().getSeasonTeamCategoryDao() }
     single { get<AppDatabase>().getSeasonTeamDao() }

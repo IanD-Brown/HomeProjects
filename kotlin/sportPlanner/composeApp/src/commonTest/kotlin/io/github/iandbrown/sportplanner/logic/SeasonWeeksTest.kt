@@ -17,7 +17,7 @@ class SeasonWeeksTest : BehaviorSpec({
         val breaks = listOf(SeasonBreak(1.toShort(), 1.toShort(), "Break 1", getDayDateVal("08/09/2025")))
 
         `when`("the season weeks are calculated") {
-            val seasonWeeks = SeasonWeeks(seasonCompetitions, breaks)
+            val seasonWeeks = SeasonWeeksImpl(seasonCompetitions, breaks)
 
             Then("there should be a single break") {
                 seasonWeeks.breakWeeks() shouldContainExactly mapOf(Pair(getDayDateVal("08/09/2025"), "Break 1"))
@@ -39,7 +39,7 @@ class SeasonWeeksTest : BehaviorSpec({
         val breaks = emptyList<SeasonBreak>()
 
         `when`("the season weeks are calculated") {
-            val seasonWeeks = SeasonWeeks(seasonCompetitions, breaks)
+            val seasonWeeks = SeasonWeeksImpl(seasonCompetitions, breaks)
 
             Then("breaks should be empty") {
                 seasonWeeks.breakWeeks().shouldBeEmpty()
@@ -54,7 +54,7 @@ class SeasonWeeksTest : BehaviorSpec({
         val breaks = listOf(SeasonBreak(1.toShort(), 1.toShort(), "Break 1", getDayDateVal("08/09/2025")))
 
         When("the season weeks are calculated") {
-            val seasonWeeks = SeasonWeeks(emptyList(), breaks)
+            val seasonWeeks = SeasonWeeksImpl(emptyList(), breaks)
 
             Then("breaks should be empty") {
                 seasonWeeks.breakWeeks().shouldBeEmpty()
@@ -70,7 +70,7 @@ class SeasonWeeksTest : BehaviorSpec({
             createSeasonBreak(4, "23/02/2026")
         )
         When("The season weeks are calculated") {
-            val seasonWeeks = SeasonWeeks(seasonCompetitions, breaks)
+            val seasonWeeks = SeasonWeeksImpl(seasonCompetitions, breaks)
 
             Then("Breaks should contain the 4 dates") {
                 seasonWeeks.breakWeeks() shouldContainExactly mapOf(Pair(getDayDateVal("27/10/2025"), "Break 1"),

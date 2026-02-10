@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
-import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
@@ -37,10 +36,14 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixture
+import io.github.iandbrown.sportplanner.database.SeasonCupFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureView
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
+import io.github.iandbrown.sportplanner.database.SeasonTeamDao
+import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamNumber
+import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
@@ -54,20 +57,19 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import org.koin.java.KoinJavaComponent.inject
 
 class SeasonCompetitionRoundViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
     BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(
         seasonId,
         competitionId,
-        inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value
+        inject<SeasonCompetitionRoundDao>().value
     )
 
 class SeasonCupFixtureViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
     BaseSeasonCompReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(
         seasonId,
         competitionId,
-        inject<SeasonCupFixtureViewDao>(SeasonCupFixtureViewDao::class.java).value
+        inject<SeasonCupFixtureViewDao>().value
     ) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
@@ -76,7 +78,7 @@ class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionI
     BaseSeasonCompCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(
         seasonId,
         competitionId,
-        inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value
+        inject<SeasonCompetitionDao>().value
     )
 
 
@@ -456,15 +458,14 @@ data class CupFixtureTeams(
 private suspend fun calcCupFixtures(
     seasonId: SeasonId,
     competitionId: CompetitionId,
-    round: Short
+    round: Short,
+    seasonTeamDao : SeasonTeamDao = inject<SeasonTeamDao>().value,
+    dao : SeasonCupFixtureDao = inject<SeasonCupFixtureDao>().value,
+    teamCategoryDao : TeamCategoryDao = inject<TeamCategoryDao>().value
 ) {
-    val db: AppDatabase by inject(AppDatabase::class.java)
-    val seasonTeamDao = db.getSeasonTeamDao()
-    val dao = db.getSeasonCupFixtureDao()
-
     dao.deleteByRound(seasonId, competitionId, round)
 
-    val teamCategories = db.getTeamCategoryDao().getAsList()
+    val teamCategories = teamCategoryDao.getAsList()
     for (teamCategory in teamCategories) {
         if (round == 1.toShort()) {
             val competitionTeams =

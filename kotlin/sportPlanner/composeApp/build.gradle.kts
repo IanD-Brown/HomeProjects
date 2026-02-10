@@ -18,6 +18,8 @@ plugins {
 
     alias(libs.plugins.kover)
     alias(libs.plugins.stability.analyzer)
+
+    alias(libs.plugins.mockkery)
 }
 
 kover {

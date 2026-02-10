@@ -87,7 +87,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             val seasonCompetitions = listOf(
                 createSeasonCompView(1, "01/09/2025", "24/11/2025")
             )
-            val seasonWeeks = SeasonWeeks(seasonCompetitions, emptyList())
+            val seasonWeeks = SeasonWeeksImpl(seasonCompetitions, emptyList())
             val competitionRounds = listOf(
                 SeasonCompRoundView(1, "Round 1", getDayDateVal("08/09/2025"), false, 1)
             )
@@ -120,7 +120,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             val seasonCompetitions = listOf(
                 createSeasonCompView(1, "01/09/2025", "07/09/2025")
             )
-            val seasonWeeks = SeasonWeeks(seasonCompetitions, emptyList())
+            val seasonWeeks = SeasonWeeksImpl(seasonCompetitions, emptyList())
             val seasonTeamCategories = listOf(
                 SeasonTeamCategory(1, 1, 1, 2, false)
             )

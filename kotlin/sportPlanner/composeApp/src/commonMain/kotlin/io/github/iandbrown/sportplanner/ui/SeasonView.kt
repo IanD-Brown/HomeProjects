@@ -32,6 +32,11 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.logic.DayDate
+import kotlin.collections.emptyList
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -70,6 +75,14 @@ class SeasonCompViewModel :
             dao.deleteSeason(seasonId)
         }
     }
+
+    fun getBySeason(seasonId : SeasonId) : Flow<List<SeasonCompView>> =
+        flow {emit(dao.getAsList(seasonId))}
+            .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
 }
 
 private val editor : Editors = Editors.SEASONS
@@ -150,12 +163,13 @@ private fun seasonCompetitionParamOf(seasonCompView : SeasonCompView) : SeasonCo
 private fun SeasonEditor(season : Season? = null) {
     val viewModel: SeasonViewModel = koinInject()
     val seasonParameter = parametersOf(season?.id ?: 0)
-    val seasonCompetitionState = koinInject<SeasonCompViewModel> { seasonParameter }.uiState.collectAsState()
+    val seasonCompetitionState = koinInject<SeasonCompViewModel> { seasonParameter }.getBySeason(season?.id ?: 0).collectAsState(emptyList())
     val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState(emptyList())
     var name by remember { mutableStateOf(season?.name ?: "") }
     val title = if (season == null) "Add Season" else "Edit Season"
     val startDates = remember { mutableStateMapOf<Short, Int>() }
     val endDates = remember { mutableStateMapOf<Short, Int>() }
+    var dirty by remember { mutableStateOf(false) }
 
     ViewCommon(
         title,
@@ -169,22 +183,12 @@ private fun SeasonEditor(season : Season? = null) {
                 }
             }
         },
-        confirm = {
-            if (season == null) {
-                name.isNotEmpty()
-            } else if (season.name != name) {
-                true
-            } else {
-                seasonCompetitionState.value
-                    .filter { it.startDate != startDates[it.competitionId] }
-                    .any { it.endDate != endDates[it.competitionId] }
-            }
-        },
+        confirm = { dirty },
         confirmAction = { save(season, viewModel, name, competitionState, startDates, endDates) },
         content = { paddingValues ->
             val competitionList = competitionState.value.sortedBy { it.name.trim().uppercase() }
             if (season != null) {
-                for (current in seasonCompetitionState.value.filter { it.seasonId == season.id }) {
+                for (current in seasonCompetitionState.value) {
                     if (current.startDate > 0) {
                         startDates[current.competitionId] = current.startDate
                     }
@@ -195,7 +199,10 @@ private fun SeasonEditor(season : Season? = null) {
             }
             LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Name:") }
-                item { ViewTextField(value = name, onValueChange = { name = it }) }
+                item { ViewTextField(value = name, onValueChange = {
+                    name = it
+                    dirty = checkDirty(season, name, seasonCompetitionState, startDates, endDates)
+                }) }
                 item { ReadonlyViewText("") }
                 item { ReadonlyViewText("Competition") }
                 item { ReadonlyViewText("Start") }
@@ -210,6 +217,7 @@ private fun SeasonEditor(season : Season? = null) {
                                 val dayDate = DayDate(it)
                                 dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: Integer.MAX_VALUE) }) {
                             startDates[competition.id] = it
+                            dirty = checkDirty(season, name, seasonCompetitionState, startDates, endDates)
                         }
                     }
                     item {
@@ -219,12 +227,23 @@ private fun SeasonEditor(season : Season? = null) {
                             isSelectable = { val dayDate = DayDate(it)
                                 dayDate.isSunday() && dayDate.value() > (startDates[competition.id] ?: 0) }) {
                             endDates[competition.id] = it
+                            dirty = checkDirty(season, name, seasonCompetitionState, startDates, endDates)
                         }
                     }
                 }
             }
         })
 }
+
+private fun checkDirty(season: Season?, name: String, seasonCompetitionState: State<List<SeasonCompView>>, startDates: SnapshotStateMap<CompetitionId, Int>, endDates: SnapshotStateMap<CompetitionId, Int>): Boolean =
+    if (season == null) {
+        name.isNotEmpty() || endDates.isNotEmpty() || startDates.isNotEmpty()
+    } else if (season.name != name) {
+        true
+    } else {
+        seasonCompetitionState.value
+            .any { it.startDate != startDates[it.competitionId] || it.endDate != endDates[it.competitionId] }
+    }
 
 private fun save(
     season: Season?,
