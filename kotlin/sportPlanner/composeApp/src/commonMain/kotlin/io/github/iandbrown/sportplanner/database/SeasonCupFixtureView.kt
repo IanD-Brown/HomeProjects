@@ -30,7 +30,7 @@ data class SeasonCupFixtureView(
     val seasonId: SeasonId,
     val competitionId: CompetitionId,
     val round: Short,
-    val teamCategoryId: Short,
+    val teamCategoryId: TeamCategoryId,
     val teamCategoryName: String,
     val homeAssociation: AssociationName,
     val homeTeamNumber: TeamNumber,

@@ -284,7 +284,7 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
     }
 }
 
-private enum class FixtureResult(var display: String) {
+internal enum class FixtureResult(var display: String) {
     UN_PLAYED(""), HOME_WIN("Home win"), AWAY_WIN(
         "Away win"
     )
@@ -376,7 +376,7 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
     }
 }
 
-private fun getFixtures(
+internal fun getFixtures(
     allFixtures: List<SeasonCupFixtureView>,
     round: Short,
     filterTeamCategory: String,
@@ -407,7 +407,7 @@ private fun getFixtures(
 }
 
 
-private fun teamDescription(
+internal fun teamDescription(
     fixturesById: Map<Long, SeasonCupFixtureView>,
     pendingFixtureId: Long,
     associationName: AssociationName,
@@ -455,7 +455,7 @@ data class CupFixtureTeams(
     val awayTeamNumber: TeamNumber
 )
 
-private suspend fun calcCupFixtures(
+internal suspend fun calcCupFixtures(
     seasonId: SeasonId,
     competitionId: CompetitionId,
     round: Short,
