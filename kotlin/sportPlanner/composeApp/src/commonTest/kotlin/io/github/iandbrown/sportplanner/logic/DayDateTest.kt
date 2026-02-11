@@ -2,6 +2,7 @@ package io.github.iandbrown.sportplanner.logic
 
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import java.time.LocalDate
 import java.time.chrono.IsoChronology
 import java.time.format.DateTimeFormatter
@@ -31,6 +32,26 @@ class DayDateTest : ShouldSpec({
             val tuesday = DayDate("03/09/2024") // Tuesday
             tuesday.isMonday() shouldBe false
         }
+
+        should("Be false when constructed with 0") {
+            DayDate(0).isMonday() shouldBe false
+        }
+    }
+
+    context("isSunday") {
+        should("return true for a Sunday") {
+            val monday = DayDate("01/09/2024") // Sunday
+            monday.isSunday() shouldBe true
+        }
+
+        should("return false for a Monday") {
+            val tuesday = DayDate("02/09/2024") // Monday
+            tuesday.isSunday() shouldBe false
+        }
+
+        should("Be false when constructed with 0") {
+            DayDate(0).isSunday() shouldBe false
+        }
     }
 
     context("addDays") {
@@ -45,12 +66,20 @@ class DayDateTest : ShouldSpec({
             val newDate = date.addDays(5)
             newDate.toString() shouldBe "04/01/2025"
         }
+
+        should("be unchanged when constructed with 0") {
+            DayDate(0).addDays(5).isValid() shouldBe false
+        }
     }
 
     context("asUtcMs") {
         should("return correct ms for a given date") {
             val date = DayDate("01/01/1970")
             date.asUtcMs() shouldBe 0L
+        }
+
+        should("return the current day start ms when constructed with 0") {
+            DayDate(0).asUtcMs() shouldNotBe 0
         }
     }
 
