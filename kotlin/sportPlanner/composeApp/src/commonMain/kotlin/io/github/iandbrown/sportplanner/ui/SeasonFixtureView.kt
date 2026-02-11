@@ -63,8 +63,8 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-private typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
-private typealias TeamCountMap = Map<TeamCountKey, Short>
+internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
+internal typealias TeamCountMap = Map<TeamCountKey, Short>
 
 class SeasonFixtureViewModel(seasonId: SeasonId) :
     BaseSeasonReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(
@@ -412,7 +412,7 @@ private fun adjustedDate(fixture: SeasonFixtureView, matchDayAdjust: Map<String,
     DayDate(adjustedWeek(fixture, matchDayAdjust)).toString()
 
 
-private fun getFixtures(
+internal fun getFixtures(
     allFixtures: List<SeasonFixtureView>,
     filterCompetition: CompetitionId,
     filterAssociation: String,
@@ -445,7 +445,7 @@ private fun getFixtures(
         }
 }
 
-private fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCountMap : TeamCountMap?) : String {
+internal fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCountMap : TeamCountMap?) : String {
     val key = if (home) {
         Triple(fixture.teamCategoryId, fixture.homeAssociation, fixture.competitionId)
     } else {
@@ -456,7 +456,7 @@ private fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCountMap : 
         null -> ""
         0.toShort() -> ""
         1.toShort() -> key.second
-        else -> teamName(key.second, fixture.homeTeamNumber)
+        else -> teamName(key.second, if (home) fixture.homeTeamNumber else fixture.awayTeamNumber)
     }
 }
 
