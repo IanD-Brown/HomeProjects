@@ -147,18 +147,19 @@ private fun setSeasonCompTeams(
     competitionId: CompetitionId,
     vararg teamCategoryIds: TeamCategoryId
 ) {
+    val activeTeamCategories = teamCategoryIds.map {
+        seasonTeamCategoryOf(competitionId, it, if (it == teamCategoryId) 1 else 0)
+    }
+    val seasonTeams = teamCategoryIds.map { seasonTeamOf(competitionId, it) }
     everySuspend {
         seasonTeamCategoryDao.getActiveTeamCategories(seasonId, competitionId)
-    } returns teamCategoryIds.map { seasonTeamCategoryOf(competitionId, it, if (it == teamCategoryId) 1 else 0) }
+    } returns activeTeamCategories
     everySuspend {
         seasonTeamCategoryDao.getBySeasonId(seasonId)
-    } returns teamCategoryIds.map { seasonTeamCategoryOf(competitionId, it, if (it == teamCategoryId) 1 else 0) }
-    everySuspend {
-        seasonTeamDao.getTeams(seasonId, competitionId, teamCategoryId)
-    } returns teamCategoryIds.map { seasonTeamOf(competitionId, it) }
+    } returns activeTeamCategories
     everySuspend {
         seasonTeamDao.getBySeason(seasonId)
-    } returns teamCategoryIds.map { seasonTeamOf(competitionId, it) }
+    } returns seasonTeams
 
     for (teamCategoryId in teamCategoryIds) {
         everySuspend { seasonTeamDao.getTeams(seasonId, competitionId, teamCategoryId)
