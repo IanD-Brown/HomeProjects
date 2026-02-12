@@ -18,11 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
+import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
-import org.koin.java.KoinJavaComponent.inject
 
-class AssociationViewModel : BaseConfigCRUDViewModel<AssociationDao, Association>(inject<AssociationDao>(AssociationDao::class.java).value)
+class AssociationViewModel : BaseConfigCRUDViewModel<AssociationDao, Association>(inject<AssociationDao>().value)
 
 private val editor = Editors.ASSOCIATIONS
 

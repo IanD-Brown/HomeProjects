@@ -422,6 +422,8 @@ class DoubleFirstGridCells(val columns : Int) : GridCells {
         }
         if (columns > 0) {
             sizes.add(0, usableWidth - (laterColumnWidth * (columns - 1)))
+        } else {
+            sizes.add(availableSize)
         }
         return sizes
     }

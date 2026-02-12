@@ -18,16 +18,16 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
+import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import org.koin.java.KoinJavaComponent.inject
 
 class SeasonTeamCategoryViewModel(seasonId : SeasonId, competitionId : CompetitionId) :
     BaseSeasonCompCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(
         seasonId,
         competitionId,
-        inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value
+        inject<SeasonTeamCategoryDao>().value
     )
 
 @Composable

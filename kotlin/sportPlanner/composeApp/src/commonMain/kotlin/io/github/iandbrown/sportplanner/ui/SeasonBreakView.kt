@@ -20,6 +20,7 @@ import io.github.iandbrown.sportplanner.database.SeasonBreak
 import io.github.iandbrown.sportplanner.database.SeasonBreakDao
 import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.github.iandbrown.sportplanner.database.SeasonId
+import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -28,10 +29,9 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-import org.koin.java.KoinJavaComponent.inject
 
 class SeasonBreakViewModel(seasonId : SeasonId)
-    : BaseSeasonCRUDViewModel<SeasonBreakDao, SeasonBreak>(seasonId, inject<SeasonBreakDao>(SeasonBreakDao::class.java).value)
+    : BaseSeasonCRUDViewModel<SeasonBreakDao, SeasonBreak>(seasonId, inject<SeasonBreakDao>().value)
 
 private val editor : Editors = Editors.SEASON_BREAK
 @Serializable
@@ -112,7 +112,7 @@ private fun SeasonBreakEditor(info: SeasonBreakEditorInfo) {
 }
 
 private fun save(coroutineScope: CoroutineScope, info: SeasonBreakEditorInfo, name: String, week: Int) {
-    val database : AppDatabase by inject(AppDatabase::class.java)
+    val database : AppDatabase by inject()
     coroutineScope.launch {
         if (info.seasonBreak == null) {
             database.getSeasonBreakDao()

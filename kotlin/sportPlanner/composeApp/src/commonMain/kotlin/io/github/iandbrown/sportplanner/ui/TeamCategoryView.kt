@@ -13,13 +13,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
+import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
-import org.koin.java.KoinJavaComponent.inject
 
 class TeamCategoryViewModel :
     BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(
-        inject<TeamCategoryDao>(TeamCategoryDao::class.java).value
+        inject<TeamCategoryDao>().value
     )
 
 private val editor = Editors.TEAM_CATEGORIES

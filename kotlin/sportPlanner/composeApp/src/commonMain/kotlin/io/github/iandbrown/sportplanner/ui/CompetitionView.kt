@@ -13,15 +13,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionDao
+import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
-import org.koin.java.KoinJavaComponent.inject
 
 class CompetitionViewModel :
     BaseConfigCRUDViewModel<CompetitionDao, Competition>(
-        inject<CompetitionDao>(CompetitionDao::class.java).value
+        inject<CompetitionDao>().value
     )
 
 
@@ -95,7 +95,7 @@ private fun EditCompetition(editCompetition: Competition?) {
 }
 
 private fun save(coroutineScope: CoroutineScope, editCompetition: Competition?, name: String, type: Short) {
-    val dao = inject<CompetitionDao>(CompetitionDao::class.java).value
+    val dao = inject<CompetitionDao>().value
 
     coroutineScope.launch {
         if (editCompetition == null) {

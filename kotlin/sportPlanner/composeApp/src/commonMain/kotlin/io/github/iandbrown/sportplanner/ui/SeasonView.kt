@@ -147,9 +147,11 @@ private fun SeasonListView() {
                             }
                         }
                     }
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Structure") { ClickableIcon(Icons.Default._123, "manage match structure") {
-                        Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView))
-                    }}
+                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Structure") {
+                        ClickableIcon(Icons.Default._123, "manage match structure") {
+                            Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView))
+                        }
+                    }
                 }
             }
         })

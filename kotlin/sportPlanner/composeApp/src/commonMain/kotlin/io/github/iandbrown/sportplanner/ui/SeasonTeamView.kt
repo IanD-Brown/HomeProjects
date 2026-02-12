@@ -18,16 +18,16 @@ import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import org.koin.java.KoinJavaComponent.inject
 
 class SeasonTeamViewModel(seasonId : SeasonId, competitionId : CompetitionId) :
     BaseSeasonCompCRUDViewModel<SeasonTeamDao, SeasonTeam>(
         seasonId,
         competitionId,
-        inject<SeasonTeamDao>(SeasonTeamDao::class.java).value
+        inject<SeasonTeamDao>().value
     )
 
 @Composable
@@ -87,7 +87,7 @@ private fun SeasonTeamEditor(param: SeasonCompetitionParam) {
                 values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
             }
 
-            LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategoryList.size),
+            LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategoryList.size + 1),
                 modifier = Modifier.padding(paddingValues).fillMaxWidth()) {
                 item { ReadonlyViewText("") }
                 for (teamCategory in teamCategoryList) {
