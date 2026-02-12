@@ -26,5 +26,16 @@ class HomeScreenTest : ShouldSpec({
             val expected = "SEASONS/View&${Json.encodeToString(season)}"
             Editors.SEASONS.viewRoute(season) shouldBe expected
         }
+
+        should("only show specific editors on home screen") {
+            val visibleEditors = Editors.entries.filter { it.showOnHome }
+            visibleEditors.map { it.name } shouldBe listOf(
+                "SEASON_FIXTURES",
+                "SEASONS",
+                "COMPETITIONS",
+                "TEAM_CATEGORIES",
+                "ASSOCIATIONS"
+            )
+        }
     }
 })

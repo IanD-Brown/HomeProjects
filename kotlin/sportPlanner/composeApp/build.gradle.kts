@@ -104,6 +104,7 @@ kotlin {
             implementation(libs.kotest.core)
             implementation(libs.kotest.framework)
         }
+
         jvmTest {
             dependencies {
                 implementation(libs.kotest.runner.junit5)
@@ -154,7 +155,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.github.iandbrown.sportplanner"
+            packageName = "sportplanner"
             packageVersion = "1.0.0"
         }
     }
