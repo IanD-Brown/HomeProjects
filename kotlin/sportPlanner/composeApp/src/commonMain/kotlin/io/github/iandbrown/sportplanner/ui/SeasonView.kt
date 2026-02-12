@@ -31,6 +31,7 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.database.SeasonId
+import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import kotlin.collections.emptyList
 import kotlinx.coroutines.flow.Flow
@@ -42,17 +43,15 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import org.koin.java.KoinJavaComponent.inject
 
-class SeasonViewModel : BaseConfigCRUDViewModel<SeasonDao, Season>(inject<SeasonDao>(SeasonDao::class.java).value) {
+class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCRUDViewModel<SeasonDao, Season>(dao) {
     fun saveCompetitions(name: String,
                          competitionState: State<List<Competition>>,
-                         startDates: SnapshotStateMap<Short, Int>,
-                         endDates: SnapshotStateMap<Short, Int>) {
+                         startDates: SnapshotStateMap<CompetitionId, Int>,
+                         endDates: SnapshotStateMap<CompetitionId, Int>,
+                         seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value) {
         viewModelScope.launch {
             val seasonId = dao.getSeasonId(name.trim())!!
-            val seasonCompetitionDao =
-                inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value
             for (competition in competitionState.value) {
                 val seasonCompetition = SeasonCompetition(
                     seasonId = seasonId.toShort(),
@@ -68,8 +67,8 @@ class SeasonViewModel : BaseConfigCRUDViewModel<SeasonDao, Season>(inject<Season
     }
 }
 
-class SeasonCompViewModel :
-    BaseReadViewModel<SeasonCompViewDao, SeasonCompView>(inject<SeasonCompViewDao>(SeasonCompViewDao::class.java).value) {
+class SeasonCompViewModel(dao: SeasonCompViewDao = inject<SeasonCompViewDao>().value) :
+    BaseReadViewModel<SeasonCompViewDao, SeasonCompView>(dao) {
     fun deleteSeason(seasonId : SeasonId) {
         viewModelScope.launch {
             dao.deleteSeason(seasonId)
@@ -237,22 +236,24 @@ private fun SeasonEditor(season : Season? = null) {
 
 private fun checkDirty(season: Season?, name: String, seasonCompetitionState: State<List<SeasonCompView>>, startDates: SnapshotStateMap<CompetitionId, Int>, endDates: SnapshotStateMap<CompetitionId, Int>): Boolean =
     if (season == null) {
-        name.isNotEmpty() || endDates.isNotEmpty() || startDates.isNotEmpty()
-    } else if (season.name != name) {
-        true
+        name.isNotEmpty() || startDates.isNotEmpty() || endDates.isNotEmpty()
     } else {
-        seasonCompetitionState.value
-            .any { it.startDate != startDates[it.competitionId] || it.endDate != endDates[it.competitionId] }
+        if (name != season.name) {
+            true
+        } else {
+            var result = false
+            for (current in seasonCompetitionState.value) {
+                if ((startDates[current.competitionId] ?: 0) != current.startDate ||
+                    (endDates[current.competitionId] ?: 0) != current.endDate) {
+                    result = true
+                    break
+                }
+            }
+            result
+        }
     }
 
-private fun save(
-    season: Season?,
-    viewModel: SeasonViewModel,
-    name: String,
-    competitionState: State<List<Competition>>,
-    startDates: SnapshotStateMap<Short, Int>,
-    endDates: SnapshotStateMap<Short, Int>
-) {
+private fun save(season : Season?, viewModel: SeasonViewModel, name: String, competitionState: State<List<Competition>>, startDates: SnapshotStateMap<Short, Int>, endDates: SnapshotStateMap<Short, Int>) {
     if (season == null) {
         viewModel.insert(Season(name = name.trim()))
     } else {
