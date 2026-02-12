@@ -19,10 +19,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 
-class CompetitionViewModel :
-    BaseConfigCRUDViewModel<CompetitionDao, Competition>(
-        inject<CompetitionDao>().value
-    )
+class CompetitionViewModel(dao: CompetitionDao = inject<CompetitionDao>().value) :
+    BaseConfigCRUDViewModel<CompetitionDao, Competition>(dao)
 
 
 private val editor = Editors.COMPETITIONS

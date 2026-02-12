@@ -58,28 +58,20 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
-class SeasonCompetitionRoundViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
-    BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(
-        seasonId,
-        competitionId,
-        inject<SeasonCompetitionRoundDao>().value
-    )
+class SeasonCompetitionRoundViewModel(seasonId: SeasonId,
+                                      competitionId: CompetitionId,
+                                      dao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>().value) :
+    BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(seasonId, competitionId, dao)
 
-class SeasonCupFixtureViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
-    BaseSeasonCompReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(
-        seasonId,
-        competitionId,
-        inject<SeasonCupFixtureViewDao>().value
-    ) {
+class SeasonCupFixtureViewModel(seasonId: SeasonId,
+                                competitionId: CompetitionId,
+                                dao: SeasonCupFixtureViewDao = inject<SeasonCupFixtureViewDao>().value) :
+    BaseSeasonCompReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(seasonId, competitionId, dao) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
 
-class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId) :
-    BaseSeasonCompCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(
-        seasonId,
-        competitionId,
-        inject<SeasonCompetitionDao>().value
-    )
+class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId, dao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value) :
+    BaseSeasonCompCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(seasonId, competitionId, dao)
 
 
 private val editor: Editors = Editors.SEASON_COMPETITION_ROUND

@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.SeasonCompViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
@@ -23,12 +24,9 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
-class SeasonTeamViewModel(seasonId : SeasonId, competitionId : CompetitionId) :
-    BaseSeasonCompCRUDViewModel<SeasonTeamDao, SeasonTeam>(
-        seasonId,
-        competitionId,
-        inject<SeasonTeamDao>().value
-    )
+class SeasonTeamViewModel(seasonId : SeasonId,
+                          competitionId : CompetitionId, dao: SeasonTeamDao = inject<SeasonTeamDao>().value) :
+    BaseSeasonCompCRUDViewModel<SeasonTeamDao, SeasonTeam>(seasonId, competitionId, dao)
 
 @Composable
 fun NavigateSeasonTeam(argument: String?) {

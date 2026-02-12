@@ -23,12 +23,10 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
-class SeasonTeamCategoryViewModel(seasonId : SeasonId, competitionId : CompetitionId) :
-    BaseSeasonCompCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(
-        seasonId,
-        competitionId,
-        inject<SeasonTeamCategoryDao>().value
-    )
+class SeasonTeamCategoryViewModel(seasonId : SeasonId,
+                                  competitionId : CompetitionId,
+                                  dao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>().value) :
+    BaseSeasonCompCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(seasonId, competitionId, dao)
 
 @Composable
 fun NavigateSeasonTeamCategory(argument: String?) {

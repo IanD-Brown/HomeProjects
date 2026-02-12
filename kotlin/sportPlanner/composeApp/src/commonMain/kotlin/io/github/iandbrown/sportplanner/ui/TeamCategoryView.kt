@@ -17,10 +17,8 @@ import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 
-class TeamCategoryViewModel :
-    BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(
-        inject<TeamCategoryDao>().value
-    )
+class TeamCategoryViewModel(dao : TeamCategoryDao = inject<TeamCategoryDao>().value) :
+    BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(dao)
 
 private val editor = Editors.TEAM_CATEGORIES
 private enum class Day(val display : String) {

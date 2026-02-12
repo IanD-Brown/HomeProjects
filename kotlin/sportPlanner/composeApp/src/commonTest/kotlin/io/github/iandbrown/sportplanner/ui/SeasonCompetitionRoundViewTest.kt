@@ -8,12 +8,15 @@ import dev.mokkery.verifySuspend
 import io.github.iandbrown.sportplanner.database.SeasonCupFixture
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureView
+import io.github.iandbrown.sportplanner.database.SeasonCupFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 
 class SeasonCompetitionRoundViewTest : ShouldSpec({
     val seasonId = 1.toShort()
@@ -166,6 +169,21 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
                 prevFixtureId to SeasonCupFixtureView(prevFixtureId, seasonId, competitionId, 1, teamCategoryId, "U10", "Assoc A", 0, "Assoc B", 0, 0L, 0L, 0.toShort()) // Unplayed
             )
             teamDescription(fixturesById, prevFixtureId, "", 0) shouldBe "Assoc A OR Assoc B"
+        }
+    }
+
+    context("SeasonCupFixtureViewModel") {
+        val dao = mock<SeasonCupFixtureViewDao>()
+        should("call setResult on dao") {
+            everySuspend { dao.get(seasonId, competitionId) } returns flowOf(emptyList())
+            everySuspend { dao.setResult(1L, 1.toShort()) } returns Unit
+            val viewModel = SeasonCupFixtureViewModel(seasonId, competitionId, dao)
+
+            runBlocking {
+                viewModel.setResult(1L, 1.toShort())
+            }
+
+            verifySuspend { dao.setResult(1L, 1.toShort()) }
         }
     }
 })

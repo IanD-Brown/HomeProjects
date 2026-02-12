@@ -66,17 +66,13 @@ import org.koin.core.parameter.parametersOf
 internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 internal typealias TeamCountMap = Map<TeamCountKey, Short>
 
-class SeasonFixtureViewModel(seasonId: SeasonId) :
-    BaseSeasonReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(
-        seasonId,
-        inject<SeasonFixtureViewDao>().value
-    )
+class SeasonFixtureViewModel(seasonId: SeasonId,
+                             dao : SeasonFixtureViewDao = inject<SeasonFixtureViewDao>().value) :
+    BaseSeasonReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(seasonId, dao)
 
-class SeasonLeagueTeamViewModel(seasonId: SeasonId) :
-    BaseSeasonReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(
-        seasonId,
-        inject<SeasonLeagueTeamViewDao>().value
-    )
+class SeasonLeagueTeamViewModel(seasonId: SeasonId,
+                                dao : SeasonLeagueTeamViewDao = inject<SeasonLeagueTeamViewDao>().value) :
+    BaseSeasonReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(seasonId, dao)
 
 private val editor = Editors.SEASON_FIXTURES
 
