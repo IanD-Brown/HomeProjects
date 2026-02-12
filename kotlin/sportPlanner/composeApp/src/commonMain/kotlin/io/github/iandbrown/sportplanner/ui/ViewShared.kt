@@ -375,10 +375,9 @@ class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridC
         val iconSize = (IconSize + 16.dp).roundToPx()
         val remainingSpace = availableSize - totalSpacing - iconSize * iconCount
         val totalWeight = weights.sum()
-        val perWeight = remainingSpace / totalWeight
         return mutableListOf<Int>().apply {
             repeat(weights.size) {
-                add(perWeight * weights[it])
+                add((remainingSpace / totalWeight) * weights[it])
             }
         }.apply {
             repeat(iconCount) {
@@ -392,10 +391,10 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
     GridCells {
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
         // Define the total available width after accounting for spacing
-        val columnCount = dataColumnCount + trailingIconCount + 1
-        val totalSpacing = spacing * columnCount
+        val columnCount = dataColumnCount + trailingIconCount
+        val totalSpacing = spacing * (columnCount - 1)
         val iconSize = (IconSize + 16.dp).roundToPx()
-        val usableWidth = availableSize - totalSpacing - 2 * iconSize
+        val usableWidth = availableSize - (totalSpacing + trailingIconCount * iconSize)
         return mutableListOf<Int>().apply {
             repeat(dataColumnCount) {
                 add(usableWidth / dataColumnCount)
@@ -411,19 +410,19 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
 class DoubleFirstGridCells(val columns : Int) : GridCells {
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
         // Define the total available width after accounting for spacing
-        val columnCount = columns + 1
-        val totalSpacing = spacing * columnCount
+        val totalSpacing = spacing * (columns - 1)
         val usableWidth = availableSize - totalSpacing
 
         // Calculate widths based on a 2:1 ratio (first column twice as wide as second)
-        val firstColumnWidth = (usableWidth * 2 / (columnCount + 1))
-        val laterColumnWidth = (usableWidth * 1 / (columnCount + 1))
+        val laterColumnWidth = (usableWidth * 1) / (columns + 1)
         val sizes = mutableListOf<Int>().apply {
-            repeat(columns) {
+            repeat(columns - 1) {
                 add(laterColumnWidth)
             }
         }
-        sizes.add(0, firstColumnWidth)
+        if (columns > 0) {
+            sizes.add(0, usableWidth - (laterColumnWidth * (columns - 1)))
+        }
         return sizes
     }
 }
