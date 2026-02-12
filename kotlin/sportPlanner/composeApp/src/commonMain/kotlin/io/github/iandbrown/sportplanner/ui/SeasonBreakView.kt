@@ -124,7 +124,7 @@ private fun save(coroutineScope: CoroutineScope, info: SeasonBreakEditorInfo, na
     }
 }
 
-private fun buildDateRange(seasonCompetitions: List<SeasonCompView>): IntRange {
+internal fun buildDateRange(seasonCompetitions: List<SeasonCompView>): IntRange {
     var startDate = 0
     var endDate = 0
     for (seasonCompetition in seasonCompetitions) {
