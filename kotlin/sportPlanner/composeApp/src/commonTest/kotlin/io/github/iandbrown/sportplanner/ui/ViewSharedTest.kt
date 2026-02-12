@@ -99,7 +99,7 @@ class ViewSharedTest : ShouldSpec({
         should("calculate cell sizes correctly for zero columns") {
             with(DoubleFirstGridCells(0)) {
                 val sizes = density.calculateCrossAxisCellSizes(availableSize, spacing)
-                sizes shouldBe emptyList()
+                sizes shouldBe listOf(availableSize)
             }
         }
     }

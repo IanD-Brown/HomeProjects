@@ -17,6 +17,7 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 
 class SeasonViewModelTest : ShouldSpec({
     val seasonDao = mock<SeasonDao>()
@@ -40,7 +41,9 @@ class SeasonViewModelTest : ShouldSpec({
             everySuspend { seasonCompetitionDao.insert(any()) } returns 1L
 
             val seasonViewModel = SeasonViewModel(seasonDao)
-            seasonViewModel.saveCompetitions("Season 1", competitionState, startDates, endDates, seasonCompetitionDao)
+            runBlocking {
+                seasonViewModel.saveCompetitions("Season 1", competitionState, startDates, endDates, seasonCompetitionDao)
+            }
 
             verifySuspend {
                 seasonCompetitionDao.insert(SeasonCompetition(123, compId1, 100, 200))
