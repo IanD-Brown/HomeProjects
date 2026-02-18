@@ -18,17 +18,14 @@ internal class ApplicationContextInitializer : Initializer<Context> {
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 }
 
-actual class DBFactory {
-    actual fun createDatabase(): AppDatabase =
-        Room.databaseBuilder(applicationContext, AppDatabase::class.java, dbFileName)
-            .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .fallbackToDestructiveMigration(true)
-            .addCallback(object : RoomDatabase.Callback() {
-                override fun onCreate(connection: SQLiteConnection) {
-                    super.onCreate(connection)
-                    populateDbOnCreate(connection)
-                }
-            })
-            .build()
-}
+fun builder(): RoomDatabase.Builder<AppDatabase> =
+    Room.databaseBuilder(applicationContext, AppDatabase::class.java, dbFileName)
+        .setDriver(BundledSQLiteDriver())
+        .setQueryCoroutineContext(Dispatchers.IO)
+        .fallbackToDestructiveMigration(true)
+        .addCallback(object : RoomDatabase.Callback() {
+            override fun onCreate(connection: SQLiteConnection) {
+                super.onCreate(connection)
+                populateDbOnCreate(connection)
+            }
+        })

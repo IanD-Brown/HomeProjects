@@ -3,10 +3,6 @@ package io.github.iandbrown.sportplanner.database
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
-expect class DBFactory {
-    fun createDatabase(): AppDatabase
-}
-
 fun populateDbOnCreate(connection: SQLiteConnection) {
     for (name in listOf("DONCASTER", "ROTHERHAM", "BARNSLEY", "LEEDS", "EAST RIDING", "SELBY", "HUDDERSFIELD")) {
         connection.execSQL("INSERT INTO Associations (name) VALUES ('$name')")

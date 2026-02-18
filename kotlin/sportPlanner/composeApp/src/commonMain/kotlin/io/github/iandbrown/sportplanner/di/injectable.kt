@@ -1,7 +1,7 @@
 package io.github.iandbrown.sportplanner.di
 
+import androidx.room.RoomDatabase
 import io.github.iandbrown.sportplanner.database.AppDatabase
-import io.github.iandbrown.sportplanner.database.DBFactory
 import io.github.iandbrown.sportplanner.ui.AssociationViewModel
 import io.github.iandbrown.sportplanner.ui.CompetitionViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonBreakViewModel
@@ -59,11 +59,11 @@ private val injectableModules = module {
     single { get<AppDatabase>().getSeasonLeagueTeamViewDao() }
 }
 
-fun startKoinCommon(dbFactory : DBFactory,
+fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,
                     appDeclaration: KoinAppDeclaration = {}) {
     val dataModule = module {
         // Database
-        single<AppDatabase> { dbFactory.createDatabase() }
+        single<AppDatabase> { databaseBuilder.build() }
     }
     startKoin {
         appDeclaration()
