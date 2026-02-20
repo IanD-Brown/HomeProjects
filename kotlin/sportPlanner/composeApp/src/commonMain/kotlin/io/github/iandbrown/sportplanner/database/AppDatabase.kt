@@ -49,4 +49,4 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getTeamCategoryDao() : TeamCategoryDao
 }
 
-internal const val dbFileName = "SportPlanningDb$majorVersion.db"
+const val dbFileName = "SportPlanningDb$majorVersion.db"
