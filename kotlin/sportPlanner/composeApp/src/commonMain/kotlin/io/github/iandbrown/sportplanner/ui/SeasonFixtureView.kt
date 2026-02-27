@@ -192,7 +192,7 @@ private fun SummaryFixtureView(season: Season) {
                         }
                     }
                 })
-                LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size + 1)) {
+                LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size + 2)) {
                     item { ViewText("") }
                     item { ViewText("") }
                     for (teamCategory in teamCategories) {
