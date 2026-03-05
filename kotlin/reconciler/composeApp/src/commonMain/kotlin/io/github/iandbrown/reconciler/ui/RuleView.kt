@@ -83,7 +83,7 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
 @Composable
 internal fun EditRule(rule: Rule?, viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
     var match by remember { mutableStateOf(rule?.match ?: "") }
-    var type by remember { mutableIntStateOf(rule?.type ?: 0) }
+    var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) RuleType.OTHER.ordinal else rule.type) }
     val title = if (rule == null) "Add Rule" else "Edit Rule"
 
     ViewCommon(
@@ -109,6 +109,7 @@ internal fun EditRule(rule: Rule?, viewModel: RuleViewModel = koinInject<RuleVie
 }
 
 private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int) {
+    match.replace("([^```.])(\\*)", "$1\\*")
     if (rule == null || rule.id == 0)
         viewModel.insert(Rule(match = match.trim(), type = type))
     else

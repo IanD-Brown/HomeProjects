@@ -32,6 +32,7 @@ import kotlinx.datetime.LocalDateTime
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.koin.compose.koinInject
+import java.util.Locale
 import kotlin.math.abs
 
 class TransactionViewModel(dao : TransactionDao = inject<TransactionDao>().value) :
@@ -66,6 +67,7 @@ private fun TransactionEditor(viewModel: TransactionViewModel = koinInject<Trans
                 load()
             }
         }}) { paddingValues ->
+            var total = 0.0
             LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1), Modifier.padding(paddingValues)) {
                 item {ViewText("Filter date ")}
                 item {}
@@ -91,7 +93,11 @@ private fun TransactionEditor(viewModel: TransactionViewModel = koinInject<Trans
                         "add rule",
                         Modifier.clickable(onClick =
                             { appNavController.navigate(Rule(0, transaction.description, 0))}), Color.Green)}
+                    total += transaction.amount
                 }
+                item(span = { GridItemSpan(3)}) { }
+                item { ViewText(String.format(Locale.UK, "%.2f", total))}
+                item {}
             }
         }
 }
@@ -134,7 +140,7 @@ private fun TransactionByGroup(viewModel: TransactionViewModel = koinInject<Tran
     }
 }
 
-private fun filterTransactions(minDate: Int, all: List<Transaction>, rules: List<Rule>): List<Transaction> {
+internal fun filterTransactions(minDate: Int, all: List<Transaction>, rules: List<Rule>): List<Transaction> {
     val finalFilter = rules.filter { it.type == RuleType.OTHER.ordinal }.map { it.match.toRegex() }
     return transactionsByAmount(rules, all, minDate)
         .values
@@ -142,12 +148,11 @@ private fun filterTransactions(minDate: Int, all: List<Transaction>, rules: List
         .filter {transaction -> finalFilter.none { it.containsMatchIn(transaction.description) } }
 }
 
-private fun transactionsByAmount(rules: List<Rule>, all: List<Transaction>, minDate: Int): Map<Double, List<Transaction>> {
+internal fun transactionsByAmount(rules: List<Rule>, all: List<Transaction>, minDate: Int): Map<Double, List<Transaction>> {
     val initialFilter = rules
         .filter { it.type == RuleType.NOISE.ordinal || it.type == RuleType.INCOME.ordinal }
         .map { it.match.toRegex() }
     val reduced = all
-        .filter { it.amount > 0.0 }
         .filter { it.date >= minDate }
         .filter { transaction -> initialFilter.none { it.containsMatchIn(transaction.description) } }
         .groupBy { abs(it.amount) }
@@ -174,13 +179,17 @@ private suspend fun load(transactionDao: TransactionDao = inject<TransactionDao>
                 if (cell0 is LocalDateTime) {
                     val date = DayDate(cell0)
                     val amount = asDouble(row[2]) - asDouble(row[3])
-                    transactionDao.insert(Transaction(sheet.number, rowNumber++, date.value(), description(row[1]), amount))
+                    if (amount != 0.0) {
+                        transactionDao.insert(
+                            Transaction(sheet.number, rowNumber++, date.value(), description(row[1]), amount)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun asDouble(value: Any?) = value as? Double ?: 0.0
+internal fun asDouble(value: Any?) = value as? Double ?: 0.0
 
-private fun description(value: Any?) = value as? String ?: "Unknown"
+internal fun description(value: Any?) = value as? String ?: "Unknown"
