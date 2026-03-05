@@ -16,7 +16,6 @@ import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.runBlocking
 
 class SeasonCompetitionRoundViewTest : ShouldSpec({
     val seasonId = 1.toShort()
@@ -179,9 +178,7 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
             everySuspend { dao.setResult(1L, 1.toShort()) } returns Unit
             val viewModel = SeasonCupFixtureViewModel(seasonId, competitionId, dao)
 
-            runBlocking {
-                viewModel.setResult(1L, 1.toShort())
-            }
+            viewModel.setResult(1L, 1.toShort())
 
             verifySuspend { dao.setResult(1L, 1.toShort()) }
         }

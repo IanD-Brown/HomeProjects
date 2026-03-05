@@ -48,7 +48,7 @@ kover {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         namespace = "io.github.iandbrown.sportplanner"
         compilerOptions {
