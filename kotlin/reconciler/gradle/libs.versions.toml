@@ -1,0 +1,79 @@
+[versions]
+agp = "9.1.0"
+android-compileSdk = "36"
+android-minSdk = "34"
+android-targetSdk = "36"
+androidx-activity = "1.12.4"
+androidx-lifecycle = "2.9.6"
+composeHotReload = "1.0.0"
+composeMultiplatform = "1.10.2"
+kotlin = "2.3.10"
+kotlinx-coroutines = "1.10.2"
+# navigation
+navigationCompose = "2.9.2"
+# theme prefs
+materialThemePrefs = "1.0.0"
+# json serialize
+kotlin-serialize = "1.10.0"
+# room
+room = "2.8.4"
+ksp = "2.3.6"
+sqliteBundled = "2.6.2"
+# koin
+koin-core = "4.1.1"
+androidx-startup = "1.2.0"
+# unit-testing kotest
+kotest-version = "6.1.4"
+kover = "0.9.7"
+filekit = "0.13.0"
+navigationEvent = "1.0.1"
+stability = "0.6.6"
+mockkery = "3.2.0"
+kotlinx-dataframe = "1.0.0-Beta4"
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+# Navigation
+navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+# theme prefs
+material-theme = { module = "io.github.softartdev:theme-material", version.ref = "materialThemePrefs" }
+material-theme-prefs = { module = "io.github.softartdev:theme-material3", version.ref = "materialThemePrefs" }
+# json serialize
+kotlin-serialization-json = {module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlin-serialize"}
+# room
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqliteBundled" }
+# koin
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin-core" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin-core" }
+koin-composeVM = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin-core" }
+# android startup
+androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = "androidx-startup" }
+# unit testing with kotest
+kotest-core = {module = "io.kotest:kotest-assertions-core", version.ref = "kotest-version"}
+kotest-framework = {module = "io.kotest:kotest-framework-engine", version.ref = "kotest-version"}
+kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref = "kotest-version"}
+filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
+filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
+navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationEvent" }
+kotlin-dataframe = { module = "org.jetbrains.kotlinx:dataframe", version.ref = "kotlinx-dataframe"}
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+androidxRoom = { id = "androidx.room", version.ref = "room" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
+kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
+kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}
+stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability" }
+mockkery = { id = "dev.mokkery", version.ref = "mockkery" }
