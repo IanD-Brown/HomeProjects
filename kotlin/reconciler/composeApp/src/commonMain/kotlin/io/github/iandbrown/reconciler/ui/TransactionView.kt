@@ -59,7 +59,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
         "Transactions",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Export") { coroutineScope.launch { export(state.value, minDate) }},
+                ButtonSettings("Export") { coroutineScope.launch { export(filterTransaction(state.value, minDate, filterSheet, filterCategory)) }},
                 ButtonSettings("load") { coroutineScope.launch { load() }})
         }) { paddingValues ->
         LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1), Modifier.padding(paddingValues)) {
@@ -88,11 +88,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             item { ViewText("Description") }
             item { ViewText("Amount") }
             item(span = { GridItemSpan(2) }) {}
-            for (transaction in state.value
-                .filter { it.date >= minDate }
-                .filter {filterSheet == 0 || it.sheet == filterSheet}
-                .filter {filterCategory == null || it.category == filterCategory!!.ordinal}
-                .sortedBy { it.date }) {
+            for (transaction in filterTransaction(state.value, minDate, filterSheet, filterCategory)) {
                 item { ViewText(DayDate(transaction.date).toString()) }
                 item { ViewText(if (transaction.sheet > 0) Sheet.entries[transaction.sheet - 1].displayName() else "") }
                 item { ViewText(transaction.description) }
@@ -107,6 +103,13 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
         }
     }
 }
+
+private fun filterTransaction(state: List<Transaction>, minDate: Int, filterSheet: Int, filterCategory: TransactionCategory?): List<Transaction> =
+    state
+    .filter { it.date >= minDate }
+    .filter { filterSheet == 0 || it.sheet == filterSheet }
+    .filter { filterCategory == null || it.category == filterCategory.ordinal }
+    .sortedBy { it.date }
 
 @Suppress("ParamsComparedByRef")
 @Composable
@@ -243,14 +246,14 @@ private suspend fun load(transactionDao: TransactionDao = inject<TransactionDao>
     }
 }
 
-private suspend fun export(transactions: List<Transaction>, minDate: Int) {
+private suspend fun export(transactions: List<Transaction>) {
     val file = FileKit.openFileSaver(suggestedName = "transactions", extension = "csv")
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
         if (bufferedSink != null) {
             bufferedSink.writeString("Date,Account,Description,Category,Amount\n")
-            for (transaction in transactions.filter { it.date >= minDate }.sortedBy { it.date }) {
+            for (transaction in transactions) {
                 if (transaction.description.indexOf(',') >= 0) {
                     bufferedSink.writeString(
                         "${DayDate(transaction.date)}," +
