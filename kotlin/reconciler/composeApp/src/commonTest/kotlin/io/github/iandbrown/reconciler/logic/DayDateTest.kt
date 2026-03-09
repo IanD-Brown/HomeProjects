@@ -71,4 +71,18 @@ class DayDateTest : ShouldSpec({
             DayDate(0).toString() shouldBe ""
         }
     }
+
+    context("startOfMonth") {
+        should("return the first day of the month") {
+            val date = DayDate("21/01/2023")
+            date.startOfMonth().toString() shouldBe "01/01/23"
+        }
+    }
+
+    context("nextMonth") {
+        should("return the first day of the next month") {
+            val date = DayDate("21/01/2023")
+            date.nextMonth().toString() shouldBe "01/02/23"
+        }
+    }
 })

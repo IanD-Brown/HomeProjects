@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "7d7d2b821897be469c15aca27b324399",
+    "identityHash": "05188532b3c3fdc349cd49f9e6cdb24f",
     "entities": [
       {
         "tableName": "Rules",
@@ -47,7 +47,7 @@
       },
       {
         "tableName": "Transactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sheet` INTEGER NOT NULL, `row` INTEGER NOT NULL, `date` INTEGER NOT NULL, `description` TEXT NOT NULL, `amount` REAL NOT NULL, PRIMARY KEY(`sheet`, `row`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sheet` INTEGER NOT NULL, `rowIndex` INTEGER NOT NULL, `date` INTEGER NOT NULL, `description` TEXT NOT NULL, `amount` REAL NOT NULL, `category` INTEGER NOT NULL, PRIMARY KEY(`sheet`, `rowIndex`))",
         "fields": [
           {
             "fieldPath": "sheet",
@@ -56,8 +56,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "row",
-            "columnName": "row",
+            "fieldPath": "rowIndex",
+            "columnName": "rowIndex",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -78,20 +78,26 @@
             "columnName": "amount",
             "affinity": "REAL",
             "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
             "sheet",
-            "row"
+            "rowIndex"
           ]
         }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7d7d2b821897be469c15aca27b324399')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '05188532b3c3fdc349cd49f9e6cdb24f')"
     ]
   }
 }

@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.RuleDao
+import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
@@ -30,7 +31,9 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.io.readCsv
 import org.koin.compose.koinInject
 
-class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().value)
+class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().value) {
+    fun getDao() : RuleDao = dao
+}
 
 private val editor = Editors.RULES
 
@@ -43,12 +46,24 @@ fun NavigateRule(argument: String?) {
     }
 }
 
-internal enum class RuleType(val displayName: String) {
-    NOISE("Noise"),
-    INCOME("Income"),
-    OTHER("Other")
+internal enum class TransactionCategory(val displayName: String, val includeInSpending: Boolean = true) {
+    NOISE("Noise", false),
+    INCOME("Income", false),
+    OTHER("Other"),
+    HOME("Home"),
+    BASIC_LIVING("Basic living"),
+    HOLIDAYS("Holidaying"),
+    EATING_OUT("Eating out"),
+    CAR("Car"),
+    ACCOUNT("Account"),
+    WILL_ESTATE("Will/Estate", false),
+    FOOTBALL("Football"),
+    DISABLED("Disabled", false),
+    UNKNOWN(""),
+    TRANSFERS("Transfers", false)
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
 private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
@@ -72,7 +87,7 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
             item {}
             for (rule in state.value.sortedBy { it.match }) {
                 item { ViewText(rule.match) }
-                item { ViewText(RuleType.entries[rule.type].displayName) }
+                item { ViewText(TransactionCategory.entries[rule.type].displayName) }
                 item { EditButton { navController -> navController.navigate(rule) } }
                 item { DeleteButton { viewModel.delete(rule) } }
             }
@@ -80,10 +95,11 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
 internal fun EditRule(rule: Rule?, viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
     var match by remember { mutableStateOf(rule?.match ?: "") }
-    var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) RuleType.OTHER.ordinal else rule.type) }
+    var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) TransactionCategory.OTHER.ordinal else rule.type) }
     val title = if (rule == null) "Add Rule" else "Edit Rule"
 
     ViewCommon(
@@ -95,25 +111,44 @@ internal fun EditRule(rule: Rule?, viewModel: RuleViewModel = koinInject<RuleVie
                 it.popBackStack()
             }
         },
-        confirm = {match.isNotEmpty() && (rule == null || match != rule.match)},
+        confirm = {match.isNotEmpty() && (rule == null || match != rule.match) || (rule != null && type != rule.type)},
         confirmAction = {save(rule, viewModel, match, type)},
         content = { paddingValues ->
             Row(modifier = Modifier.padding(paddingValues), content = {
                 ViewTextField(value = match, label = "Name :") { match = it }
                 DropdownList(
-                    itemList = RuleType.entries.map { it.displayName },
+                    itemList = TransactionCategory.entries.map { it.displayName },
                     selectedIndex = type,
                 ) { type = it }
             })
         })
 }
 
-private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int) {
-    match.replace("([^```.])(\\*)", "$1\\*")
-    if (rule == null || rule.id == 0)
-        viewModel.insert(Rule(match = match.trim(), type = type))
-    else
-        viewModel.update(Rule(rule.id, match.trim(), type = type))
+private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int,
+                 transactionDao: TransactionDao = inject<TransactionDao>().value) {
+    viewModel.coroutineScope.launch {
+        if (rule == null || rule.id == 0) {
+            viewModel.getDao().insert(Rule(match = match.trim(), type = type))
+        } else {
+            if (rule.type != TransactionCategory.UNKNOWN.ordinal) {
+                val matcher = rule.match.toRegex()
+                transactionDao
+                    .getByCategory(rule.type)
+                    .filter { matcher.containsMatchIn(it.description) }
+                    .forEach { transactionDao.setCategory(it.sheet, it.rowIndex,
+                        TransactionCategory.UNKNOWN.ordinal) }
+            }
+
+            viewModel.getDao().update(Rule(rule.id, match.trim(), type = type))
+        }
+        if (type != TransactionCategory.UNKNOWN.ordinal) {
+            val matcher = match.trim().toRegex()
+            val byUnknownCategory = transactionDao.getByCategory()
+            byUnknownCategory
+                .filter { matcher.containsMatchIn(it.description) }
+                .forEach { transactionDao.setCategory(it.sheet, it.rowIndex, type) }
+        }
+    }
 }
 
 private suspend fun export(rules: List<Rule>) {
@@ -132,7 +167,6 @@ private suspend fun export(rules: List<Rule>) {
             }
         }
     }
-
 }
 
 private suspend fun import(dao: RuleDao = inject<RuleDao>().value) {

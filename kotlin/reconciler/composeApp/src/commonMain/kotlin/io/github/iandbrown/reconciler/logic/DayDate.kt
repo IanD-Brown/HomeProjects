@@ -27,13 +27,16 @@ class DayDate {
         value = YEAR_FACTOR * localDateTime.year + localDateTime.dayOfYear
     }
 
+    constructor(localDate : LocalDate) {
+        value = YEAR_FACTOR * localDate.year + localDate.dayOfYear
+    }
+
     override fun toString() : String {
         if (value == 0) {
             return ""
         }
 
-        val date = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
-        return date.format(DateTimeFormatter.ofPattern("dd/MM/yy"))
+        return getLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yy"))
     }
 
     fun value() : Int = value
@@ -43,7 +46,18 @@ class DayDate {
             return LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
         }
 
-        val date = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
-        return date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        return getLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
     }
+
+    fun startOfMonth() : DayDate {
+        val date = getLocalDate()
+        return DayDate(date.withDayOfMonth(1))
+    }
+
+    fun nextMonth() : DayDate {
+        val date = getLocalDate()
+        return DayDate(date.plusMonths(1)).startOfMonth()
+    }
+
+    private fun getLocalDate(): LocalDate = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
 }

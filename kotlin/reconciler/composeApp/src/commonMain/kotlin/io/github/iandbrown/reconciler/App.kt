@@ -12,13 +12,15 @@ import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.ui.EditRule
 import io.github.iandbrown.reconciler.ui.Editors
 import io.github.iandbrown.reconciler.ui.HomeScreen
+import io.github.iandbrown.reconciler.ui.ViewAllTransaction
 import io.github.iandbrown.reconciler.ui.NavigateRule
-import io.github.iandbrown.reconciler.ui.NavigateTransaction
-import io.github.iandbrown.reconciler.ui.NavigateTransactionByAmount
+import io.github.iandbrown.reconciler.ui.ViewSpendingSummary
+import io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory
 import io.github.iandbrown.reconciler.ui.appFileKitDialogSettings
 import io.github.iandbrown.reconciler.ui.appNavController
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 
+@Suppress("ParamsComparedByRef")
 @Composable
 fun App(fileKitDialogSettings: FileKitDialogSettings) {
     appFileKitDialogSettings = fileKitDialogSettings
@@ -37,12 +39,16 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
                 NavigateRule(getArgument(it))
             }
 
-            composable(getRoute(Editors.TRANSACTIONS)) {
-                NavigateTransaction(getArgument(it))
+            composable(getRoute(Editors.ALL_TRANSACTIONS)) {
+                ViewAllTransaction()
             }
 
-            composable(getRoute(Editors.TRANSACTIONS_BY_AMOUNT)) {
-                NavigateTransactionByAmount(getArgument(it))
+            composable(getRoute(Editors.SUMMARY_BY_CATEGORY)) {
+                ViewTransactionSummaryByCategory()
+            }
+
+            composable(getRoute(Editors.SPENDING_SUMMARY)) {
+                ViewSpendingSummary()
             }
 
             composable<Rule> {
