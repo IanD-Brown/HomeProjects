@@ -159,11 +159,12 @@ private suspend fun export(rules: List<Rule>) {
         if (bufferedSink != null) {
             bufferedSink.writeString("Match,Type\n")
             for (rule in rules.sortedBy { it.match }) {
-                if (rule.match.indexOf(',') >= 0) {
-                    bufferedSink.writeString("\"${rule.match}\",${rule.type}\n")
+                val matchString = if (rule.match.contains(',')) {
+                    "\"${rule.match}\""
                 } else {
-                    bufferedSink.writeString("${rule.match},${rule.type}\n")
+                    rule.match
                 }
+                bufferedSink.writeString("$matchString,${TransactionCategory.entries[rule.type].displayName}\n")
             }
         }
     }
@@ -173,10 +174,15 @@ private suspend fun import(dao: RuleDao = inject<RuleDao>().value) {
     val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
     if (dataFile != null && dataFile.exists()) {
         dao.deleteAll()
+        val categoryLookup = TransactionCategory.entries.associateBy( { it.displayName.uppercase() }, {it.ordinal} )
 
         val df = DataFrame.readCsv(dataFile.toString())
         for (row in df) {
-            dao.insert(Rule(match = row[0] as String, type = row[1] as Int))
-        }
+            val category = row[1] as String?
+            val categoryIndex = categoryLookup[category?.uppercase()]
+            if (categoryIndex != null) {
+                dao.insert(Rule(match = row[0] as String, type = categoryIndex))
+            }
+         }
     }
 }
