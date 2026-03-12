@@ -19,24 +19,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.reconciler.database.Rule
-import io.github.iandbrown.reconciler.database.RuleDao
 import io.github.iandbrown.reconciler.database.Transaction
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.FileKitMode
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
 import kotlinx.io.buffered
 import kotlinx.io.writeString
-import org.jetbrains.kotlinx.dataframe.DataFrame
-import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.koin.compose.koinInject
 import java.util.Locale
 
@@ -60,7 +52,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Export") { coroutineScope.launch { export(filterTransaction(state.value, minDate, filterSheet, filterCategory)) }},
-                ButtonSettings("load") { coroutineScope.launch { load() }})
+                )
         }) { paddingValues ->
         LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1), Modifier.padding(paddingValues)) {
             item (span = { GridItemSpan(6) }) {
@@ -211,39 +203,11 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInjec
 
 private fun escapeString(string: String) = string.replace("*", "\\*")
 
-private enum class Sheet(val sheetName: String, val columns: String, val number : Int) {
-    CREDIT("Credit card", "B,F,H,J", 1),
-    CURRENT("Current account", "B,D,F,G", 2);
+internal enum class Sheet(val number : Int) {
+    CREDIT(1),
+    CURRENT(2);
 
     fun displayName() = name[0] + name.substring(1).lowercase()
-}
-
-private suspend fun load(transactionDao: TransactionDao = inject<TransactionDao>().value,
-                         ruleDao: RuleDao = inject<RuleDao>().value) {
-    val spreadSheetFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls")), mode = FileKitMode.Single)
-    if (spreadSheetFile != null && spreadSheetFile.exists()) {
-        val ruleCategoryMap = ruleDao.getRules().groupBy( { it.match.toRegex() }, {it.type})
-         transactionDao.deleteAll()
-
-        for (sheet in Sheet.entries) {
-            val df = DataFrame.readExcel(spreadSheetFile.toString(), sheet.sheetName, columns = sheet.columns)
-            var rowNumber = 0
-            for (row in df) {
-                val cell0 = row[0]
-                if (cell0 is LocalDateTime) {
-                    val date = DayDate(cell0)
-                    val amount = asDouble(row[2]) - asDouble(row[3])
-                    if (amount != 0.0) {
-                        val description = description(row[1])
-                        val type = ruleCategoryMap.entries.firstOrNull { it.key.containsMatchIn(description) }?.value?.firstOrNull() ?: TransactionCategory.UNKNOWN.ordinal
-                        transactionDao.insert(
-                            Transaction(sheet.number, rowNumber++, date.value(), description, amount, type)
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
 private suspend fun export(transactions: List<Transaction>) {
@@ -274,6 +238,3 @@ private suspend fun export(transactions: List<Transaction>) {
     }
 
 }
-internal fun asDouble(value: Any?) = value as? Double ?: 0.0
-
-internal fun description(value: Any?) = value as? String ?: "Unknown"

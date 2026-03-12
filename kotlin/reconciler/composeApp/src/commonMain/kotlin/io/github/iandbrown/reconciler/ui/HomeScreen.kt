@@ -19,7 +19,8 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     RULES("Rules"),
     ALL_TRANSACTIONS("All Transactions"),
     SUMMARY_BY_CATEGORY("Summary By Category"),
-    SPENDING_SUMMARY("Spending Summary");
+    SPENDING_SUMMARY("Spending Summary"),
+    IMPORT_DEFINITION("Import Definition");
 
     fun viewRoute() : String = "$name/View"
     fun addRoute() : String = "$name/Add"

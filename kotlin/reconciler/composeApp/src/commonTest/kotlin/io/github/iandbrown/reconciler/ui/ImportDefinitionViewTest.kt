@@ -3,7 +3,7 @@ package io.github.iandbrown.reconciler.ui
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class TransactionViewTest {
+class ImportDefinitionViewTest {
 
     @Test
     fun testAsDouble() {

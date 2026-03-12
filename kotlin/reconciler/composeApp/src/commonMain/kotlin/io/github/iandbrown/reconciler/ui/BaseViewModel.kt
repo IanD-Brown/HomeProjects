@@ -36,6 +36,13 @@ abstract class BaseCRUDViewModel<DAO: BaseWriteDao<ENTITY>, ENTITY>(protected va
         return result
     }
 
+    fun update(entity: ENTITY) {
+        coroutineScope.launch {
+            dao.update(entity)
+            read()
+        }
+    }
+
     fun delete(entity: ENTITY) {
         coroutineScope.launch {
             dao.delete(entity)

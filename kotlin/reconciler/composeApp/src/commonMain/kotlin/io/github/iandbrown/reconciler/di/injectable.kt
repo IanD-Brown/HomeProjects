@@ -2,6 +2,7 @@ package io.github.iandbrown.reconciler.di
 
 import androidx.room.RoomDatabase
 import io.github.iandbrown.reconciler.database.AppDatabase
+import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
 import io.github.iandbrown.reconciler.ui.RuleViewModel
 import io.github.iandbrown.reconciler.ui.TransactionViewModel
 import org.koin.core.context.startKoin
@@ -14,10 +15,12 @@ import org.koin.mp.KoinPlatform.getKoin
 inline fun <reified T : Any> inject() = lazy { getKoin().get<T>() }
 
 private val injectableModules = module {
+    viewModelOf(::ImportDefinitionViewModel)
     viewModelOf(::RuleViewModel)
     viewModelOf(::TransactionViewModel)
 
     // Provide DAOs
+    single { get<AppDatabase>().getImportDefinitionDao() }
     single { get<AppDatabase>().getRuleDao() }
     single { get<AppDatabase>().getTransactionDao() }
 }

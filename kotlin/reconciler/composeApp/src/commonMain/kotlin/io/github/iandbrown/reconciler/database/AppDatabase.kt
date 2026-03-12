@@ -7,12 +7,14 @@ private const val version = 1
 private const val majorVersion = 1
 
 @Database(entities = [
+    ImportDefinition::class,
     Rule::class,
     Transaction::class],
     version = version,
     autoMigrations = [
     ])
 abstract class AppDatabase: RoomDatabase() {
+    abstract fun getImportDefinitionDao() : ImportDefinitionDao
     abstract fun getRuleDao() : RuleDao
     abstract fun getTransactionDao() : TransactionDao
 }
