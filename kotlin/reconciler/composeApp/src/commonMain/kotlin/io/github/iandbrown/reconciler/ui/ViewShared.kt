@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -55,6 +57,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import java.util.Locale
 
 val fontSize = 16.sp
 const val OK = "OK"
@@ -360,4 +363,18 @@ fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
             }
         }
     }
+}
+
+fun LazyGridScope.gridEntry(title : String, value : String, onValueChange: (String) -> Unit) {
+    item { ViewText(title) }
+    item { ViewTextField(value = value, onValueChange = onValueChange) }
+}
+
+fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boolean) -> Unit) {
+    item { ViewText(title) }
+    item { Checkbox(value, onValueChange) }
+}
+
+fun LazyGridScope.formatedNumber(format : String, value : Double?) {
+    item { ViewText(String.format(Locale.UK, format, value ?: 0.0)) }
 }

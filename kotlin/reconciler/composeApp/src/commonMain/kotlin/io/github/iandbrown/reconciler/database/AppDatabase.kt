@@ -9,7 +9,8 @@ private const val majorVersion = 1
 @Database(entities = [
     ImportDefinition::class,
     Rule::class,
-    Transaction::class],
+    Transaction::class,
+    TransactionCategory::class],
     version = version,
     autoMigrations = [
     ])
@@ -17,6 +18,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getImportDefinitionDao() : ImportDefinitionDao
     abstract fun getRuleDao() : RuleDao
     abstract fun getTransactionDao() : TransactionDao
+    abstract fun getTransactionCategoryDao() : TransactionCategoryDao
 }
 
 const val dbFileName = "ReconcilerDb$majorVersion.db"

@@ -30,10 +30,15 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import kotlinx.io.buffered
+import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.io.readCsv
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.koin.compose.koinInject
 
@@ -52,7 +57,10 @@ fun ImportDefinitionListView(viewModel: ImportDefinitionViewModel = koinInject<I
     ViewCommon(
         "ImportDefinitions",
         bottomBar = {
-            BottomBarWithButtons(ButtonSettings("+") { it.navigate(ImportDefinition()) })
+            BottomBarWithButtons(
+                ButtonSettings("Import") { coroutineScope.launch { import() }},
+                ButtonSettings("Export") { coroutineScope.launch { export(state.value) }},
+                ButtonSettings("+") { it.navigate(ImportDefinition()) })
         }) { paddingValues ->
         LazyVerticalGrid(
             columns = WeightedIconGridCells(3, 5, 1),
@@ -250,7 +258,7 @@ private suspend fun perform(importDefinition: ImportDefinition,
                             ruleDao: RuleDao = inject<RuleDao>().value) {
     val spreadSheetFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls")), mode = FileKitMode.Single)
     if (spreadSheetFile != null && spreadSheetFile.exists()) {
-        val ruleCategoryMap = ruleDao.getRules().groupBy( { it.match.toRegex() }, {it.type})
+        val ruleCategoryMap = ruleDao.getRules().groupBy( { it.match.toRegex() }, {it.category})
         when (ImportTypes.entries[importDefinition.type]) {
             ImportTypes.FULL -> {
                 transactionDao.deleteAll()
@@ -290,7 +298,13 @@ private fun columns(type: ImportTypes, def: ImportDefinition) =
         ImportTypes.CURRENT -> "${def.currentDateColumn},${def.currentDescriptionColumn},${def.currentAmountInColumn},${def.currentAmountOutColumn}"
     }
 
-private suspend fun perform(spreadSheetFile: PlatformFile, sheetName: String, columns: String, ruleCategoryMap: Map<Regex, List<Int>>, transactionDao: TransactionDao, sheetNumber: Int) {
+private suspend fun perform(
+    spreadSheetFile: PlatformFile,
+    sheetName: String,
+    columns: String,
+    ruleCategoryMap: Map<Regex, List<Int>>,
+    transactionDao: TransactionDao,
+    sheetNumber: Int) {
     val df = DataFrame.readExcel(spreadSheetFile.toString(), sheetName, columns = columns)
     var rowNumber = 0
     for (row in df) {
@@ -300,11 +314,10 @@ private suspend fun perform(spreadSheetFile: PlatformFile, sheetName: String, co
             val amount = asDouble(row[2]) - asDouble(row[3])
             if (amount != 0.0) {
                 val description = description(row[1])
-                val type =
+                val category =
                     ruleCategoryMap.entries.firstOrNull { it.key.containsMatchIn(description) }?.value?.firstOrNull()
-                        ?: TransactionCategory.UNKNOWN.ordinal
                 transactionDao.insert(
-                    Transaction(sheetNumber, rowNumber++, date.value(), description, amount, type)
+                    Transaction(sheetNumber, rowNumber++, date.value(), description, amount, category)
                 )
             }
         }
@@ -314,3 +327,75 @@ private suspend fun perform(spreadSheetFile: PlatformFile, sheetName: String, co
 internal fun asDouble(value: Any?) = value as? Double ?: 0.0
 
 internal fun description(value: Any?) = value as? String ?: "Unknown"
+
+
+private suspend fun export(importDefinitions: List<ImportDefinition>) {
+    val file = FileKit.openFileSaver(suggestedName = "importDefinitions", extension = "csv")
+    val sink = file?.sink(append = false)?.buffered()
+
+    sink.use { bufferedSink ->
+        if (bufferedSink != null) {
+            bufferedSink.writeString("Type,Name,creditSheet,creditDate,creditDescription,creditAmountIn,creditAmountOut,currentSheet,currentDate,currentDescription,currentAmountIn,currentAmountOut\n")
+            for (def in importDefinitions) {
+                bufferedSink.writeString(
+                    "${def.type}," +
+                            "${escape(def.name)}," +
+                            "${escape(def.creditSheetName)}," +
+                            "${escape(def.creditDateColumn)}," +
+                            "${escape(def.creditDescriptionColumn)}," +
+                            "${escape(def.creditAmountInColumn)}," +
+                            "${escape(def.creditAmountOutColumn)}," +
+                            "${escape(def.currentSheetName)}," +
+                            "${escape(def.currentDateColumn)}," +
+                            "${escape(def.currentDescriptionColumn)}," +
+                            "${escape(def.currentAmountInColumn)},\"" +
+                            "${escape(def.currentAmountOutColumn)}\n")
+            }
+        }
+    }
+}
+
+private fun escape(string: String?) =
+    if (string == null) {
+        ""
+    } else if (string.contains(',')) {
+        "\"$string\""
+    } else {
+        string
+    }
+
+private suspend fun import(dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value) {
+    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
+    if (dataFile != null && dataFile.exists()) {
+        dao.deleteAll()
+
+        val df = DataFrame.readCsv(dataFile.toString())
+        for (row in df) {
+            val type = row[0] as Int?
+            if (type != null) {
+                dao.insert(ImportDefinition(
+                    type = type,
+                    name = string(row[1]),
+                    creditSheetName = string(row[2]),
+                    creditDateColumn = string(row[3]),
+                    creditDescriptionColumn = string(row[4]),
+                    creditAmountInColumn = string(row[5]),
+                    creditAmountOutColumn = string(row[6]),
+                    currentSheetName = string(row[7]),
+                    currentDateColumn = string(row[8]),
+                    currentDescriptionColumn = string(row[9]),
+                    currentAmountInColumn = string(row[10]),
+                    currentAmountOutColumn = string(row[11]),
+                ))
+            }
+        }
+    }
+}
+
+private fun string(cell: Any?): String =
+    when (cell) {
+        is String -> cell
+        is Double -> cell.toString()
+        is Char -> cell.toString()
+        else -> ""
+    }

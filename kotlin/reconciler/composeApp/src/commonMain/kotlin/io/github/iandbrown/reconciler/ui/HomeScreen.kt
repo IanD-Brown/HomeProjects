@@ -20,7 +20,8 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     ALL_TRANSACTIONS("All Transactions"),
     SUMMARY_BY_CATEGORY("Summary By Category"),
     SPENDING_SUMMARY("Spending Summary"),
-    IMPORT_DEFINITION("Import Definition");
+    IMPORT_DEFINITION("Import Definitions"),
+    TRANSACTION_CATEGORY("Transaction Categories");
 
     fun viewRoute() : String = "$name/View"
     fun addRoute() : String = "$name/Add"

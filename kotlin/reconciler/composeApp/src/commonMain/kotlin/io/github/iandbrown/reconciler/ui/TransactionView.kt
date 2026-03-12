@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
+import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
@@ -30,7 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
 import org.koin.compose.koinInject
-import java.util.Locale
+import kotlin.math.max
 
 private const val BASE_DATE = "01/01/2026"
 private var baseDate = DayDate(BASE_DATE).value()
@@ -40,20 +41,28 @@ class TransactionViewModel(dao : TransactionDao = inject<TransactionDao>().value
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionViewModel>()) {
+fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
+                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
     var minDate by remember {mutableIntStateOf(baseDate)}
     var filterSheet by remember { mutableIntStateOf(0) }
-    var filterCategory by remember { androidx.compose.runtime.mutableStateOf<TransactionCategory?>(null) }
+    var filterCategory by remember { mutableIntStateOf(-1) }
+    val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
         "Transactions",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Export") { coroutineScope.launch { export(filterTransaction(state.value, minDate, filterSheet, filterCategory)) }},
-                )
+                ButtonSettings("Export") {
+                    coroutineScope.launch {
+                        export(filterTransaction(state.value, minDate, filterSheet, filterCategory), transactionCategories.value)
+                    }
+                },
+            )
         }) { paddingValues ->
+        val categoryNameLookup = transactionCategories.value.associateBy( { it.id }, {it.name} )
+
         LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1), Modifier.padding(paddingValues)) {
             item (span = { GridItemSpan(6) }) {
                 ViewText("Filters")
@@ -68,10 +77,10 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             }
             item(span = { GridItemSpan(2) }) {}
             item {
-                DropdownList(listOf("") + TransactionCategory.entries.map { it.displayName }, 0) {
+                DropdownList(listOf("") + transactionCategories.value.map { it.name }, 0) {
                     filterCategory = when (it) {
-                        0 -> null
-                        else -> TransactionCategory.entries[it - 1]
+                        0 -> -1
+                        else -> transactionCategories.value[it - 1].id
                     }
                 }
             }
@@ -85,7 +94,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
                 item { ViewText(if (transaction.sheet > 0) Sheet.entries[transaction.sheet - 1].displayName() else "") }
                 item { ViewText(transaction.description) }
                 item { ViewText(transaction.amount.toString()) }
-                item { ViewText(TransactionCategory.entries[transaction.category].displayName) }
+                item { ViewText(categoryNameLookup[transaction.category] ?: "") }
                 item { Icon(
                     Icons.Default.Add,
                     "add rule",
@@ -96,25 +105,28 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
     }
 }
 
-private fun filterTransaction(state: List<Transaction>, minDate: Int, filterSheet: Int, filterCategory: TransactionCategory?): List<Transaction> =
+private fun filterTransaction(state: List<Transaction>, minDate: Int, filterSheet: Int, filterCategory: Int): List<Transaction> =
     state
     .filter { it.date >= minDate }
     .filter { filterSheet == 0 || it.sheet == filterSheet }
-    .filter { filterCategory == null || it.category == filterCategory.ordinal }
+    .filter { filterCategory == -1 || it.category == filterCategory }
     .sortedBy { it.date }
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<TransactionViewModel>()) {
+fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
+                        transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     var minDate by remember {mutableIntStateOf(baseDate)}
+    val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
         "Spending Summary",
         bottomBar = {}) { paddingValues ->
+        val includeCategories = transactionCategories.value.filter { it.isSpending }.map {it.id}.toSet()
         val displayTransactions = state.value
             .filter { it.date >= minDate }
-            .filter { TransactionCategory.entries[it.category].includeInSpending }
+            .filter { it.category == 0 || includeCategories.contains(it.category) }
         val byMonth = displayTransactions.groupBy { DayDate(it.date).startOfMonth().value() }
         val maxDate = if (displayTransactions.isNotEmpty()) displayTransactions.maxOf { it.date } else minDate
         val months = mutableListOf<DayDate>()
@@ -142,7 +154,7 @@ fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<Transaction
                 item { ViewText(month.toString().substring(3)) }
                 val transactionsForMonth = byMonth[month.value()]
                 val total = transactionsForMonth?.sumOf { it.amount }
-                item { ViewText(String.format(Locale.UK, "%.2f", total))}
+                formatedNumber("%.2f", total)
                 item { ViewText(transactionsForMonth?.filter { it.sheet == Sheet.CREDIT.number }?.size.toString())}
                 item { ViewText(transactionsForMonth?.filter { it.sheet == Sheet.CURRENT.number }?.size.toString())}
             }
@@ -152,9 +164,11 @@ fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<Transaction
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInject<TransactionViewModel>()) {
+fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
+                                     transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     var minDate by remember {mutableIntStateOf(baseDate)}
+    val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
         "Transaction summary by category",
@@ -168,9 +182,9 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInjec
             months.add(date)
             date = date.nextMonth()
         }
-        val viewCategories = TransactionCategory.entries.filter { it != TransactionCategory.NOISE }
+        val viewCategories = transactionCategories.value.filter { !it.filter }
 
-        LazyVerticalGrid(columns = GridCells.Fixed(viewCategories.size + 1), Modifier.padding(paddingValues)) {
+        LazyVerticalGrid(columns = GridCells.Fixed(viewCategories.size + 2), Modifier.padding(paddingValues)) {
             item {ViewText("Filter date ")}
             item {DatePickerView(
                 minDate,
@@ -179,24 +193,25 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInjec
                 minDate = it
                 baseDate = it
             }}
-            item(span = { GridItemSpan(viewCategories.size - 1) }) {}
+            item(span = { GridItemSpan(max(1, viewCategories.size)) }) {}
             item { ViewText("") }
             for (category in viewCategories) {
-                item { ViewText(category.displayName) }
+                item { ViewText(category.name) }
             }
+            item { ViewText("") }
             for (month in months) {
                 item { ViewText(month.toString().substring(3)) }
                 val nextMonth = month.nextMonth()
                 for (category in viewCategories) {
-                    val total = summaryByCategory[category.ordinal]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount } ?: 0.0
-                    item { ViewText(String.format(Locale.UK, "%.2f", total))}
+                    formatedNumber("%.2f", summaryByCategory[category.id]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
                 }
+                formatedNumber("%.2f", summaryByCategory[null]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
             }
             item {}
             for (category in viewCategories) {
-                val total = summaryByCategory[category.ordinal]?.sumOf { it.amount } ?: 0.0
-                item { ViewText(String.format(Locale.UK, "%.2f", total))}
+                formatedNumber("%.2f", summaryByCategory[category.id]?.sumOf { it.amount })
             }
+            formatedNumber("%.2f", summaryByCategory[null]?.sumOf { it.amount })
         }
     }
 }
@@ -210,12 +225,13 @@ internal enum class Sheet(val number : Int) {
     fun displayName() = name[0] + name.substring(1).lowercase()
 }
 
-private suspend fun export(transactions: List<Transaction>) {
+private suspend fun export(transactions: List<Transaction>, transactionCategories: List<TransactionCategory>) {
     val file = FileKit.openFileSaver(suggestedName = "transactions", extension = "csv")
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
         if (bufferedSink != null) {
+            val categoryLookup = transactionCategories.associateBy( { it.id }, {it.name} )
             bufferedSink.writeString("Date,Account,Description,Category,Amount\n")
             for (transaction in transactions) {
                 if (transaction.description.indexOf(',') >= 0) {
@@ -223,14 +239,14 @@ private suspend fun export(transactions: List<Transaction>) {
                         "${DayDate(transaction.date)}," +
                                 "${Sheet.entries[transaction.sheet - 1].displayName()}," +
                                 "\"${transaction.description}\"," +
-                                "${TransactionCategory.entries[transaction.category].displayName}," +
+                                "${categoryLookup[transaction.category]}," +
                                 "${transaction.amount}\n")
                 } else {
                     bufferedSink.writeString(
                         "${DayDate(transaction.date)}," +
                                 "${Sheet.entries[transaction.sheet - 1].displayName()}," +
                                 "${transaction.description}," +
-                                "${TransactionCategory.entries[transaction.category].displayName}," +
+                                "${categoryLookup[transaction.category]}," +
                                 "${transaction.amount}\n")
                 }
             }

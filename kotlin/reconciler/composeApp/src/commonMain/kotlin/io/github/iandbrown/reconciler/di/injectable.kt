@@ -4,6 +4,7 @@ import androidx.room.RoomDatabase
 import io.github.iandbrown.reconciler.database.AppDatabase
 import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
 import io.github.iandbrown.reconciler.ui.RuleViewModel
+import io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel
 import io.github.iandbrown.reconciler.ui.TransactionViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModelOf
@@ -18,11 +19,13 @@ private val injectableModules = module {
     viewModelOf(::ImportDefinitionViewModel)
     viewModelOf(::RuleViewModel)
     viewModelOf(::TransactionViewModel)
+    viewModelOf(::TransactionCategoryViewModel)
 
     // Provide DAOs
     single { get<AppDatabase>().getImportDefinitionDao() }
     single { get<AppDatabase>().getRuleDao() }
     single { get<AppDatabase>().getTransactionDao() }
+    single { get<AppDatabase>().getTransactionCategoryDao() }
 }
 
 fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,

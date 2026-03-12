@@ -32,4 +32,7 @@ data class ImportDefinition(
 interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<ImportDefinition> {
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<ImportDefinition>>
+
+    @Query("DELETE FROM $table")
+    suspend fun deleteAll()
 }

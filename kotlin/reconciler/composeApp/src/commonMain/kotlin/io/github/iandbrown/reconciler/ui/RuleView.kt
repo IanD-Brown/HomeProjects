@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.RuleDao
+import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.vinceglb.filekit.FileKit
@@ -46,37 +47,24 @@ fun NavigateRule(argument: String?) {
     }
 }
 
-internal enum class TransactionCategory(val displayName: String, val includeInSpending: Boolean = true) {
-    NOISE("Noise", false),
-    INCOME("Income", false),
-    OTHER("Other"),
-    HOME("Home"),
-    BASIC_LIVING("Basic living"),
-    HOLIDAYS("Holidaying"),
-    EATING_OUT("Eating out"),
-    CAR("Car"),
-    ACCOUNT("Account"),
-    WILL_ESTATE("Will/Estate", false),
-    FOOTBALL("Football"),
-    DISABLED("Disabled", false),
-    UNKNOWN(""),
-    TRANSFERS("Transfers", false)
-}
-
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
+private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>(),
+                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
+    val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Rules",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch { import() } },
-                ButtonSettings("Export") { coroutineScope.launch { export(state.value) }},
+                ButtonSettings("Import") { coroutineScope.launch { import(categoryState.value) } },
+                ButtonSettings("Export") { coroutineScope.launch { export(state.value, categoryState.value) }},
                 ButtonSettings("+") { it.navigate(editor.addRoute()) })
         }) { paddingValues ->
+        val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
+
         LazyVerticalGrid(
             columns = WeightedIconGridCells(2, 5, 1),
             Modifier.padding(paddingValues)
@@ -87,7 +75,7 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
             item {}
             for (rule in state.value.sortedBy { it.match }) {
                 item { ViewText(rule.match) }
-                item { ViewText(TransactionCategory.entries[rule.type].displayName) }
+                item { ViewText(categoryLookup[rule.category] ?: "") }
                 item { EditButton { navController -> navController.navigate(rule) } }
                 item { DeleteButton { viewModel.delete(rule) } }
             }
@@ -97,10 +85,13 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-internal fun EditRule(rule: Rule?, viewModel: RuleViewModel = koinInject<RuleViewModel>()) {
+internal fun EditRule(rule: Rule?,
+                      viewModel: RuleViewModel = koinInject<RuleViewModel>(),
+                      transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
     var match by remember { mutableStateOf(rule?.match ?: "") }
-    var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) TransactionCategory.OTHER.ordinal else rule.type) }
+    var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) 0 else rule.category) }
     val title = if (rule == null) "Add Rule" else "Edit Rule"
+    val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
         title,
@@ -111,15 +102,15 @@ internal fun EditRule(rule: Rule?, viewModel: RuleViewModel = koinInject<RuleVie
                 it.popBackStack()
             }
         },
-        confirm = {match.isNotEmpty() && (rule == null || match != rule.match) || (rule != null && type != rule.type)},
+        confirm = {match.isNotEmpty() && (rule == null || match != rule.match) || (rule != null && type != rule.category)},
         confirmAction = {save(rule, viewModel, match, type)},
         content = { paddingValues ->
             Row(modifier = Modifier.padding(paddingValues), content = {
                 ViewTextField(value = match, label = "Name :") { match = it }
                 DropdownList(
-                    itemList = TransactionCategory.entries.map { it.displayName },
+                    itemList = categoryState.value.map {it.name},
                     selectedIndex = type,
-                ) { type = it }
+                ) { type = categoryState.value[it].id }
             })
         })
 }
@@ -128,35 +119,34 @@ private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int
                  transactionDao: TransactionDao = inject<TransactionDao>().value) {
     viewModel.coroutineScope.launch {
         if (rule == null || rule.id == 0) {
-            viewModel.getDao().insert(Rule(match = match.trim(), type = type))
+            viewModel.getDao().insert(Rule(match = match.trim(), category = type))
         } else {
-            if (rule.type != TransactionCategory.UNKNOWN.ordinal) {
+            if (rule.category != 0) {
                 val matcher = rule.match.toRegex()
                 transactionDao
-                    .getByCategory(rule.type)
+                    .getByCategory(rule.category)
                     .filter { matcher.containsMatchIn(it.description) }
-                    .forEach { transactionDao.setCategory(it.sheet, it.rowIndex,
-                        TransactionCategory.UNKNOWN.ordinal) }
+                    .forEach { transactionDao.setCategory(it.sheet, it.rowIndex, null) }
             }
 
-            viewModel.getDao().update(Rule(rule.id, match.trim(), type = type))
+            viewModel.getDao().update(Rule(rule.id, match.trim(), category = type))
         }
-        if (type != TransactionCategory.UNKNOWN.ordinal) {
+        if (type != 0) {
             val matcher = match.trim().toRegex()
-            val byUnknownCategory = transactionDao.getByCategory()
-            byUnknownCategory
+            transactionDao.getByUnknownCategory()
                 .filter { matcher.containsMatchIn(it.description) }
                 .forEach { transactionDao.setCategory(it.sheet, it.rowIndex, type) }
         }
     }
 }
 
-private suspend fun export(rules: List<Rule>) {
+private suspend fun export(rules: List<Rule>, transactionCategories: List<TransactionCategory>) {
     val file = FileKit.openFileSaver(suggestedName = "rules", extension = "csv")
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
         if (bufferedSink != null) {
+            val categoryLookup = transactionCategories.associateBy( { it.id }, {it.name} )
             bufferedSink.writeString("Match,Type\n")
             for (rule in rules.sortedBy { it.match }) {
                 val matchString = if (rule.match.contains(',')) {
@@ -164,24 +154,24 @@ private suspend fun export(rules: List<Rule>) {
                 } else {
                     rule.match
                 }
-                bufferedSink.writeString("$matchString,${TransactionCategory.entries[rule.type].displayName}\n")
+                bufferedSink.writeString("$matchString,${categoryLookup[rule.category]}\n")
             }
         }
     }
 }
 
-private suspend fun import(dao: RuleDao = inject<RuleDao>().value) {
+private suspend fun import(transactionCategories: List<TransactionCategory>, dao: RuleDao = inject<RuleDao>().value) {
     val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
     if (dataFile != null && dataFile.exists()) {
         dao.deleteAll()
-        val categoryLookup = TransactionCategory.entries.associateBy( { it.displayName.uppercase() }, {it.ordinal} )
+        val categoryLookup = transactionCategories.associateBy( { it.name.uppercase() }, {it.id} )
 
         val df = DataFrame.readCsv(dataFile.toString())
         for (row in df) {
             val category = row[1] as String?
-            val categoryIndex = categoryLookup[category?.uppercase()]
-            if (categoryIndex != null) {
-                dao.insert(Rule(match = row[0] as String, type = categoryIndex))
+            val categoryId = categoryLookup[category?.uppercase()]
+            if (categoryId != null) {
+                dao.insert(Rule(match = row[0] as String, category = categoryId))
             }
          }
     }

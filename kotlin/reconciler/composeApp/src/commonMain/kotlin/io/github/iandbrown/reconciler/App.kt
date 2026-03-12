@@ -10,13 +10,16 @@ import androidx.savedstate.read
 import com.softartdev.theme.material3.PreferableMaterialTheme
 import io.github.iandbrown.reconciler.database.ImportDefinition
 import io.github.iandbrown.reconciler.database.Rule
+import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.ui.EditImportDefinition
 import io.github.iandbrown.reconciler.ui.EditRule
+import io.github.iandbrown.reconciler.ui.EditTransactionCategory
 import io.github.iandbrown.reconciler.ui.Editors
 import io.github.iandbrown.reconciler.ui.HomeScreen
 import io.github.iandbrown.reconciler.ui.ImportDefinitionListView
 import io.github.iandbrown.reconciler.ui.ViewAllTransaction
 import io.github.iandbrown.reconciler.ui.NavigateRule
+import io.github.iandbrown.reconciler.ui.TransactionCategoryListView
 import io.github.iandbrown.reconciler.ui.ViewSpendingSummary
 import io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory
 import io.github.iandbrown.reconciler.ui.appFileKitDialogSettings
@@ -64,6 +67,14 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
 
             composable<ImportDefinition> {
                 EditImportDefinition(it.toRoute())
+            }
+
+            composable(getRoute(Editors.TRANSACTION_CATEGORY)) {
+                TransactionCategoryListView()
+            }
+
+            composable<TransactionCategory> {
+                EditTransactionCategory(it.toRoute())
             }
         }
     }
