@@ -4,10 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.reconciler.database.BaseReadDao
 import io.github.iandbrown.reconciler.database.BaseWriteDao
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : ViewModel() {
+    val uiState = read()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
+    fun read() : Flow<List<ENTITY>> = dao.get()
+}
 
 open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao)
         where DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>

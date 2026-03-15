@@ -8,18 +8,21 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.savedstate.read
 import com.softartdev.theme.material3.PreferableMaterialTheme
-import io.github.iandbrown.reconciler.database.ImportDefinition
+import io.github.iandbrown.reconciler.database.Account
+import io.github.iandbrown.reconciler.database.ImportDefinitionListView
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.TransactionCategory
+import io.github.iandbrown.reconciler.ui.AccountListView
+import io.github.iandbrown.reconciler.ui.EditAccount
 import io.github.iandbrown.reconciler.ui.EditImportDefinition
 import io.github.iandbrown.reconciler.ui.EditRule
 import io.github.iandbrown.reconciler.ui.EditTransactionCategory
 import io.github.iandbrown.reconciler.ui.Editors
 import io.github.iandbrown.reconciler.ui.HomeScreen
-import io.github.iandbrown.reconciler.ui.ImportDefinitionListView
-import io.github.iandbrown.reconciler.ui.ViewAllTransaction
+import io.github.iandbrown.reconciler.ui.ImportDefinitionList
 import io.github.iandbrown.reconciler.ui.NavigateRule
 import io.github.iandbrown.reconciler.ui.TransactionCategoryListView
+import io.github.iandbrown.reconciler.ui.ViewAllTransaction
 import io.github.iandbrown.reconciler.ui.ViewSpendingSummary
 import io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory
 import io.github.iandbrown.reconciler.ui.appFileKitDialogSettings
@@ -58,14 +61,14 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
             }
 
             composable(getRoute(Editors.IMPORT_DEFINITION)) {
-                ImportDefinitionListView()
+                ImportDefinitionList()
             }
 
             composable<Rule> {
                 EditRule(it.toRoute())
             }
 
-            composable<ImportDefinition> {
+            composable<ImportDefinitionListView> {
                 EditImportDefinition(it.toRoute())
             }
 
@@ -75,6 +78,14 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
 
             composable<TransactionCategory> {
                 EditTransactionCategory(it.toRoute())
+            }
+
+            composable(getRoute(Editors.ACCOUNTS)) {
+                AccountListView()
+            }
+
+            composable<Account> {
+                EditAccount(it.toRoute())
             }
         }
     }

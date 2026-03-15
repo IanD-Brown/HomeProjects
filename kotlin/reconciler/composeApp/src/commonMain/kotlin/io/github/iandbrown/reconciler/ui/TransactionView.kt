@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
 import io.github.iandbrown.reconciler.database.TransactionCategory
@@ -42,13 +43,15 @@ class TransactionViewModel(dao : TransactionDao = inject<TransactionDao>().value
 @Suppress("ParamsComparedByRef")
 @Composable
 fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
-                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
+                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>(),
+                       accountViewModel:AccountViewModel = koinInject<AccountViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
     var minDate by remember {mutableIntStateOf(baseDate)}
     var filterSheet by remember { mutableIntStateOf(0) }
     var filterCategory by remember { mutableIntStateOf(-1) }
     val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
+    val accounts = accountViewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
         "Transactions",
@@ -56,12 +59,13 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             BottomBarWithButtons(
                 ButtonSettings("Export") {
                     coroutineScope.launch {
-                        export(filterTransaction(state.value, minDate, filterSheet, filterCategory), transactionCategories.value)
+                        export(filterTransaction(state.value, minDate, filterSheet, filterCategory), transactionCategories.value, accounts.value)
                     }
                 },
             )
         }) { paddingValues ->
         val categoryNameLookup = transactionCategories.value.associateBy( { it.id }, {it.name} )
+        val accountNameLookup = accounts.value.associateBy( { it.id }, {it.name} )
 
         LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1), Modifier.padding(paddingValues)) {
             item (span = { GridItemSpan(6) }) {
@@ -71,7 +75,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
                 DatePickerView(minDate, Modifier.padding(0.dp), { true }) { minDate = it; baseDate = it }
             }
             item {
-                DropdownList(listOf("") + Sheet.entries.map { it.displayName() }, 0) {
+                DropdownList(listOf("") + accounts.value.map { it.name }, 0) {
                     filterSheet = it
                 }
             }
@@ -91,7 +95,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             item(span = { GridItemSpan(2) }) {}
             for (transaction in filterTransaction(state.value, minDate, filterSheet, filterCategory)) {
                 item { ViewText(DayDate(transaction.date).toString()) }
-                item { ViewText(if (transaction.sheet > 0) Sheet.entries[transaction.sheet - 1].displayName() else "") }
+                item { ViewText(accountNameLookup[transaction.account] ?: "") }
                 item { ViewText(transaction.description) }
                 item { ViewText(transaction.amount.toString()) }
                 item { ViewText(categoryNameLookup[transaction.category] ?: "") }
@@ -105,20 +109,22 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
     }
 }
 
-private fun filterTransaction(state: List<Transaction>, minDate: Int, filterSheet: Int, filterCategory: Int): List<Transaction> =
+private fun filterTransaction(state: List<Transaction>, minDate: Int, filterAccount: Int, filterCategory: Int): List<Transaction> =
     state
     .filter { it.date >= minDate }
-    .filter { filterSheet == 0 || it.sheet == filterSheet }
+    .filter { filterAccount == 0 || it.account == filterAccount }
     .filter { filterCategory == -1 || it.category == filterCategory }
     .sortedBy { it.date }
 
 @Suppress("ParamsComparedByRef")
 @Composable
 fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
-                        transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
+                        transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>(),
+                        accountViewModel:AccountViewModel = koinInject<AccountViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     var minDate by remember {mutableIntStateOf(baseDate)}
     val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
+    val accounts = accountViewModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
         "Spending Summary",
@@ -136,7 +142,7 @@ fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<Transaction
             date = date.nextMonth()
         }
 
-        LazyVerticalGrid(columns = GridCells.Fixed(4), Modifier.padding(paddingValues)) {
+        LazyVerticalGrid(columns = GridCells.Fixed(2 + accounts.value.size), Modifier.padding(paddingValues)) {
             item {ViewText("Filter date ")}
             item {DatePickerView(
                 minDate,
@@ -145,18 +151,22 @@ fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<Transaction
                 minDate = it
                 baseDate = it
             }}
-            item(span = { GridItemSpan(2) }) {}
+            if (accounts.value.isNotEmpty()) {
+                item(span = { GridItemSpan(accounts.value.size) }) {}
+            }
             item { ViewText("") }
             item { ViewText("Spending") }
-            item { ViewText("Credit transactions") }
-            item { ViewText("Current transactions") }
+            for (account in accounts.value) {
+                item { ViewText("${account.name} transactions") }
+            }
             for (month in months) {
                 item { ViewText(month.toString().substring(3)) }
                 val transactionsForMonth = byMonth[month.value()]
                 val total = transactionsForMonth?.sumOf { it.amount }
                 formatedNumber("%.2f", total)
-                item { ViewText(transactionsForMonth?.filter { it.sheet == Sheet.CREDIT.number }?.size.toString())}
-                item { ViewText(transactionsForMonth?.filter { it.sheet == Sheet.CURRENT.number }?.size.toString())}
+                for (account in accounts.value) {
+                    item { ViewText(transactionsForMonth?.filter { it.account == account.id }?.size.toString())}
+                }
             }
         }
     }
@@ -218,37 +228,25 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInjec
 
 private fun escapeString(string: String) = string.replace("*", "\\*")
 
-internal enum class Sheet(val number : Int) {
-    CREDIT(1),
-    CURRENT(2);
-
-    fun displayName() = name[0] + name.substring(1).lowercase()
-}
-
-private suspend fun export(transactions: List<Transaction>, transactionCategories: List<TransactionCategory>) {
+private suspend fun export(
+    transactions: List<Transaction>,
+    transactionCategories: List<TransactionCategory>,
+    accounts : List<Account>) {
     val file = FileKit.openFileSaver(suggestedName = "transactions", extension = "csv")
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
         if (bufferedSink != null) {
             val categoryLookup = transactionCategories.associateBy( { it.id }, {it.name} )
+            val accountLookup = accounts.associateBy( { it.id }, {it.name} )
             bufferedSink.writeString("Date,Account,Description,Category,Amount\n")
             for (transaction in transactions) {
-                if (transaction.description.indexOf(',') >= 0) {
-                    bufferedSink.writeString(
-                        "${DayDate(transaction.date)}," +
-                                "${Sheet.entries[transaction.sheet - 1].displayName()}," +
-                                "\"${transaction.description}\"," +
-                                "${categoryLookup[transaction.category]}," +
-                                "${transaction.amount}\n")
-                } else {
-                    bufferedSink.writeString(
-                        "${DayDate(transaction.date)}," +
-                                "${Sheet.entries[transaction.sheet - 1].displayName()}," +
-                                "${transaction.description}," +
-                                "${categoryLookup[transaction.category]}," +
-                                "${transaction.amount}\n")
-                }
+                bufferedSink.writeString(
+                    "${DayDate(transaction.date)}," +
+                            "${escape(accountLookup[transaction.account])}," +
+                            "${escape(transaction.description)}," +
+                            "${escape(categoryLookup[transaction.category])}," +
+                            "${transaction.amount}\n")
             }
         }
     }

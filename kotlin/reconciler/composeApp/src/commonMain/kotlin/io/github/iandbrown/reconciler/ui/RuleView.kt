@@ -126,7 +126,7 @@ private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int
                 transactionDao
                     .getByCategory(rule.category)
                     .filter { matcher.containsMatchIn(it.description) }
-                    .forEach { transactionDao.setCategory(it.sheet, it.rowIndex, null) }
+                    .forEach { transactionDao.setCategory(it.account, it.rowIndex, null) }
             }
 
             viewModel.getDao().update(Rule(rule.id, match.trim(), category = type))
@@ -135,7 +135,7 @@ private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int
             val matcher = match.trim().toRegex()
             transactionDao.getByUnknownCategory()
                 .filter { matcher.containsMatchIn(it.description) }
-                .forEach { transactionDao.setCategory(it.sheet, it.rowIndex, type) }
+                .forEach { transactionDao.setCategory(it.account, it.rowIndex, type) }
         }
     }
 }

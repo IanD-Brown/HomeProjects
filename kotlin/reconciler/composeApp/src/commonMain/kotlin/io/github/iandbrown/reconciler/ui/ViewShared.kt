@@ -65,6 +65,8 @@ const val OK = "OK"
 var appFileKitDialogSettings : FileKitDialogSettings? = null
 lateinit var appNavController : NavController
 
+internal enum class EditorState {CLEAN, VALID, DIRTY}
+
 @Composable
 fun ViewCommon(
     title: String,

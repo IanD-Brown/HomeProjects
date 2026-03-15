@@ -20,6 +20,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     ALL_TRANSACTIONS("All Transactions"),
     SUMMARY_BY_CATEGORY("Summary By Category"),
     SPENDING_SUMMARY("Spending Summary"),
+    ACCOUNTS("Accounts"),
     IMPORT_DEFINITION("Import Definitions"),
     TRANSACTION_CATEGORY("Transaction Categories");
 

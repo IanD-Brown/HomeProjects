@@ -65,8 +65,6 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
     }
 }
 
-private enum class EditorState {CLEAN, VALID, DIRTY}
-
 @Suppress("ParamsComparedByRef")
 @Composable
 internal fun EditTransactionCategory(transactionCategory: TransactionCategory,
