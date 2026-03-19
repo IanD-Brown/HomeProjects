@@ -39,7 +39,7 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
-        "Transaction Categories",
+        "Accounts",
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch { import() } },

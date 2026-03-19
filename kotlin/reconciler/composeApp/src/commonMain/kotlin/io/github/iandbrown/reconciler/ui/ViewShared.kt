@@ -1,12 +1,14 @@
 package io.github.iandbrown.reconciler.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.material.icons.Icons
@@ -141,19 +143,6 @@ fun ViewText(value : String, modifier: Modifier = Modifier) {
         fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-    )
-}
-
-@Composable
-fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
-    TextField(
-        value = value,
-        readOnly = true,
-        onValueChange = {},
-        singleLine = true,
-        colors = textFieldColors(),
-        textStyle = textStyle(),
         modifier = modifier
     )
 }
@@ -357,10 +346,9 @@ fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, navigateFu
 
 @Composable
 fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
-    Row {
-        ReadonlyViewText("", Modifier.weight(4f))
+    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
         for (buttonSetting in buttonSettings) {
-            OutlinedTextButton(buttonSetting.value, Modifier.weight(1f), buttonSetting.enabled) {
+            OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
                 buttonSetting.navigateFun(appNavController)
             }
         }

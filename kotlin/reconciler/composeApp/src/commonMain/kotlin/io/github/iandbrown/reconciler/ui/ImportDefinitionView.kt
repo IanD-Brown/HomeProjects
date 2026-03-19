@@ -71,7 +71,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
-        "ImportDefinitions",
+        "Import Definitions",
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch { import() }},

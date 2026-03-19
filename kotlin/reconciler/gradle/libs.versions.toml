@@ -61,7 +61,10 @@ kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref =
 filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationEvent" }
-kotlin-dataframe = { module = "org.jetbrains.kotlinx:dataframe", version.ref = "kotlinx-dataframe"}
+kotlin-dataframe-core = { module = "org.jetbrains.kotlinx:dataframe-core", version.ref = "kotlinx-dataframe"}
+kotlin-dataframe-json = { module = "org.jetbrains.kotlinx:dataframe-json", version.ref = "kotlinx-dataframe"}
+kotlin-dataframe-csv = { module = "org.jetbrains.kotlinx:dataframe-csv", version.ref = "kotlinx-dataframe"}
+kotlin-dataframe-excel = { module = "org.jetbrains.kotlinx:dataframe-excel", version.ref = "kotlinx-dataframe"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

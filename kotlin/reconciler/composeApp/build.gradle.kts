@@ -89,7 +89,10 @@ kotlin {
 
             implementation(libs.navigationevent.compose)
 
-            implementation(libs.kotlin.dataframe)
+            implementation(libs.kotlin.dataframe.core)
+            implementation(libs.kotlin.dataframe.json)
+            implementation(libs.kotlin.dataframe.csv)
+            implementation(libs.kotlin.dataframe.excel)
         }
 
         commonTest.dependencies {
