@@ -15,8 +15,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -71,6 +73,9 @@ public class Organiser2 implements Callable<Integer> {
                 String pathString = dir.toString();
                 hasDCIM.set(pathString.contains("DCIM"));
                 hasImageContainer.set(pathString.endsWith("_PANA") || pathString.endsWith("Camera"));
+                if (!hasDCIM.get() && !hasImageContainer.get() && pathString.contains("Music")) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
                 return FileVisitResult.CONTINUE;
             }
 
@@ -147,6 +152,7 @@ public class Organiser2 implements Callable<Integer> {
             }
         }
     }
+
     private String versionFileName(String sourceName, int version) {
         int separator = sourceName.lastIndexOf('.');
         if (separator > 0) {
@@ -164,7 +170,22 @@ public class Organiser2 implements Callable<Integer> {
     }
 
     private byte[] getSha(Path source) throws IOException {
-        byte[] data = Files.readAllBytes(source);
+        List<Byte> data = new ArrayList<>();
+        int attempts = 0;
+
+        while (attempts < 3 && data.isEmpty()) {
+            try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source.toFile()), 4096)) {
+                int c;
+
+                while ((c = in.read()) != -1)
+                    data.add((byte) c);
+            } catch (IOException e) {
+                System.err.println("Error reading (for sha) " + source + " " + e.getMessage());
+                ++attempts;
+                data.clear();
+            }
+        }
+
         MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
@@ -172,7 +193,11 @@ public class Organiser2 implements Callable<Integer> {
             throw new RuntimeException(e);
         }
 
-        return digest.digest(data);
+        byte[] byteArray = new byte[data.size()];
+        for (int i = 0; i < data.size(); i++) {
+            byteArray[i] = data.get(i);
+        }
+        return digest.digest(byteArray);
     }
 
     public static void main(String... args) {
