@@ -23,6 +23,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
@@ -166,7 +167,7 @@ private suspend fun import(transactionCategories: List<TransactionCategory>, dao
         dao.deleteAll()
         val categoryLookup = transactionCategories.associateBy( { it.name.uppercase() }, {it.id} )
 
-        val df = DataFrame.readCsv(dataFile.toString())
+        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
         for (row in df) {
             val category = row[1] as String?
             val categoryId = categoryLookup[category?.uppercase()]

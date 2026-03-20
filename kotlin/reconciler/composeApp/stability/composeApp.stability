@@ -160,14 +160,6 @@ public fun io.github.iandbrown.reconciler.ui.OutlinedTextButton(value: kotlin.St
     - onClick: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ReadonlyViewText(value: kotlin.String, modifier: androidx.compose.ui.Modifier): kotlin.Unit
-  skippable: true
-  restartable: true
-  params:
-    - value: STABLE (String is immutable)
-    - modifier: STABLE (marked @Stable or @Immutable)
-
-@Composable
 private fun io.github.iandbrown.reconciler.ui.RuleEditor(viewModel: io.github.iandbrown.reconciler.ui.RuleViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel): kotlin.Unit
   skippable: false
   restartable: true

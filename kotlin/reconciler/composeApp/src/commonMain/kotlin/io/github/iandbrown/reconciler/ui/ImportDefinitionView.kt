@@ -40,6 +40,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
@@ -310,7 +311,7 @@ private suspend fun perform(
     ruleCategoryMap: Map<Regex, List<Int>>,
     transactionDao: TransactionDao,
     sheetNumber: Int) {
-    val df = DataFrame.readExcel(spreadSheetFile.toString(), sheetName, columns = columns)
+    val df = DataFrame.readExcel(spreadSheetFile.readBytes().inputStream(), sheetName, columns = columns)
     var rowNumber = 0
     for (row in df) {
         val cell0 = row[0]
@@ -379,7 +380,7 @@ private suspend fun import(dao: ImportDefinitionDao = inject<ImportDefinitionDao
     if (dataFile != null && dataFile.exists()) {
         dao.deleteAll()
 
-        val df = DataFrame.readCsv(dataFile.toString())
+        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
         df.rows().forEach { row ->
             when (string(row[0])) {
                 "Definition" -> dao.insert(ImportDefinition(name = string(row[1])))

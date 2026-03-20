@@ -1,9 +1,8 @@
 package io.github.iandbrown.reconciler.ui
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,6 +21,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
@@ -109,7 +109,7 @@ private fun save(account: Account?, viewModel: AccountViewModel, name: String) {
 }
 
 private suspend fun export(transactionCategories: List<Account>) {
-    val file = FileKit.openFileSaver(suggestedName = "transactionCategories", extension = "csv")
+    val file = FileKit.openFileSaver(suggestedName = "accounts", extension = "csv")
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
@@ -132,7 +132,7 @@ private suspend fun import(dao: AccountDao = inject<AccountDao>().value) {
     if (dataFile != null && dataFile.exists()) {
         dao.deleteAll()
 
-        val df = DataFrame.readCsv(dataFile.toString())
+        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
         for (row in df) {
             if (row[0] != null) {
                 dao.insert(

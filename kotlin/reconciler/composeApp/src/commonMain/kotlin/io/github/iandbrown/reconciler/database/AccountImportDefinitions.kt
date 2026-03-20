@@ -41,4 +41,7 @@ data class AccountImportDefinition(
 interface AccountImportDefinitionDao : BaseReadDao<AccountImportDefinition>, BaseWriteDao<AccountImportDefinition> {
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<AccountImportDefinition>>
+
+    @Query("SELECT * FROM $table")
+    suspend fun getDefinitions(): List<AccountImportDefinition>
 }

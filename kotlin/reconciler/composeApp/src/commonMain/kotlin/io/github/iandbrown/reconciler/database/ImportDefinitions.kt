@@ -30,4 +30,7 @@ interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<Impo
 
     @Query("SELECT id FROM $table WHERE name = :name")
     suspend fun getByName(name: String) : Int?
+
+    @Query("SELECT * FROM $table")
+    suspend fun getDefinitions() : List<ImportDefinition>
 }

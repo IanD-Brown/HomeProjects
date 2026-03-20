@@ -30,4 +30,10 @@ interface TransactionCategoryDao : BaseReadDao<TransactionCategory>, BaseWriteDa
 
     @Query("DELETE FROM $table")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM $table")
+    suspend fun getCategories(): List<TransactionCategory>
+
+    @Query("SELECT id FROM $table WHERE name = :name")
+    suspend fun getByName(name: String): Int?
 }
