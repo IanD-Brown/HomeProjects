@@ -38,20 +38,32 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.readBytes
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
-import kotlinx.io.buffered
-import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.JoinType
+import org.jetbrains.kotlinx.dataframe.api.join
 import org.jetbrains.kotlinx.dataframe.api.rows
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readCsv
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.koin.compose.koinInject
 
+private const val ACCOUNT = "Account"
+private const val ACCOUNT_NAME = "AccountName"
+private const val ACTIVE = "Active"
+private const val AMOUNT_IN = "AmountIn"
+private const val AMOUNT_OUT = "AmountOut"
+private const val CLEAR = "Clear"
+private const val DATE_COLUMN = "DateColumn"
+private const val DEFINITION = "Definition"
+private const val DEFINITION_NAME = "DefinitionName"
+private const val DESCRIPTION_COLUMN = "DescriptionColumn"
+private const val SHEET_NAME = "SheetName"
+private const val TYPE = "Type"
 
 class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value)
 
@@ -76,7 +88,9 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch { import() }},
-                ButtonSettings("Export") { coroutineScope.launch { export(state.value) }},
+                ButtonSettings("Export") { coroutineScope.launch {
+                    exportToCsv("importDefinitions") {toDataFrame(state.value)}
+                }},
                 ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
         }) { paddingValues ->
         var importDefinitionId = 0
@@ -334,44 +348,23 @@ internal fun asDouble(value: Any?) = value as? Double ?: 0.0
 
 internal fun description(value: Any?) = value as? String ?: "Unknown"
 
-
-private suspend fun export(importDefinitions: List<ImportDefinitionListView>) {
-    val file = FileKit.openFileSaver(suggestedName = "importDefinitions", extension = "csv")
-    val sink = file?.sink(append = false)?.buffered()
-
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            var importDefinitionId = 0
-            bufferedSink.writeString("Header,Name,Name,Sheet,Active,Clear,Date,Description,In,Out\n")
-            for (def in importDefinitions) {
-                if (def.importDefinitionId != importDefinitionId) {
-                    bufferedSink.writeString("Definition,${escape(def.name)}\n")
-                    importDefinitionId = def.importDefinitionId
-                }
-                bufferedSink.writeString(buildString {
-                    append("Account,")
-                    append("${escape(def.accountName)},")
-                    append("${escape(def.name)},")
-                    append("${def.active},${def.clear},")
-                    append("${escape(def.sheetName)},")
-                    append("${escape(def.dateColumn)},")
-                    append("${escape(def.descriptionColumn)},")
-                    append("${escape(def.amountInColumn)},")
-                    append("${escape(def.amountOutColumn)}\n")
-                })
-            }
-        }
-    }
-}
-
-internal fun escape(string: String?) =
-    if (string == null) {
-        ""
-    } else if (string.contains(',')) {
-        "\"$string\""
-    } else {
-        string
-    }
+internal fun toDataFrame(importDefinitions: List<ImportDefinitionListView>): DataFrame<ImportDefinitionListView> =
+    importDefinitions.groupBy { it.importDefinitionId }.map { it.value.first() }
+        .toDataFrame {
+            TYPE from { DEFINITION }
+            DEFINITION_NAME from { it.name }
+        }.join(importDefinitions.toDataFrame {
+            TYPE from { ACCOUNT }
+            DEFINITION_NAME from { it.name }
+            ACCOUNT_NAME from { it.accountName }
+            ACTIVE from { it.active }
+            CLEAR from { it.clear }
+            SHEET_NAME from { it.sheetName }
+            DATE_COLUMN from { it.dateColumn }
+            DESCRIPTION_COLUMN from { it.descriptionColumn }
+            AMOUNT_IN from { it.amountInColumn }
+            AMOUNT_OUT from { it.amountOutColumn }
+        }, JoinType.Full)
 
 private suspend fun import(dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
                            accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value,
@@ -380,26 +373,37 @@ private suspend fun import(dao: ImportDefinitionDao = inject<ImportDefinitionDao
     if (dataFile != null && dataFile.exists()) {
         dao.deleteAll()
 
-        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
-        df.rows().forEach { row ->
-            when (string(row[0])) {
-                "Definition" -> dao.insert(ImportDefinition(name = string(row[1])))
-                "Account" -> accountImportDefinitionDao.insert(
-                    AccountImportDefinition(
-                        accountDao.getByName(string(row[1]))!!,
-                        dao.getByName(string(row[2]))!!,
-                        string(row[3]).toBoolean(),
-                        string(row[4]).toBoolean(),
-                        string(row[5]),
-                        string(row[6]),
-                        string(row[7]),
-                        string(row[8]),
-                        string(row[9])
-                    ))
-            }
-        }
+        DataFrame.readCsv(dataFile.readBytes().inputStream())
+            .rows().forEach { toImportDefinition(it, dao, accountImportDefinitionDao, accountDao) }
     }
 }
+
+internal suspend fun toImportDefinition(row: DataRow<Any?>,
+                                        dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
+                                        accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value,
+                                        accountDao: AccountDao = inject<AccountDao>().value) {
+    when (row[TYPE]) {
+        DEFINITION -> dao.insert(ImportDefinition(name = string(row[DEFINITION_NAME])))
+        ACCOUNT -> accountImportDefinitionDao.insert(AccountImportDefinition(
+                accountDao.getByName(string(row[ACCOUNT_NAME]))!!,
+            dao.getByName(string(row[DEFINITION_NAME]))!!,
+            boolean(row[ACTIVE]),
+            boolean(row[CLEAR]),
+            string(row[SHEET_NAME]),
+            string(row[DATE_COLUMN]),
+            string(row[DESCRIPTION_COLUMN]),
+            string(row[AMOUNT_IN]),
+            string(row[AMOUNT_OUT])))
+    }
+}
+
+private fun boolean(cell: Any?) : Boolean =
+    when (cell) {
+        is Boolean -> cell
+        is String -> cell.toBoolean()
+        else -> false
+    }
+
 
 private fun string(cell: Any?): String =
     when (cell) {

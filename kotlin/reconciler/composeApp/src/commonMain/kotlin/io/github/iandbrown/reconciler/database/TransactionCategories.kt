@@ -29,7 +29,7 @@ interface TransactionCategoryDao : BaseReadDao<TransactionCategory>, BaseWriteDa
     override fun get(): Flow<List<TransactionCategory>>
 
     @Query("DELETE FROM $table")
-    suspend fun deleteAll()
+    override suspend fun deleteAll()
 
     @Query("SELECT * FROM $table")
     suspend fun getCategories(): List<TransactionCategory>

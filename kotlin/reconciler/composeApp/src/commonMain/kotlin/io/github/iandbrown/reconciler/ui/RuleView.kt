@@ -14,23 +14,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.RuleDao
-import io.github.iandbrown.reconciler.database.TransactionCategory
+import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.FileKitMode
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.exists
-import io.github.vinceglb.filekit.readBytes
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
-import org.jetbrains.kotlinx.dataframe.io.readCsv
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.koinInject
 
 class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().value) {
@@ -48,6 +39,9 @@ fun NavigateRule(argument: String?) {
     }
 }
 
+internal const val CATEGORY = "Category"
+internal const val MATCH = "Match"
+
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>(),
@@ -60,8 +54,14 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>(),
         "Rules",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch { import(categoryState.value) } },
-                ButtonSettings("Export") { coroutineScope.launch { export(state.value, categoryState.value) }},
+                ButtonSettings("Import") { coroutineScope.launch {
+                    val categoryLookup = categoryState.value.associateBy( { it.name }, {it.id} )
+                    importCsv(inject<RuleDao>().value) { Rule(match = it[MATCH] as String, category = categoryLookup[it[CATEGORY] as String]!!) }
+                } },
+                ButtonSettings("Export") { coroutineScope.launch {
+                    val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
+                    exportToCsv("rules") { toDataFrame(state.value, categoryLookup) }
+                }},
                 ButtonSettings("+") { it.navigate(editor.addRoute()) })
         }) { paddingValues ->
         val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
@@ -141,39 +141,11 @@ private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int
     }
 }
 
-private suspend fun export(rules: List<Rule>, transactionCategories: List<TransactionCategory>) {
-    val file = FileKit.openFileSaver(suggestedName = "rules", extension = "csv")
-    val sink = file?.sink(append = false)?.buffered()
-
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            val categoryLookup = transactionCategories.associateBy( { it.id }, {it.name} )
-            bufferedSink.writeString("Match,Type\n")
-            for (rule in rules.sortedBy { it.match }) {
-                val matchString = if (rule.match.contains(',')) {
-                    "\"${rule.match}\""
-                } else {
-                    rule.match
-                }
-                bufferedSink.writeString("$matchString,${categoryLookup[rule.category]}\n")
-            }
-        }
+internal fun toDataFrame(rules: List<Rule>, categoryLookup: Map<Int, String>): DataFrame<Rule> =
+    rules.toDataFrame {
+        MATCH from { it.match }
+        CATEGORY from { categoryLookup[it.category] }
     }
-}
 
-private suspend fun import(transactionCategories: List<TransactionCategory>, dao: RuleDao = inject<RuleDao>().value) {
-    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
-    if (dataFile != null && dataFile.exists()) {
-        dao.deleteAll()
-        val categoryLookup = transactionCategories.associateBy( { it.name.uppercase() }, {it.id} )
-
-        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
-        for (row in df) {
-            val category = row[1] as String?
-            val categoryId = categoryLookup[category?.uppercase()]
-            if (categoryId != null) {
-                dao.insert(Rule(match = row[0] as String, category = categoryId))
-            }
-         }
-    }
-}
+internal suspend fun toRule(row: DataRow<Any?>, transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value): Rule =
+    Rule(match = row[MATCH] as String, category = transactionCategoryDao.getByName(row[CATEGORY] as String)!!)

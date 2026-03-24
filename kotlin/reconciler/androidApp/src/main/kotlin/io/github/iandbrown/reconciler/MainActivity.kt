@@ -9,12 +9,15 @@ import io.github.iandbrown.reconciler.di.startKoinCommon
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.init
+import org.koin.core.context.GlobalContext.getOrNull
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        startKoinCommon(builder())
+        if (getOrNull() == null) {
+            startKoinCommon(builder())
+        }
         FileKit.init(this)
 
         setContent {

@@ -15,20 +15,13 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.di.inject
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.FileKitMode
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.exists
-import io.github.vinceglb.filekit.readBytes
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
-import org.jetbrains.kotlinx.dataframe.io.readCsv
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.koinInject
+
+private const val NAME = "name"
 
 class AccountViewModel : BaseConfigCRUDViewModel<AccountDao, Account>(inject<AccountDao>().value)
 
@@ -42,8 +35,12 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
         "Accounts",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch { import() } },
-                ButtonSettings("Export") { coroutineScope.launch { export(state.value) }},
+                ButtonSettings("Import") { coroutineScope.launch {
+                    importCsv(inject<AccountDao>().value) { toAccount(it) }
+                } },
+                ButtonSettings("Export") { coroutineScope.launch {
+                    exportToCsv("accounts") {toDataFrame(state.value) }
+                }},
                 ButtonSettings("+") { it.navigate(Account(name = "")) })
         }) { paddingValues ->
         LazyVerticalGrid(
@@ -108,37 +105,9 @@ private fun save(account: Account?, viewModel: AccountViewModel, name: String) {
     }
 }
 
-private suspend fun export(transactionCategories: List<Account>) {
-    val file = FileKit.openFileSaver(suggestedName = "accounts", extension = "csv")
-    val sink = file?.sink(append = false)?.buffered()
-
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            bufferedSink.writeString("Name\n")
-            for (account in transactionCategories) {
-                val nameString = if (account.name.contains(',')) {
-                    "\"${account.name}\""
-                } else {
-                    account.name
-                }
-                bufferedSink.writeString("$nameString\n")
-            }
-        }
+internal fun toDataFrame(accounts: List<Account>): DataFrame<Account> =
+    accounts.toDataFrame {
+        NAME from { it.name }
     }
-}
 
-private suspend fun import(dao: AccountDao = inject<AccountDao>().value) {
-    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
-    if (dataFile != null && dataFile.exists()) {
-        dao.deleteAll()
-
-        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
-        for (row in df) {
-            if (row[0] != null) {
-                dao.insert(
-                    Account(name = row[0] as String)
-                )
-            }
-        }
-    }
-}
+internal fun toAccount(row: DataRow<Any?>): Account = Account(name = row[NAME] as String)

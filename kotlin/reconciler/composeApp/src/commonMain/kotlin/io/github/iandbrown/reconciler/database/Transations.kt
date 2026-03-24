@@ -53,4 +53,8 @@ interface TransactionDao : BaseReadDao<Transaction>, BaseWriteDao<Transaction> {
     suspend fun getByCategory(category : Int = 0) : List<Transaction>
 
     @Query("SELECT * FROM $table WHERE category IS NULL")
-    suspend fun getByUnknownCategory() : List<Transaction>}
+    suspend fun getByUnknownCategory() : List<Transaction>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
+}

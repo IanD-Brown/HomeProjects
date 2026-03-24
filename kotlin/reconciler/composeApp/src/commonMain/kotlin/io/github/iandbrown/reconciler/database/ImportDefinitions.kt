@@ -23,7 +23,7 @@ interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<Impo
     override fun get(): Flow<List<ImportDefinition>>
 
     @Query("DELETE FROM $table")
-    suspend fun deleteAll()
+    override suspend fun deleteAll()
 
     @Query("DELETE FROM $table WHERE id = :id")
     suspend fun deleteById(id: Int)

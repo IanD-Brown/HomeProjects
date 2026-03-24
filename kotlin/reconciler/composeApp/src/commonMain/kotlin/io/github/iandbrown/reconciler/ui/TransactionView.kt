@@ -31,6 +31,8 @@ import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 import kotlin.math.max
 
@@ -193,17 +195,18 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInjec
             date = date.nextMonth()
         }
         val viewCategories = transactionCategories.value.filter { !it.filter }
+        val datePickerSpan = if (viewCategories.isEmpty()) 1 else 2
 
         LazyVerticalGrid(columns = GridCells.Fixed(viewCategories.size + 2), Modifier.padding(paddingValues)) {
             item {ViewText("Filter date ")}
-            item {DatePickerView(
+            item(span = { GridItemSpan(datePickerSpan) }) { DatePickerView(
                 minDate,
                 Modifier.padding(0.dp),
                 { true }) {
                 minDate = it
                 baseDate = it
             }}
-            item(span = { GridItemSpan(max(1, viewCategories.size)) }) {}
+            item(span = { GridItemSpan(max(1, viewCategories.size - 1)) }) {}
             item { ViewText("") }
             for (category in viewCategories) {
                 item { ViewText(category.name) }
@@ -239,15 +242,15 @@ private suspend fun export(
         if (bufferedSink != null) {
             val categoryLookup = transactionCategories.associateBy( { it.id }, {it.name} )
             val accountLookup = accounts.associateBy( { it.id }, {it.name} )
-            bufferedSink.writeString("Date,Account,Description,Category,Amount\n")
-            for (transaction in transactions) {
-                bufferedSink.writeString(
-                    "${DayDate(transaction.date)}," +
-                            "${escape(accountLookup[transaction.account])}," +
-                            "${escape(transaction.description)}," +
-                            "${escape(categoryLookup[transaction.category])}," +
-                            "${transaction.amount}\n")
-            }
+            val sb = StringBuilder()
+            transactions.toDataFrame {
+                "Date" from { DayDate(it.date).toString() }
+                "Account" from { accountLookup[it.account] }
+                "Description" from { it.description}
+                "Category" from { categoryLookup[it.category] }
+                "Amount" from { it.amount }
+            }.writeCsv(sb)
+            bufferedSink.writeString(sb.toString())
         }
     }
 

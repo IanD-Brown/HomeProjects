@@ -34,7 +34,7 @@ interface RuleDao : BaseReadDao<Rule>, BaseWriteDao<Rule> {
     override fun get(): Flow<List<Rule>>
 
     @Query("DELETE FROM $table")
-    suspend fun deleteAll()
+    override suspend fun deleteAll()
 
     @Query("SELECT * FROM $table")
     suspend fun getRules() : List<Rule>

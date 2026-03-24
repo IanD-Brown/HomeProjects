@@ -44,4 +44,7 @@ interface AccountImportDefinitionDao : BaseReadDao<AccountImportDefinition>, Bas
 
     @Query("SELECT * FROM $table")
     suspend fun getDefinitions(): List<AccountImportDefinition>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

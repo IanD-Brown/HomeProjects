@@ -28,7 +28,7 @@ interface AccountDao : BaseReadDao<Account>, BaseWriteDao<Account> {
     override fun get(): Flow<List<Account>>
 
     @Query("DELETE FROM $table")
-    suspend fun deleteAll()
+    override suspend fun deleteAll()
 
     @Query("SELECT * FROM $table")
     suspend fun getAccounts() : List<Account>

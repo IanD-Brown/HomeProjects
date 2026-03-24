@@ -42,7 +42,7 @@ fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,
         single<AppDatabase> { databaseBuilder.build() }
     }
     startKoin {
-        appDeclaration()
         modules(injectableModules, dataModule)
+        appDeclaration()
     }
 }

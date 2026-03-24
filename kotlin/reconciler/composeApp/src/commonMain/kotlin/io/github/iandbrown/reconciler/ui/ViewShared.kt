@@ -57,8 +57,23 @@ import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import io.github.iandbrown.reconciler.database.BaseWriteDao
 import io.github.iandbrown.reconciler.logic.DayDate
+import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.dialogs.openFileSaver
+import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.sink
+import kotlinx.io.buffered
+import kotlinx.io.writeString
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.io.readCsv
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import java.util.Locale
 
 val fontSize = 16.sp
@@ -367,4 +382,32 @@ fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boo
 
 fun LazyGridScope.formatedNumber(format : String, value : Double?) {
     item { ViewText(String.format(Locale.UK, format, value ?: 0.0)) }
+}
+
+internal suspend fun<T> exportToCsv(suggestName: String, dataFrameSupplier: () -> DataFrame<T>) {
+    val file = FileKit.openFileSaver(suggestedName = suggestName, extension = "csv")
+    val sink = file?.sink(append = false)?.buffered()
+
+    sink.use { bufferedSink ->
+        if (bufferedSink != null) {
+            val sb = StringBuilder()
+            dataFrameSupplier().writeCsv(sb)
+            bufferedSink.writeString(sb.toString())
+        }
+    }
+}
+
+internal suspend fun<DAO, ENTITY> importCsv(dao : DAO, rowHandler: (DataRow<Any?>) -> ENTITY)
+where ENTITY : Any, DAO : BaseWriteDao<ENTITY> {
+    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
+    if (dataFile != null && dataFile.exists()) {
+        dao.deleteAll()
+
+        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
+        for (row in df) {
+            if (row[0] != null) {
+                dao.insert(rowHandler(row))
+            }
+        }
+    }
 }

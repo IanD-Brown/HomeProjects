@@ -16,20 +16,15 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.di.inject
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.FileKitMode
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.exists
-import io.github.vinceglb.filekit.readBytes
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
-import org.jetbrains.kotlinx.dataframe.io.readCsv
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.koinInject
+
+private const val NAME = "name"
+private const val FILTER = "filter"
+private const val IS_SPENDING = "isSpending"
 
 class TransactionCategoryViewModel : BaseConfigCRUDViewModel<TransactionCategoryDao, TransactionCategory>(inject<TransactionCategoryDao>().value)
 
@@ -43,8 +38,12 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
         "Transaction Categories",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch { import() } },
-                ButtonSettings("Export") { coroutineScope.launch { export(state.value) }},
+                ButtonSettings("Import") { coroutineScope.launch {
+                    importCsv(inject<TransactionCategoryDao>().value) { toTransactionCategory(it) }
+                } },
+                ButtonSettings("Export") { coroutineScope.launch {
+                    exportToCsv("transactionCategories") { toDataFrame(state.value) }
+                }},
                 ButtonSettings("+") { it.navigate(TransactionCategory(name = "", filter = false)) })
         }) { paddingValues ->
         LazyVerticalGrid(
@@ -125,37 +124,12 @@ private fun save(transactionCategory: TransactionCategory?, viewModel: Transacti
     }
 }
 
-private suspend fun export(transactionCategories: List<TransactionCategory>) {
-    val file = FileKit.openFileSaver(suggestedName = "transactionCategories", extension = "csv")
-    val sink = file?.sink(append = false)?.buffered()
-
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            bufferedSink.writeString("Name,filter,isSpending\n")
-            for (transactionCategory in transactionCategories) {
-                val nameString = if (transactionCategory.name.contains(',')) {
-                    "\"${transactionCategory.name}\""
-                } else {
-                    transactionCategory.name
-                }
-                bufferedSink.writeString("$nameString,${transactionCategory.filter},${transactionCategory.isSpending}\n")
-            }
-        }
+internal fun toDataFrame(transactionCategories: List<TransactionCategory>): DataFrame<TransactionCategory> =
+    transactionCategories.toDataFrame {
+        NAME from { it.name }
+        FILTER from { it.filter }
+        IS_SPENDING from { it.isSpending }
     }
-}
 
-private suspend fun import(dao: TransactionCategoryDao = inject<TransactionCategoryDao>().value) {
-    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
-    if (dataFile != null && dataFile.exists()) {
-        dao.deleteAll()
-
-        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
-        for (row in df) {
-            if (row[0] != null) {
-                dao.insert(
-                    TransactionCategory(name = row[0] as String, filter = row[1] as Boolean, isSpending = row[2] as Boolean)
-                )
-            }
-        }
-    }
-}
+internal fun toTransactionCategory(row: DataRow<Any?>): TransactionCategory =
+    TransactionCategory(name = row[NAME] as String, filter = row[FILTER] as Boolean, isSpending = row[IS_SPENDING] as Boolean)

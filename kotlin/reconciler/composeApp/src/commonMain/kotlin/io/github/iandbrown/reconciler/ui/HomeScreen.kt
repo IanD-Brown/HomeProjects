@@ -17,15 +17,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.AccountDao
-import io.github.iandbrown.reconciler.database.AccountImportDefinition
-import io.github.iandbrown.reconciler.database.AccountImportDefinitionDao
-import io.github.iandbrown.reconciler.database.ImportDefinition
 import io.github.iandbrown.reconciler.database.ImportDefinitionDao
-import io.github.iandbrown.reconciler.database.Rule
+import io.github.iandbrown.reconciler.database.ImportDefinitionListViewDao
 import io.github.iandbrown.reconciler.database.RuleDao
-import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.vinceglb.filekit.FileKit
@@ -34,8 +29,13 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
+import kotlinx.io.buffered
+import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.at
+import org.jetbrains.kotlinx.dataframe.api.insert
 import org.jetbrains.kotlinx.dataframe.api.rows
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readJson
@@ -85,71 +85,42 @@ private const val ACCOUNT = "Account"
 private const val TRANSACTION_CATEGORY = "Transaction Category"
 private const val RULE = "Rule"
 private const val IMPORT_DEFINITION = "ImportDefinition"
-private const val ACCOUNT_IMPORT_DEFINITION = "AccountImportDefinition"
+private const val ENTITY = "entity"
 
 private suspend fun export(
     accountDao: AccountDao = inject<AccountDao>().value,
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
-    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
-    accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value) {
+    importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value) {
     val file = FileKit.openFileSaver(suggestedName = "configuration", extension = "json")
+    val sink = file?.sink(append = false)?.buffered()
 
-    if (file != null) {
-        val accounts = accountDao.getAccounts()
-        val transactionCategories = transactionCategoryDao.getCategories()
-        val rules = ruleDao.getRules()
-        val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })
-        val importDefinitions = importDefinitionDao.getDefinitions()
-        val accountImportDefinitions = accountImportDefinitionDao.getDefinitions()
-        val accountLookup = accounts.associateBy({ it.id }, { it.name })
-        val importDefinitionLookup = importDefinitions.associateBy({ it.id }, { it.name })
+    sink.use { bufferedSink ->
+        if (bufferedSink != null) {
+            val accounts = accountDao.getAccounts()
+            val transactionCategories = transactionCategoryDao.getCategories()
+            val rules = ruleDao.getRules()
+            val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })
+            val importDefinitions = importDefinitionDao.getAll()
+            val sb = StringBuilder()
 
-        val dataFrame = (0 until 1).toDataFrame {
-            "accounts" from {
-                accounts.toDataFrame {
-                    "entity" from { ACCOUNT }
-                    "name" from { it.name }
+            (0 until 1).toDataFrame {
+                "accounts" from {
+                    toDataFrame(accounts).insert(ENTITY) {ACCOUNT}.at(0)
                 }
-            }
-            "transactionCategories" from {
-                transactionCategories.toDataFrame {
-                    "entity" from { TRANSACTION_CATEGORY }
-                    "name" from { it.name }
-                    "filter" from { it.filter }
-                    "isSpending" from { it.isSpending }
+                "transactionCategories" from {
+                    toDataFrame(transactionCategories).insert(ENTITY) {TRANSACTION_CATEGORY}.at(0)
                 }
-            }
-            "rules" from {
-                rules.toDataFrame {
-                    "entity" from { RULE }
-                    "match" from { it.match }
-                    "category" from { categoryNameLookup[it.category] }
+                "rules" from {
+                    toDataFrame(rules, categoryNameLookup).insert(ENTITY) {RULE}.at(0)
                 }
-            }
-            "importDefinitions" from {
-                importDefinitions.toDataFrame {
-                    "entity" from { IMPORT_DEFINITION }
-                    "name" from { it.name }
+                "importDefinitions" from {
+                    toDataFrame(importDefinitions).insert(ENTITY) {IMPORT_DEFINITION}.at(0)
                 }
-            }
-            "accountImportDefinitions" from {
-                accountImportDefinitions.toDataFrame {
-                    "entity" from { ACCOUNT_IMPORT_DEFINITION }
-                    "account" from { accountLookup[it.accountId] }
-                    "importDefinition" from { importDefinitionLookup[it.importDefinitionId] }
-                    "active" from { it.active }
-                    "clear" from { it.clear }
-                    "sheetName" from { it.sheetName }
-                    "dateColumn" from { it.dateColumn }
-                    "descriptionColumn" from { it.descriptionColumn }
-                    "amountInColumn" from { it.amountInColumn }
-                    "amountOutColumn" from { it.amountOutColumn }
-                }
-            }
+            }.writeJson(sb, true)
+
+            bufferedSink.writeString(sb.toString())
         }
-
-        dataFrame.writeJson(file.toString(), true)
     }
 }
 
@@ -157,8 +128,7 @@ private suspend fun import(
     accountDao: AccountDao = inject<AccountDao>().value,
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
-    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
-    accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value) {
+    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value) {
     val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("json")), mode = FileKitMode.Single)
 
     if (dataFile != null) {
@@ -172,33 +142,11 @@ private suspend fun import(
             for (cell in row.values()) {
                 if (cell is DataFrame<*>) {
                     cell.rows().forEach {
-                        when (it["entity"]) {
-                            ACCOUNT -> accountDao.insert(Account(name = it["name"] as String))
-                            TRANSACTION_CATEGORY -> transactionCategoryDao.insert(
-                                TransactionCategory(
-                                    name = it["name"] as String,
-                                    filter = it["filter"] as Boolean,
-                                    isSpending = it["isSpending"] as Boolean
-                                )
-                            )
-                            RULE -> ruleDao.insert(Rule(
-                                match = it["match"] as String,
-                                category = transactionCategoryDao.getByName(it["category"] as String)!!))
-                            IMPORT_DEFINITION -> importDefinitionDao.insert(ImportDefinition(
-                                name = it["name"] as String))
-                            ACCOUNT_IMPORT_DEFINITION -> accountImportDefinitionDao.insert(
-                                AccountImportDefinition(
-                                    accountDao.getByName(it["account"] as String)!!,
-                                    importDefinitionDao.getByName(it["importDefinition"] as String)!!,
-                                    it["active"] as Boolean,
-                                    it["clear"] as Boolean,
-                                    it["sheetName"] as String,
-                                    it["dateColumn"] as String,
-                                    it["descriptionColumn"] as String,
-                                    it["amountInColumn"] as String,
-                                    it["amountOutColumn"] as String
-                                )
-                            )
+                        when (it[ENTITY]) {
+                            ACCOUNT -> accountDao.insert(toAccount(it))
+                            TRANSACTION_CATEGORY -> transactionCategoryDao.insert(toTransactionCategory(it))
+                            RULE -> ruleDao.insert(toRule(it))
+                            IMPORT_DEFINITION -> toImportDefinition(it)
                         }
                     }
                 }
