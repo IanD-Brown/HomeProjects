@@ -18,21 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
-import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
+import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
-import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 import kotlin.math.max
 
@@ -61,7 +54,11 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             BottomBarWithButtons(
                 ButtonSettings("Export") {
                     coroutineScope.launch {
-                        export(filterTransaction(state.value, minDate, filterSheet, filterCategory), transactionCategories.value, accounts.value)
+                        exportToCsv("transactions") {
+                            toDataFrame(filterTransaction(state.value, minDate, filterSheet, filterCategory),
+                                accounts.value.associateBy( { it.id }, {it.name} ),
+                                transactionCategories.value.associateBy( { it.id }, {it.name} ))
+                        }
                     }
                 },
             )
@@ -92,15 +89,15 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             }
             item {}
             item(span = { GridItemSpan(2) }) {}
-            item { ViewText("Description") }
-            item { ViewText("Amount") }
+            viewTextItems("Description", "Amount")
             item(span = { GridItemSpan(2) }) {}
             for (transaction in filterTransaction(state.value, minDate, filterSheet, filterCategory)) {
-                item { ViewText(DayDate(transaction.date).toString()) }
-                item { ViewText(accountNameLookup[transaction.account] ?: "") }
-                item { ViewText(transaction.description) }
-                item { ViewText(transaction.amount.toString()) }
-                item { ViewText(categoryNameLookup[transaction.category] ?: "") }
+                viewTextItems(
+                    DayDate(transaction.date).toString(),
+                    accountNameLookup[transaction.account] ?: "",
+                    transaction.description,
+                    transaction.amount.toString(),
+                    categoryNameLookup[transaction.category] ?: "")
                 item { Icon(
                     Icons.Default.Add,
                     "add rule",
@@ -156,8 +153,7 @@ fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<Transaction
             if (accounts.value.isNotEmpty()) {
                 item(span = { GridItemSpan(accounts.value.size) }) {}
             }
-            item { ViewText("") }
-            item { ViewText("Spending") }
+            viewTextItems("Month", "Total")
             for (account in accounts.value) {
                 item { ViewText("${account.name} transactions") }
             }
@@ -231,27 +227,11 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInjec
 
 private fun escapeString(string: String) = string.replace("*", "\\*")
 
-private suspend fun export(
-    transactions: List<Transaction>,
-    transactionCategories: List<TransactionCategory>,
-    accounts : List<Account>) {
-    val file = FileKit.openFileSaver(suggestedName = "transactions", extension = "csv")
-    val sink = file?.sink(append = false)?.buffered()
-
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            val categoryLookup = transactionCategories.associateBy( { it.id }, {it.name} )
-            val accountLookup = accounts.associateBy( { it.id }, {it.name} )
-            val sb = StringBuilder()
-            transactions.toDataFrame {
-                "Date" from { DayDate(it.date).toString() }
-                "Account" from { accountLookup[it.account] }
-                "Description" from { it.description}
-                "Category" from { categoryLookup[it.category] }
-                "Amount" from { it.amount }
-            }.writeCsv(sb)
-            bufferedSink.writeString(sb.toString())
-        }
+private fun toDataFrame(transactions: List<Transaction>, accountLookup: Map<Int, String>, categoryLookup: Map<Int, String>): DataFrame<Transaction> =
+    transactions.toDataFrame {
+        "Date" from { DayDate(it.date).toString() }
+        "Account" from { accountLookup[it.account] }
+        "Description" from { it.description }
+        "Category" from { categoryLookup[it.category] }
+        "Amount" from { it.amount }
     }
-
-}

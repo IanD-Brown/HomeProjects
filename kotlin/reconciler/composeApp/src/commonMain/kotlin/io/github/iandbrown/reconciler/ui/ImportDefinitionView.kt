@@ -94,26 +94,15 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                 ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
         }) { paddingValues ->
         var importDefinitionId = 0
-        var accounts = accountState.value.associateBy { it.id }.toMutableMap()
-
-        fun LazyGridScope.addMissedAccounts() {
-            if (importDefinitionId > 0) {
-                for (account in accounts.values) {
-                    item { ViewText(account.name) }
-                    item { Checkbox(false, {}, enabled = false) }
-                    item(span = { GridItemSpan(8) }) { }
-                }
-            }
-        }
 
         LazyVerticalGrid(
             columns = WeightedIconGridCells(3, 5, 1, 5, 1, 1, 1, 1),
             Modifier.padding(paddingValues)
         ) {
+            val accountValues = state.value.associateBy { Pair(it.importDefinitionId, it.accountId) }
+            val orderedAccounts = accountState.value.sortedBy { it.name }
             for (item in state.value) {
                 if (item.importDefinitionId != importDefinitionId) {
-                    addMissedAccounts()
-                    accounts = accountState.value.associateBy { it.id }.toMutableMap()
                     importDefinitionId = item.importDefinitionId
                     item(span = { GridItemSpan(7) }) { ViewText(item.name) }
                     item {
@@ -129,20 +118,20 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                     }
                     item { EditButton { navController -> navController.navigate(item) } }
                     item { DeleteButton { viewModel.delete(item) } }
+                    for (account in orderedAccounts) {
+                        val item = accountValues[Pair(item.importDefinitionId, account.id)]
+                        item { ViewText(account.name) }
+                        if (item != null) {
+                            item { Checkbox(item.active, {}, enabled = false) }
+                            viewTextItems(item.sheetName, item.dateColumn, item.descriptionColumn, item.amountInColumn, item.amountOutColumn)
+                            item(span = { GridItemSpan(3) }) { }
+                        } else {
+                            item { Checkbox(false, {}, enabled = false) }
+                            item(span = { GridItemSpan(8) }) { }
+                        }
+                    }
                 }
-                accounts.remove(item.accountId)
-                item { ViewText(item.accountName) }
-                item { Checkbox(item.active, {}, enabled = false) }
-                item { ViewText(item.sheetName) }
-                item { ViewText(item.dateColumn) }
-                item { ViewText(item.descriptionColumn) }
-                item { ViewText(item.amountInColumn) }
-                item { ViewText(item.amountOutColumn) }
-                item(span = { GridItemSpan(3) }) { }
-
              }
-
-            addMissedAccounts()
         }
     }
 }
@@ -157,7 +146,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
                                   importDefinitionViewModel: ImportDefinitionViewModel = koinInject<ImportDefinitionViewModel>()) {
     val definitionState = viewModel.uiState.collectAsState(emptyList())
     val accountState = accountViewModel.uiState.collectAsState(emptyList())
-    val title = if (importDefinitionListView.importDefinitionId == 0) "Add ImportDefinition" else "Edit ImportDefinition"
+    val title = if (importDefinitionListView.importDefinitionId == 0) "Add Import Definition" else "Edit Import Definition"
     var name by remember { mutableStateOf(importDefinitionListView.name) }
     val accounts = accountState.value.associateBy { it.id }.toMutableMap()
     val activeEdits = remember { mutableStateMapOf<Int, Boolean>() }
@@ -252,14 +241,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
         val editingDefinitions = definitionState.value
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }.associateBy { it.accountId }
         LazyVerticalGrid(columns = GridCells.Fixed(8), Modifier.padding(paddingValues)) {
-            item {ViewText("Name")}
-            item {ViewText("Active")}
-            item {ViewText("Clear")}
-            item {ViewText("Sheet Name")}
-            item {ViewText("Date Column")}
-            item {ViewText("Description Column")}
-            item {ViewText("Amount In Column")}
-            item {ViewText("Amount Out Column")}
+            viewTextItems("Name", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column")
             item {ViewTextField(name, onValueChange = { name = it }) }
             item(span = { GridItemSpan(7) }) { }
             for (account in accounts.values.sortedBy { it.name }) {
@@ -277,13 +259,8 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 }
 
-private fun save(
-    importId: Int,
-    name: String,
-    viewModel: ImportDefinitionViewModel,
-    importDefinitions: List<AccountImportDefinition>,
-    accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value
-) {
+private fun save(importId: Int, name: String, viewModel: ImportDefinitionViewModel, importDefinitions: List<AccountImportDefinition>,
+    accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value) {
     if (importId == 0) {
         viewModel.insert(ImportDefinition(name = name))
     } else {
@@ -374,14 +351,14 @@ private suspend fun import(dao: ImportDefinitionDao = inject<ImportDefinitionDao
         dao.deleteAll()
 
         DataFrame.readCsv(dataFile.readBytes().inputStream())
-            .rows().forEach { toImportDefinition(it, dao, accountImportDefinitionDao, accountDao) }
+            .rows().forEach { importRow(it, dao, accountImportDefinitionDao, accountDao) }
     }
 }
 
-internal suspend fun toImportDefinition(row: DataRow<Any?>,
-                                        dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
-                                        accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value,
-                                        accountDao: AccountDao = inject<AccountDao>().value) {
+internal suspend fun importRow(row: DataRow<Any?>,
+                               dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
+                               accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value,
+                               accountDao: AccountDao = inject<AccountDao>().value) {
     when (row[TYPE]) {
         DEFINITION -> dao.insert(ImportDefinition(name = string(row[DEFINITION_NAME])))
         ACCOUNT -> accountImportDefinitionDao.insert(AccountImportDefinition(
@@ -403,7 +380,6 @@ private fun boolean(cell: Any?) : Boolean =
         is String -> cell.toBoolean()
         else -> false
     }
-
 
 private fun string(cell: Any?): String =
     when (cell) {

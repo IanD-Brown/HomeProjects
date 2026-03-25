@@ -70,13 +70,11 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>(),
             columns = WeightedIconGridCells(2, 5, 1),
             Modifier.padding(paddingValues)
         ) {
-            item { ViewText("Name") }
-            item { ViewText("Type") }
+            viewTextItems("Match", "Category")
             item {}
             item {}
             for (rule in state.value.sortedBy { it.match }) {
-                item { ViewText(rule.match) }
-                item { ViewText(categoryLookup[rule.category] ?: "") }
+                viewTextItems(rule.match, categoryLookup[rule.category] ?: "")
                 item { EditButton { navController -> navController.navigate(rule) } }
                 item { DeleteButton { viewModel.delete(rule) } }
             }

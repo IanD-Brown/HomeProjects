@@ -50,14 +50,10 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
             columns = WeightedIconGridCells(2, 2, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            item { ViewText("Name") }
-            item { ViewText("Filter") }
-            item { ViewText("Is Spending") }
+            viewTextItems("Name", "Filter", "Is Spending")
             item(span = { GridItemSpan(2) }) {}
             for (transactionCategory in state.value) {
-                item { ViewText(transactionCategory.name) }
-                item { ViewText(transactionCategory.filter.toString()) }
-                item { ViewText(transactionCategory.isSpending.toString()) }
+                viewTextItems(transactionCategory.name, transactionCategory.filter.toString(), transactionCategory.isSpending.toString())
                 item { EditButton { navController -> navController.navigate(transactionCategory) } }
                 item { DeleteButton { viewModel.delete(transactionCategory) } }
             }

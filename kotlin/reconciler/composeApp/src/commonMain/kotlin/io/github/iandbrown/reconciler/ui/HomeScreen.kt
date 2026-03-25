@@ -146,7 +146,7 @@ private suspend fun import(
                             ACCOUNT -> accountDao.insert(toAccount(it))
                             TRANSACTION_CATEGORY -> transactionCategoryDao.insert(toTransactionCategory(it))
                             RULE -> ruleDao.insert(toRule(it))
-                            IMPORT_DEFINITION -> toImportDefinition(it)
+                            IMPORT_DEFINITION -> importRow(it)
                         }
                     }
                 }

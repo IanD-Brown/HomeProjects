@@ -384,6 +384,12 @@ fun LazyGridScope.formatedNumber(format : String, value : Double?) {
     item { ViewText(String.format(Locale.UK, format, value ?: 0.0)) }
 }
 
+fun LazyGridScope.viewTextItems(vararg values: String) {
+    for (value in values) {
+        item {ViewText(value)}
+    }
+}
+
 internal suspend fun<T> exportToCsv(suggestName: String, dataFrameSupplier: () -> DataFrame<T>) {
     val file = FileKit.openFileSaver(suggestedName = suggestName, extension = "csv")
     val sink = file?.sink(append = false)?.buffered()
