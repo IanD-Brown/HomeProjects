@@ -73,7 +73,7 @@ import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readCsv
-import org.jetbrains.kotlinx.dataframe.io.writeCsv
+import java.io.InputStream
 import java.util.Locale
 
 val fontSize = 16.sp
@@ -390,30 +390,42 @@ fun LazyGridScope.viewTextItems(vararg values: String) {
     }
 }
 
-internal suspend fun<T> exportToCsv(suggestName: String, dataFrameSupplier: () -> DataFrame<T>) {
-    val file = FileKit.openFileSaver(suggestedName = suggestName, extension = "csv")
+internal suspend fun exportToFile(suggestName: String, extension: String = "csv", transformedDataSupplier: (Appendable) -> Unit) {
+    val file = FileKit.openFileSaver(suggestedName = suggestName, extension = extension)
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
         if (bufferedSink != null) {
             val sb = StringBuilder()
-            dataFrameSupplier().writeCsv(sb)
+            transformedDataSupplier(sb)
             bufferedSink.writeString(sb.toString())
         }
     }
 }
 
-internal suspend fun<DAO, ENTITY> importCsv(dao : DAO, rowHandler: (DataRow<Any?>) -> ENTITY)
-where ENTITY : Any, DAO : BaseWriteDao<ENTITY> {
-    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
+internal suspend fun importFromFile(
+    extension: String = "csv",
+    beginImporting: suspend (InputStream) -> DataFrame<Any?>,
+    rowHandler: suspend (DataRow<Any?>) -> Unit
+) {
+    val dataFile =
+        FileKit.openFilePicker(FileKitType.File(listOf(extension)), mode = FileKitMode.Single)
     if (dataFile != null && dataFile.exists()) {
-        dao.deleteAll()
-
-        val df = DataFrame.readCsv(dataFile.readBytes().inputStream())
+        val df = beginImporting(dataFile.readBytes().inputStream())
         for (row in df) {
             if (row[0] != null) {
-                dao.insert(rowHandler(row))
+                rowHandler(row)
             }
         }
     }
 }
+
+internal suspend fun <DAO, ENTITY> importCsvFile(dao: DAO, rowHandler: (DataRow<Any?>) -> ENTITY)
+        where ENTITY : Any, DAO : BaseWriteDao<ENTITY> =
+    importFromFile(
+        "csv",
+        {
+            val dataFrame = DataFrame.readCsv(it)
+            dao.deleteAll()
+            dataFrame
+        }, { dao.insert(rowHandler(it)) })

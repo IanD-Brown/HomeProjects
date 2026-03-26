@@ -23,16 +23,7 @@ import io.github.iandbrown.reconciler.database.ImportDefinitionListViewDao
 import io.github.iandbrown.reconciler.database.RuleDao
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.di.inject
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.FileKitMode
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.readBytes
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.at
 import org.jetbrains.kotlinx.dataframe.api.insert
@@ -92,35 +83,27 @@ private suspend fun export(
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
     importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value) {
-    val file = FileKit.openFileSaver(suggestedName = "configuration", extension = "json")
-    val sink = file?.sink(append = false)?.buffered()
+    val accounts = accountDao.getAccounts()
+    val transactionCategories = transactionCategoryDao.getCategories()
+    val rules = ruleDao.getRules()
+    val importDefinitions = importDefinitionDao.getAll()
 
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            val accounts = accountDao.getAccounts()
-            val transactionCategories = transactionCategoryDao.getCategories()
-            val rules = ruleDao.getRules()
-            val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })
-            val importDefinitions = importDefinitionDao.getAll()
-            val sb = StringBuilder()
-
-            (0 until 1).toDataFrame {
-                "accounts" from {
-                    toDataFrame(accounts).insert(ENTITY) {ACCOUNT}.at(0)
-                }
-                "transactionCategories" from {
-                    toDataFrame(transactionCategories).insert(ENTITY) {TRANSACTION_CATEGORY}.at(0)
-                }
-                "rules" from {
-                    toDataFrame(rules, categoryNameLookup).insert(ENTITY) {RULE}.at(0)
-                }
-                "importDefinitions" from {
-                    toDataFrame(importDefinitions).insert(ENTITY) {IMPORT_DEFINITION}.at(0)
-                }
-            }.writeJson(sb, true)
-
-            bufferedSink.writeString(sb.toString())
-        }
+    exportToFile("configuration", extension = "json") { output ->
+        val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })
+        (0 until 1).toDataFrame {
+            "accounts" from {
+                toDataFrame(accounts).insert(ENTITY) { ACCOUNT }.at(0)
+            }
+            "transactionCategories" from {
+                toDataFrame(transactionCategories).insert(ENTITY) { TRANSACTION_CATEGORY }.at(0)
+            }
+            "rules" from {
+                toDataFrame(rules, categoryNameLookup).insert(ENTITY) { RULE }.at(0)
+            }
+            "importDefinitions" from {
+                toDataFrame(importDefinitions).insert(ENTITY) { IMPORT_DEFINITION }.at(0)
+            }
+        }.writeJson(output, true)
     }
 }
 
@@ -128,17 +111,19 @@ private suspend fun import(
     accountDao: AccountDao = inject<AccountDao>().value,
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
-    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value) {
-    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("json")), mode = FileKitMode.Single)
-
-    if (dataFile != null) {
-        val dataFrame = DataFrame.readJson(dataFile.readBytes().inputStream())
-        accountDao.deleteAll()
-        transactionCategoryDao.deleteAll()
-        ruleDao.deleteAll()
-        importDefinitionDao.deleteAll()
-
-        dataFrame.rows().forEach { row ->
+    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value
+) {
+    importFromFile(
+        "json",
+        {
+            val dataFrame = DataFrame.readJson(it)
+            accountDao.deleteAll()
+            transactionCategoryDao.deleteAll()
+            ruleDao.deleteAll()
+            importDefinitionDao.deleteAll()
+            dataFrame
+        },
+        { row ->
             for (cell in row.values()) {
                 if (cell is DataFrame<*>) {
                     cell.rows().forEach {
@@ -151,7 +136,6 @@ private suspend fun import(
                     }
                 }
             }
-
         }
-    }
+    )
 }

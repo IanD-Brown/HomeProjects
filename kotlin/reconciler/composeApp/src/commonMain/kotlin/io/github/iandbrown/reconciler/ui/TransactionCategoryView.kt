@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 
 private const val NAME = "name"
@@ -39,10 +40,10 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch {
-                    importCsv(inject<TransactionCategoryDao>().value) { toTransactionCategory(it) }
+                    importCsvFile(inject<TransactionCategoryDao>().value) { toTransactionCategory(it) }
                 } },
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToCsv("transactionCategories") { toDataFrame(state.value) }
+                    exportToFile("transactionCategories") { toDataFrame(state.value).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(TransactionCategory(name = "", filter = false)) })
         }) { paddingValues ->

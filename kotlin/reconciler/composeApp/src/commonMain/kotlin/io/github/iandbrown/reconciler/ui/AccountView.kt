@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 
 private const val NAME = "name"
@@ -36,10 +37,10 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch {
-                    importCsv(inject<AccountDao>().value) { toAccount(it) }
+                    importCsvFile(inject<AccountDao>().value) { toAccount(it) }
                 } },
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToCsv("accounts") {toDataFrame(state.value) }
+                    exportToFile("accounts") { toDataFrame(state.value).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(Account(name = "")) })
         }) { paddingValues ->

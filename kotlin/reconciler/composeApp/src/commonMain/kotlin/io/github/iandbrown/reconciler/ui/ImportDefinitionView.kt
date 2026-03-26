@@ -50,6 +50,7 @@ import org.jetbrains.kotlinx.dataframe.api.rows
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readCsv
 import org.jetbrains.kotlinx.dataframe.io.readExcel
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 
 private const val ACCOUNT = "Account"
@@ -89,7 +90,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch { import() }},
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToCsv("importDefinitions") {toDataFrame(state.value)}
+                    exportToFile("importDefinitions") { toDataFrame(state.value).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
         }) { paddingValues ->

@@ -22,6 +22,7 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 
 class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().value) {
@@ -56,11 +57,16 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>(),
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch {
                     val categoryLookup = categoryState.value.associateBy( { it.name }, {it.id} )
-                    importCsv(inject<RuleDao>().value) { Rule(match = it[MATCH] as String, category = categoryLookup[it[CATEGORY] as String]!!) }
+                    importCsvFile(inject<RuleDao>().value) {
+                        Rule(
+                            match = it[MATCH] as String,
+                            category = categoryLookup[it[CATEGORY] as String ]!!
+                        )
+                    }
                 } },
                 ButtonSettings("Export") { coroutineScope.launch {
                     val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
-                    exportToCsv("rules") { toDataFrame(state.value, categoryLookup) }
+                    exportToFile("rules") { toDataFrame(state.value, categoryLookup).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(editor.addRoute()) })
         }) { paddingValues ->

@@ -26,6 +26,7 @@ import io.github.iandbrown.reconciler.logic.DayDate
 import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 import kotlin.math.max
 
@@ -54,10 +55,17 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
             BottomBarWithButtons(
                 ButtonSettings("Export") {
                     coroutineScope.launch {
-                        exportToCsv("transactions") {
-                            toDataFrame(filterTransaction(state.value, minDate, filterSheet, filterCategory),
-                                accounts.value.associateBy( { it.id }, {it.name} ),
-                                transactionCategories.value.associateBy( { it.id }, {it.name} ))
+                        exportToFile("transactions") {output ->
+                            toDataFrame(
+                                filterTransaction(
+                                    state.value,
+                                    minDate,
+                                    filterSheet,
+                                    filterCategory
+                                ),
+                                accounts.value.associateBy({ it.id }, { it.name }),
+                                transactionCategories.value.associateBy({ it.id }, { it.name }))
+                                .writeCsv(output)
                         }
                     }
                 },
