@@ -2,6 +2,7 @@ package io.github.iandbrown.reconciler.di
 
 import androidx.room.RoomDatabase
 import io.github.iandbrown.reconciler.database.AppDatabase
+import io.github.iandbrown.reconciler.ui.AccountGroupViewModel
 import io.github.iandbrown.reconciler.ui.AccountViewModel
 import io.github.iandbrown.reconciler.ui.ImportDefinitionListViewModel
 import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
@@ -18,6 +19,7 @@ import org.koin.mp.KoinPlatform.getKoin
 inline fun <reified T : Any> inject() = lazy { getKoin().get<T>() }
 
 private val injectableModules = module {
+    viewModelOf(::AccountGroupViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::ImportDefinitionListViewModel)
     viewModelOf(::ImportDefinitionViewModel)
@@ -27,6 +29,7 @@ private val injectableModules = module {
 
     // Provide DAOs
     single { get<AppDatabase>().getAccountDao() }
+    single { get<AppDatabase>().getAccountGroupDao() }
     single { get<AppDatabase>().getAccountImportDefinitionDao() }
     single { get<AppDatabase>().getImportDefinitionDao() }
     single { get<AppDatabase>().getImportDefinitionListViewDao() }

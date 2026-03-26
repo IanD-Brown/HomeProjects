@@ -2,6 +2,7 @@ package io.github.iandbrown.reconciler.database
 
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -13,14 +14,21 @@ private const val table = "TransactionCategories"
 @Serializable
 @Entity(
     tableName = table,
-    indices = [Index(value = ["name"], unique = true)]
+    indices = [Index(value = ["name"], unique = true),
+        Index(value = ["accountGroup"])],
+    foreignKeys = [ForeignKey(
+        entity = AccountGroup::class,
+        parentColumns = ["id"],
+        childColumns = ["accountGroup"],
+        onDelete = ForeignKey.CASCADE)]
 )
 data class TransactionCategory(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
     val filter: Boolean,
-    val isSpending: Boolean = true
+    val isSpending: Boolean = true,
+    val accountGroup: Int
 )
 
 @Dao

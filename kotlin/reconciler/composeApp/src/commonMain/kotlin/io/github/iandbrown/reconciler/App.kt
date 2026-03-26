@@ -9,11 +9,14 @@ import androidx.navigation.toRoute
 import androidx.savedstate.read
 import com.softartdev.theme.material3.PreferableMaterialTheme
 import io.github.iandbrown.reconciler.database.Account
+import io.github.iandbrown.reconciler.database.AccountGroup
 import io.github.iandbrown.reconciler.database.ImportDefinitionListView
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.TransactionCategory
+import io.github.iandbrown.reconciler.ui.AccountGroupListView
 import io.github.iandbrown.reconciler.ui.AccountListView
 import io.github.iandbrown.reconciler.ui.EditAccount
+import io.github.iandbrown.reconciler.ui.EditAccountGroup
 import io.github.iandbrown.reconciler.ui.EditImportDefinition
 import io.github.iandbrown.reconciler.ui.EditRule
 import io.github.iandbrown.reconciler.ui.EditTransactionCategory
@@ -64,6 +67,10 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
                 ImportDefinitionList()
             }
 
+            composable(getRoute(Editors.ACCOUNT_GROUPS)) {
+                AccountGroupListView()
+            }
+
             composable<Rule> {
                 EditRule(it.toRoute())
             }
@@ -86,6 +93,10 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
 
             composable<Account> {
                 EditAccount(it.toRoute())
+            }
+
+            composable<AccountGroup> {
+                EditAccountGroup(it.toRoute())
             }
         }
     }

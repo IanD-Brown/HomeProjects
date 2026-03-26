@@ -9,6 +9,7 @@ private const val majorVersion = 1
 @Database(
     entities = [
         Account::class,
+        AccountGroup::class,
         AccountImportDefinition::class,
         ImportDefinition::class,
         Rule::class,
@@ -22,6 +23,7 @@ private const val majorVersion = 1
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun getAccountDao(): AccountDao
+    abstract fun getAccountGroupDao(): AccountGroupDao
     abstract fun getAccountImportDefinitionDao(): AccountImportDefinitionDao
     abstract fun getImportDefinitionDao(): ImportDefinitionDao
     abstract fun getImportDefinitionListViewDao(): ImportDefinitionListViewDao

@@ -23,7 +23,6 @@ import io.github.iandbrown.reconciler.database.Transaction
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
-import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
@@ -53,22 +52,13 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
         "Transactions",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Export") {
-                    coroutineScope.launch {
-                        exportToFile("transactions") {output ->
-                            toDataFrame(
-                                filterTransaction(
-                                    state.value,
-                                    minDate,
-                                    filterSheet,
-                                    filterCategory
-                                ),
-                                accounts.value.associateBy({ it.id }, { it.name }),
-                                transactionCategories.value.associateBy({ it.id }, { it.name }))
-                                .writeCsv(output)
-                        }
-                    }
-                },
+                exportButtonSettings(coroutineScope,"transactions") { output ->
+                    toDataFrame(
+                        filterTransaction(state.value, minDate, filterSheet, filterCategory),
+                        accounts.value.associateBy({ it.id }, { it.name }),
+                        transactionCategories.value.associateBy({ it.id }, { it.name }))
+                        .writeCsv(output)
+                }
             )
         }) { paddingValues ->
         val categoryNameLookup = transactionCategories.value.associateBy( { it.id }, {it.name} )
@@ -110,7 +100,7 @@ fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionV
                     Icons.Default.Add,
                     "add rule",
                     Modifier.clickable(onClick =
-                        { appNavController.navigate(Rule(0, escapeString(transaction.description), 0))}), Color.Green)}
+                        { appNavController.navigate(Rule(0, escapeString(transaction.description), 0, 0))}), Color.Green)}
             }
         }
     }

@@ -57,6 +57,7 @@ import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import io.github.iandbrown.reconciler.database.BaseReadDao
 import io.github.iandbrown.reconciler.database.BaseWriteDao
 import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
@@ -68,6 +69,8 @@ import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.sink
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -380,6 +383,11 @@ fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boo
     item { Checkbox(value, onValueChange) }
 }
 
+fun LazyGridScope.gridEntry(title : String, itemList: List<String>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
+    item { ViewText(title) }
+    item { DropdownList(itemList, selectedIndex, onItemClick = onItemClick) }
+}
+
 fun LazyGridScope.formatedNumber(format : String, value : Double?) {
     item { ViewText(String.format(Locale.UK, format, value ?: 0.0)) }
 }
@@ -429,3 +437,27 @@ internal suspend fun <DAO, ENTITY> importCsvFile(dao: DAO, rowHandler: (DataRow<
             dao.deleteAll()
             dataFrame
         }, { dao.insert(rowHandler(it)) })
+
+fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MODEL,
+                                                  rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
+        where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
+    ButtonSettings("Import") { viewModel.coroutineScope.launch {
+        importFromFile(
+            "csv",
+            {
+                val dataFrame = DataFrame.readCsv(it)
+                viewModel.dao.deleteAll()
+                dataFrame
+            }, { viewModel.insert(rowHandler(it)) })
+
+    }}
+
+fun exportButtonSettings(coroutineScope: CoroutineScope,
+                         suggestName: String,
+                         transformedDataSupplier: (Appendable) -> Unit) : ButtonSettings =
+    ButtonSettings("Export") { coroutineScope.launch {
+        exportToFile(suggestName, transformedDataSupplier = transformedDataSupplier)
+    }}
+
+fun<ENTITY> addButtonSettings(blankEntity: () -> ENTITY) : ButtonSettings =
+    ButtonSettings("+") {it.navigate(blankEntity().toString())}

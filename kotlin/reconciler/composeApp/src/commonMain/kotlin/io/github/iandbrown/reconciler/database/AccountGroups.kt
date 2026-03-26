@@ -2,43 +2,35 @@ package io.github.iandbrown.reconciler.database
 
 import androidx.room.Dao
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
-private const val table = "Accounts"
+private const val table = "AccountGroups"
 
 @Serializable
 @Entity(
     tableName = table,
-    indices = [Index(value = ["name"], unique = true),
-        Index(value = ["accountGroup"])],
-    foreignKeys = [ForeignKey(
-        entity = AccountGroup::class,
-        parentColumns = ["id"],
-        childColumns = ["accountGroup"],
-        onDelete = ForeignKey.CASCADE)]
+    indices = [Index(value = ["name"], unique = true)]
 )
-data class Account(
+data class AccountGroup(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val name: String,
-    val accountGroup: Int
+    val name: String
 )
 
 @Dao
-interface AccountDao : BaseReadDao<Account>, BaseWriteDao<Account> {
+interface AccountGroupDao : BaseReadDao<AccountGroup>, BaseWriteDao<AccountGroup> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<Account>>
+    override fun get(): Flow<List<AccountGroup>>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
 
     @Query("SELECT * FROM $table")
-    suspend fun getAccounts() : List<Account>
+    suspend fun getAll() : List<AccountGroup>
 
     @Query("SELECT id FROM $table WHERE name = :name")
     suspend fun getByName(name: String) : Int?

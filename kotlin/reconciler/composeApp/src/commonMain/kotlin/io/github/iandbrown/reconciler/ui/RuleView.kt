@@ -1,7 +1,7 @@
 package io.github.iandbrown.reconciler.ui
 
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.RuleDao
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
@@ -42,33 +43,30 @@ fun NavigateRule(argument: String?) {
 
 internal const val CATEGORY = "Category"
 internal const val MATCH = "Match"
+internal const val ACCOUNT_GROUP = "AccountGroup"
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun RuleEditor(viewModel: RuleViewModel = koinInject<RuleViewModel>(),
-                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
+private fun RuleEditor(viewModel: RuleViewModel = koinInject(),
+                       transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
+                       accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Rules",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch {
-                    val categoryLookup = categoryState.value.associateBy( { it.name }, {it.id} )
-                    importCsvFile(inject<RuleDao>().value) {
-                        Rule(
-                            match = it[MATCH] as String,
-                            category = categoryLookup[it[CATEGORY] as String ]!!
-                        )
-                    }
-                } },
-                ButtonSettings("Export") { coroutineScope.launch {
-                    val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
-                    exportToFile("rules") { toDataFrame(state.value, categoryLookup).writeCsv(it) }
-                }},
-                ButtonSettings("+") { it.navigate(editor.addRoute()) })
+                importCsvButtonSettings(viewModel) { toRule(it) },
+                exportButtonSettings(coroutineScope,"rules") { output ->
+                    val categoryLookup = categoryState.value.associateBy({ it.id }, { it.name })
+                    val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
+
+                    toDataFrame(state.value, categoryLookup, groupLookup).writeCsv(output)
+                },
+                addButtonSettings { editor.addRoute() })
         }) { paddingValues ->
         val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
 
@@ -95,36 +93,56 @@ internal fun EditRule(rule: Rule?,
                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
     var match by remember { mutableStateOf(rule?.match ?: "") }
     var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) 0 else rule.category) }
+    var accountGroup by remember { mutableIntStateOf(if (rule == null || rule.id == 0) 0 else rule.accountGroup) }
     val title = if (rule == null) "Add Rule" else "Edit Rule"
     val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
+    var editorState by remember { mutableStateOf(EditorState.CLEAN) }
+
+    fun setEditorState() {
+        val matchChange = match.isNotEmpty() && (rule == null || match != rule.match)
+        val typeChange = type != rule?.category
+        val accountGroupChange = accountGroup != rule?.accountGroup
+        editorState = when {
+            match.isEmpty() -> EditorState.DIRTY
+            matchChange || typeChange || accountGroupChange -> EditorState.VALID
+            else -> EditorState.CLEAN
+        }
+    }
 
     ViewCommon(
         title,
         description = "Return to Rules",
         bottomBar = {
-            BottomBarWithButton(enabled = match.isNotEmpty()) {
-                save(rule, viewModel, match, type)
+            BottomBarWithButton(enabled = editorState == EditorState.VALID) {
+                save(rule, viewModel, match, type, accountGroup)
                 it.popBackStack()
             }
         },
-        confirm = {match.isNotEmpty() && (rule == null || match != rule.match) || (rule != null && type != rule.category)},
-        confirmAction = {save(rule, viewModel, match, type)},
+        confirm = {editorState == EditorState.VALID},
+        confirmAction = {save(rule, viewModel, match, type, accountGroup)},
         content = { paddingValues ->
-            Row(modifier = Modifier.padding(paddingValues), content = {
-                ViewTextField(value = match, label = "Name :") { match = it }
-                DropdownList(
-                    itemList = categoryState.value.map {it.name},
-                    selectedIndex = type,
-                ) { type = categoryState.value[it].id }
+            LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues), content = {
+                gridEntry("Value", match) {
+                    match = it
+                    setEditorState()
+                }
+                gridEntry("Category", categoryState.value.map { it.name }, type) {
+                    type = it
+                    setEditorState()
+                }
+                gridEntry("Account Group", categoryState.value.map { it.name }, accountGroup) {
+                    accountGroup = it
+                    setEditorState()
+                }
             })
         })
 }
 
-private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int,
+private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int, accountGroup: Int,
                  transactionDao: TransactionDao = inject<TransactionDao>().value) {
     viewModel.coroutineScope.launch {
         if (rule == null || rule.id == 0) {
-            viewModel.getDao().insert(Rule(match = match.trim(), category = type))
+            viewModel.getDao().insert(Rule(match = match.trim(), category = type, accountGroup = accountGroup))
         } else {
             if (rule.category != 0) {
                 val matcher = rule.match.toRegex()
@@ -134,7 +152,7 @@ private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int
                     .forEach { transactionDao.setCategory(it.account, it.rowIndex, null) }
             }
 
-            viewModel.getDao().update(Rule(rule.id, match.trim(), category = type))
+            viewModel.getDao().update(Rule(rule.id, match.trim(), category = type, accountGroup = accountGroup))
         }
         if (type != 0) {
             val matcher = match.trim().toRegex()
@@ -145,11 +163,16 @@ private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int
     }
 }
 
-internal fun toDataFrame(rules: List<Rule>, categoryLookup: Map<Int, String>): DataFrame<Rule> =
+internal fun toDataFrame(rules: List<Rule>, categoryLookup: Map<Int, String>, groupLookup: Map<Int, String>): DataFrame<Rule> =
     rules.toDataFrame {
         MATCH from { it.match }
         CATEGORY from { categoryLookup[it.category] }
+        ACCOUNT_GROUP from { groupLookup[it.accountGroup] }
     }
 
-internal suspend fun toRule(row: DataRow<Any?>, transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value): Rule =
-    Rule(match = row[MATCH] as String, category = transactionCategoryDao.getByName(row[CATEGORY] as String)!!)
+internal suspend fun toRule(row: DataRow<Any?>,
+                            transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
+                            accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value): Rule =
+    Rule(match = row[MATCH] as String,
+        category = transactionCategoryDao.getByName(row[CATEGORY] as String)!!,
+        accountGroup = accountGroupDao.getByName(row[ACCOUNT_GROUP] as String)!!)

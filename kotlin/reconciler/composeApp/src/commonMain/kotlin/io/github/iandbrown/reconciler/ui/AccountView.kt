@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -14,8 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.AccountDao
+import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.di.inject
-import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -28,30 +29,32 @@ class AccountViewModel : BaseConfigCRUDViewModel<AccountDao, Account>(inject<Acc
 
 @Suppress("ParamsComparedByRef")
 @Composable
-internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountViewModel>()) {
+internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountViewModel>(),
+                             accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState(emptyList())
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Accounts",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch {
-                    importCsvFile(inject<AccountDao>().value) { toAccount(it) }
-                } },
-                ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("accounts") { toDataFrame(state.value).writeCsv(it) }
-                }},
-                ButtonSettings("+") { it.navigate(Account(name = "")) })
+                importCsvButtonSettings(viewModel) { toAccount(it) },
+                exportButtonSettings(coroutineScope, "accounts") { writer ->
+                    val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
+                    toDataFrame(state.value, groupLookup).writeCsv(writer)
+                },
+                addButtonSettings { Account(name = "", accountGroup = 0) })
         }) { paddingValues ->
         LazyVerticalGrid(
-            columns = WeightedIconGridCells(2, 1),
+            columns = WeightedIconGridCells(2, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            item { ViewText("Name") }
+            val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
+            viewTextItems("Name", "Group")
             item(span = { GridItemSpan(2) }) {}
             for (account in state.value) {
-                item { ViewText(account.name) }
+                viewTextItems(account.name, groupLookup[account.accountGroup] ?: "")
                 item { EditButton { navController -> navController.navigate(account) } }
                 item { DeleteButton { viewModel.delete(account) } }
             }
@@ -62,20 +65,21 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
 @Suppress("ParamsComparedByRef")
 @Composable
 internal fun EditAccount(account: Account,
-                                     viewModel: AccountViewModel = koinInject<AccountViewModel>()) {
+                         viewModel: AccountViewModel = koinInject(),
+                         accountGroupViewModel: AccountGroupViewModel = koinInject()) {
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var name by remember { mutableStateOf(account.name) }
+    var group by remember { mutableIntStateOf(account.accountGroup) }
     val title = if (account.id == 0) "Add Account" else "Edit Account"
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
 
     fun setEditorState() {
-        editorState = if (account.id == 0) {
-            if (name.isNotEmpty()) EditorState.VALID else EditorState.DIRTY
-        } else if (name == account.name) {
-            EditorState.CLEAN
-        } else if (name.isEmpty()) {
-            EditorState.DIRTY
-        } else {
-            EditorState.VALID
+        editorState = when {
+            account.id == 0 && name.isNotEmpty() -> EditorState.VALID
+            account.id == 0 && name.isEmpty() && group == account.accountGroup -> EditorState.CLEAN
+            account.id != 0 && (name != account.name || group != account.accountGroup) -> EditorState.DIRTY
+            account.id != 0 -> EditorState.CLEAN
+            else -> EditorState.DIRTY
         }
     }
 
@@ -84,31 +88,37 @@ internal fun EditAccount(account: Account,
         description = "Return to Accounts",
         bottomBar = {
             BottomBarWithButton(enabled = editorState == EditorState.VALID) {
-                save(account, viewModel, name)
+                save(account, viewModel, name, group)
                 it.popBackStack()
             }
         },
         confirm = { editorState == EditorState.VALID },
-        confirmAction = {save(account, viewModel, name)}) { paddingValues ->
+        confirmAction = {save(account, viewModel, name, group)}) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) { name = it
+                setEditorState()
+            }
+            gridEntry("Group", accountGroupState.value.map { it.name }, group) {
+                group = it
                 setEditorState()
             }
         }
     }
 }
 
-private fun save(account: Account?, viewModel: AccountViewModel, name: String) {
+private fun save(account: Account?, viewModel: AccountViewModel, name: String, group: Int) {
     if (account == null || account.id == 0) {
-        viewModel.insert(Account(name = name))
+        viewModel.insert(Account(name = name, accountGroup = group))
     } else {
-        viewModel.update(Account(account.id, name))
+        viewModel.update(Account(account.id, name, group))
     }
 }
 
-internal fun toDataFrame(accounts: List<Account>): DataFrame<Account> =
+internal fun toDataFrame(accounts: List<Account>, groupLookup: Map<Int, String>): DataFrame<Account> =
     accounts.toDataFrame {
         NAME from { it.name }
+        ACCOUNT_GROUP from { groupLookup[it.accountGroup]!! }
     }
 
-internal fun toAccount(row: DataRow<Any?>): Account = Account(name = row[NAME] as String)
+internal suspend fun toAccount(row: DataRow<Any?>, accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value): Account =
+    Account(name = row[NAME] as String, accountGroup = accountGroupDao.getByName(row[ACCOUNT_GROUP] as String)!!)

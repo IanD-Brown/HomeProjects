@@ -2,10 +2,73 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "526d7318ebb62fc8725f102be0bcd9b9",
+    "identityHash": "49e5a11154eb3d3344a46bc8e3f30c8a",
     "entities": [
       {
         "tableName": "Accounts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `accountGroup` INTEGER NOT NULL, FOREIGN KEY(`accountGroup`) REFERENCES `AccountGroups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountGroup",
+            "columnName": "accountGroup",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_Accounts_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Accounts_name` ON `${TABLE_NAME}` (`name`)"
+          },
+          {
+            "name": "index_Accounts_accountGroup",
+            "unique": false,
+            "columnNames": [
+              "accountGroup"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Accounts_accountGroup` ON `${TABLE_NAME}` (`accountGroup`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "AccountGroups",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "accountGroup"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "AccountGroups",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)",
         "fields": [
           {
@@ -29,13 +92,13 @@
         },
         "indices": [
           {
-            "name": "index_Accounts_name",
+            "name": "index_AccountGroups_name",
             "unique": true,
             "columnNames": [
               "name"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Accounts_name` ON `${TABLE_NAME}` (`name`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_AccountGroups_name` ON `${TABLE_NAME}` (`name`)"
           }
         ]
       },
@@ -176,7 +239,7 @@
       },
       {
         "tableName": "Rules",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `match` TEXT NOT NULL, `category` INTEGER NOT NULL, FOREIGN KEY(`category`) REFERENCES `TransactionCategories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `match` TEXT NOT NULL, `category` INTEGER NOT NULL, `accountGroup` INTEGER NOT NULL, FOREIGN KEY(`category`) REFERENCES `TransactionCategories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`accountGroup`) REFERENCES `AccountGroups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -193,6 +256,12 @@
           {
             "fieldPath": "category",
             "columnName": "category",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountGroup",
+            "columnName": "accountGroup",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -221,6 +290,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_Rules_category` ON `${TABLE_NAME}` (`category`)"
+          },
+          {
+            "name": "index_Rules_accountGroup",
+            "unique": false,
+            "columnNames": [
+              "accountGroup"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Rules_accountGroup` ON `${TABLE_NAME}` (`accountGroup`)"
           }
         ],
         "foreignKeys": [
@@ -230,6 +308,17 @@
             "onUpdate": "NO ACTION",
             "columns": [
               "category"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "AccountGroups",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "accountGroup"
             ],
             "referencedColumns": [
               "id"
@@ -331,7 +420,7 @@
       },
       {
         "tableName": "TransactionCategories",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `filter` INTEGER NOT NULL, `isSpending` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `filter` INTEGER NOT NULL, `isSpending` INTEGER NOT NULL, `accountGroup` INTEGER NOT NULL, FOREIGN KEY(`accountGroup`) REFERENCES `AccountGroups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -356,6 +445,12 @@
             "columnName": "isSpending",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "accountGroup",
+            "columnName": "accountGroup",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -373,6 +468,28 @@
             ],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_TransactionCategories_name` ON `${TABLE_NAME}` (`name`)"
+          },
+          {
+            "name": "index_TransactionCategories_accountGroup",
+            "unique": false,
+            "columnNames": [
+              "accountGroup"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_TransactionCategories_accountGroup` ON `${TABLE_NAME}` (`accountGroup`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "AccountGroups",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "accountGroup"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
           }
         ]
       }
@@ -385,7 +502,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '526d7318ebb62fc8725f102be0bcd9b9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '49e5a11154eb3d3344a46bc8e3f30c8a')"
     ]
   }
 }

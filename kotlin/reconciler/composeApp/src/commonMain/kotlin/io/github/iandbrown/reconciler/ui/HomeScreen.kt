@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.reconciler.database.AccountDao
+import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.database.ImportDefinitionDao
 import io.github.iandbrown.reconciler.database.ImportDefinitionListViewDao
 import io.github.iandbrown.reconciler.database.RuleDao
@@ -38,6 +39,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SUMMARY_BY_CATEGORY("Summary By Category"),
     SPENDING_SUMMARY("Spending Summary"),
     ACCOUNTS("Accounts"),
+    ACCOUNT_GROUPS("Account Groups"),
     IMPORT_DEFINITION("Import Definitions"),
     TRANSACTION_CATEGORY("Transaction Categories");
 
@@ -82,23 +84,29 @@ private suspend fun export(
     accountDao: AccountDao = inject<AccountDao>().value,
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
-    importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value) {
+    importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value,
+    accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value) {
     val accounts = accountDao.getAccounts()
     val transactionCategories = transactionCategoryDao.getCategories()
     val rules = ruleDao.getRules()
     val importDefinitions = importDefinitionDao.getAll()
+    val accountGroups = accountGroupDao.getAll()
 
     exportToFile("configuration", extension = "json") { output ->
         val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })
+        val groupLookup = accountGroups.associateBy({ it.id }, { it.name })
         (0 until 1).toDataFrame {
+            "accountGroups" from {
+                toDataFrame(accountGroups).insert(ENTITY) { ACCOUNT_GROUP }.at(0)
+            }
             "accounts" from {
-                toDataFrame(accounts).insert(ENTITY) { ACCOUNT }.at(0)
+                toDataFrame(accounts, groupLookup).insert(ENTITY) { ACCOUNT }.at(0)
             }
             "transactionCategories" from {
-                toDataFrame(transactionCategories).insert(ENTITY) { TRANSACTION_CATEGORY }.at(0)
+                toDataFrame(transactionCategories, groupLookup).insert(ENTITY) { TRANSACTION_CATEGORY }.at(0)
             }
             "rules" from {
-                toDataFrame(rules, categoryNameLookup).insert(ENTITY) { RULE }.at(0)
+                toDataFrame(rules, categoryNameLookup, groupLookup).insert(ENTITY) { RULE }.at(0)
             }
             "importDefinitions" from {
                 toDataFrame(importDefinitions).insert(ENTITY) { IMPORT_DEFINITION }.at(0)
@@ -111,7 +119,8 @@ private suspend fun import(
     accountDao: AccountDao = inject<AccountDao>().value,
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
-    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value
+    importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
+    accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value
 ) {
     importFromFile(
         "json",
@@ -128,6 +137,7 @@ private suspend fun import(
                 if (cell is DataFrame<*>) {
                     cell.rows().forEach {
                         when (it[ENTITY]) {
+                            ACCOUNT_GROUP -> accountGroupDao.insert(toAccountGroup(it))
                             ACCOUNT -> accountDao.insert(toAccount(it))
                             TRANSACTION_CATEGORY -> transactionCategoryDao.insert(toTransactionCategory(it))
                             RULE -> ruleDao.insert(toRule(it))
