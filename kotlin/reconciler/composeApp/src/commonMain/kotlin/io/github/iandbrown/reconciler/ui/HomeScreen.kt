@@ -43,8 +43,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     IMPORT_DEFINITION("Import Definitions"),
     TRANSACTION_CATEGORY("Transaction Categories");
 
-    fun viewRoute() : String = "$name/View"
-    fun addRoute() : String = "$name/Add"
+    fun viewRoute() : String = name
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,17 +79,17 @@ private const val RULE = "Rule"
 private const val IMPORT_DEFINITION = "ImportDefinition"
 private const val ENTITY = "entity"
 
-private suspend fun export(
+internal suspend fun export(accountGroupId: Int = -1,
     accountDao: AccountDao = inject<AccountDao>().value,
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
     importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value,
     accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value) {
-    val accounts = accountDao.getAccounts()
-    val transactionCategories = transactionCategoryDao.getCategories()
-    val rules = ruleDao.getRules()
-    val importDefinitions = importDefinitionDao.getAll()
-    val accountGroups = accountGroupDao.getAll()
+    val accounts = accountDao.getAccounts().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
+    val transactionCategories = transactionCategoryDao.getCategories().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
+    val rules = ruleDao.getRules().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
+    val importDefinitions = importDefinitionDao.getAll().filter { accountGroupId == -1 || accounts.any {account -> account.id == it.accountId } }
+    val accountGroups = accountGroupDao.getAll().filter { accountGroupId == -1 || it.id == accountGroupId }
 
     exportToFile("configuration", extension = "json") { output ->
         val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })

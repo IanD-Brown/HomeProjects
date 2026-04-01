@@ -46,9 +46,6 @@ interface ImportDefinitionListViewDao : BaseReadDao<ImportDefinitionListView> {
     @Query("SELECT * FROM $viewName")
     override fun get(): Flow<List<ImportDefinitionListView>>
 
-    @Query("SELECT * from $viewName where importDefinitionId = :id")
-    fun getById(id: Int) : Flow<ImportDefinitionListView?>
-
     @Query("SELECT * FROM $viewName")
     suspend fun getAll() : List<ImportDefinitionListView>
 }

@@ -1,9 +1,10 @@
 package io.github.iandbrown.reconciler.database
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-private const val version = 1
+private const val version = 3
 private const val majorVersion = 1
 
 @Database(
@@ -16,9 +17,12 @@ private const val majorVersion = 1
         Transaction::class,
         TransactionCategory::class],
     views = [
-        ImportDefinitionListView::class],
+        ImportDefinitionListView::class,
+        TransactionListView::class],
     version = version,
     autoMigrations = [
+        AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 2, to = 3)
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun getImportDefinitionListViewDao(): ImportDefinitionListViewDao
     abstract fun getRuleDao(): RuleDao
     abstract fun getTransactionCategoryDao(): TransactionCategoryDao
+    abstract fun getTransactionListViewDao(): TransactionListViewDao
     abstract fun getTransactionDao(): TransactionDao
 }
 

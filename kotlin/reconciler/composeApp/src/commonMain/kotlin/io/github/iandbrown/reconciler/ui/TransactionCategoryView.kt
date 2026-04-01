@@ -1,6 +1,12 @@
 package io.github.iandbrown.reconciler.ui
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -13,10 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.di.inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -37,6 +45,7 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
     val state = viewModel.uiState.collectAsState(emptyList())
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    var accountGroup by remember { mutableIntStateOf(-1) }
 
     ViewCommon(
         "Transaction Categories",
@@ -47,28 +56,32 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
                     val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
                     toDataFrame(state.value, groupLookup).writeCsv(writer)
                 },
-                addButtonSettings {
-                    TransactionCategory(
-                        name = "",
-                        filter = false,
-                        accountGroup = 0
-                    )
-                })
+                ButtonSettings("+") { TransactionCategory(name = "", filter = false, accountGroup = accountGroup) })
         }) { paddingValues ->
-        LazyVerticalGrid(
-            columns = WeightedIconGridCells(2, 2, 1, 1),
-            Modifier.padding(paddingValues)
-        ) {
-            viewTextItems("Name", "Filter", "Is Spending")
-            item(span = { GridItemSpan(2) }) {}
-            for (transactionCategory in state.value) {
-                viewTextItems(
-                    transactionCategory.name,
-                    transactionCategory.filter.toString(),
-                    transactionCategory.isSpending.toString()
-                )
-                item { EditButton { navController -> navController.navigate(transactionCategory) } }
-                item { DeleteButton { viewModel.delete(transactionCategory) } }
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ViewText("Account Group")
+                Spacer(modifier = Modifier.size(16.dp))
+                DropdownList(
+                    MutableStateFlow(accountGroupState.value.map { it.name }),
+                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                ) {
+                    accountGroup = accountGroupState.value[it].id
+                }
+            }
+
+            LazyVerticalGrid(columns = WeightedIconGridCells(2, 2, 1, 1)) {
+                viewTextItems("Name", "Filter", "Is Spending")
+                item(span = { GridItemSpan(2) }) {}
+                for (transactionCategory in state.value.filter { it.accountGroup == accountGroup }) {
+                    viewTextItems(
+                        transactionCategory.name,
+                        transactionCategory.filter.toString(),
+                        transactionCategory.isSpending.toString()
+                    )
+                    item { EditButton { navController -> navController.navigate(transactionCategory) } }
+                    item { DeleteButton { viewModel.delete(transactionCategory) } }
+                }
             }
         }
     }
@@ -78,7 +91,8 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
 @Composable
 internal fun EditTransactionCategory(
     transactionCategory: TransactionCategory,
-    viewModel: TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()
+    viewModel: TransactionCategoryViewModel = koinInject(),
+    accountGroupViewModel: AccountGroupViewModel = koinInject()
 ) {
     var name by remember { mutableStateOf(transactionCategory.name) }
     var filter by remember { mutableStateOf(transactionCategory.filter) }
@@ -86,6 +100,7 @@ internal fun EditTransactionCategory(
     var accountGroup by remember { mutableIntStateOf(transactionCategory.accountGroup) }
     val title = if (transactionCategory.id == 0) "Add Transaction Category" else "Edit Transaction Category"
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
 
     fun setEditorState() {
         editorState = if (transactionCategory.id == 0) {
@@ -125,6 +140,12 @@ internal fun EditTransactionCategory(
                 isSpending = it
                 setEditorState()
             }
+            val accountGroupName =
+                accountGroupState.value
+                    .filter { it.id == transactionCategory.accountGroup }
+                    .map { it.name }
+                    .firstOrNull()
+            viewTextItems("Account Group", accountGroupName ?: "")
         }
     }
 }

@@ -17,6 +17,7 @@ import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.di.inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -44,7 +45,7 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
                     val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
                     toDataFrame(state.value, groupLookup).writeCsv(writer)
                 },
-                addButtonSettings { Account(name = "", accountGroup = 0) })
+                ButtonSettings("+") { it.navigate(Account(name = "", accountGroup = 0)) })
         }) { paddingValues ->
         LazyVerticalGrid(
             columns = WeightedIconGridCells(2, 1, 1),
@@ -55,7 +56,7 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
             item(span = { GridItemSpan(2) }) {}
             for (account in state.value) {
                 viewTextItems(account.name, groupLookup[account.accountGroup] ?: "")
-                item { EditButton { navController -> navController.navigate(account) } }
+                item { EditButton { it.navigate(account) } }
                 item { DeleteButton { viewModel.delete(account) } }
             }
         }
@@ -98,8 +99,10 @@ internal fun EditAccount(account: Account,
             gridEntry("Name", name) { name = it
                 setEditorState()
             }
-            gridEntry("Group", accountGroupState.value.map { it.name }, group) {
-                group = it
+            gridEntry("Group",
+                MutableStateFlow(accountGroupState.value.map { it.name }),
+                accountGroupState.value.map {it.id}.indexOf(group)) {
+                group = accountGroupState.value.map {accountGroup ->  accountGroup.id}[it]
                 setEditorState()
             }
         }

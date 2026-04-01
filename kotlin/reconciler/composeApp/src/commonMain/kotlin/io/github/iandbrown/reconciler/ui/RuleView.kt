@@ -1,7 +1,7 @@
 package io.github.iandbrown.reconciler.ui
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,8 +18,8 @@ import io.github.iandbrown.reconciler.database.RuleDao
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -30,29 +30,19 @@ class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().v
     fun getDao() : RuleDao = dao
 }
 
-private val editor = Editors.RULES
-
-@Composable
-fun NavigateRule(argument: String?) {
-    when (argument) {
-        "View" -> RuleEditor()
-        "Add" -> EditRule(null)
-        else -> EditRule(Json.decodeFromString<Rule>(argument!!))
-    }
-}
-
 internal const val CATEGORY = "Category"
 internal const val MATCH = "Match"
 internal const val ACCOUNT_GROUP = "AccountGroup"
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun RuleEditor(viewModel: RuleViewModel = koinInject(),
-                       transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
-                       accountGroupViewModel: AccountGroupViewModel = koinInject()) {
+fun NavigateRule(viewModel: RuleViewModel = koinInject(),
+                 transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
+                 accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
+    var accountGroup by remember { mutableIntStateOf(-1) }
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -66,19 +56,26 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject(),
 
                     toDataFrame(state.value, categoryLookup, groupLookup).writeCsv(output)
                 },
-                addButtonSettings { editor.addRoute() })
+                ButtonSettings("+") { it.navigate(Rule(match = "", category = 0, accountGroup = accountGroup)) })
         }) { paddingValues ->
         val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
 
         LazyVerticalGrid(
-            columns = WeightedIconGridCells(2, 5, 1),
+            columns = WeightedIconGridCells(2, 1, 1, 1, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            viewTextItems("Match", "Category")
+            item(span = { GridItemSpan(2) }) { ViewText("Match")}
+            item { ViewText("Account Group") }
+            item { DropdownList(MutableStateFlow(accountGroupState.value.map { it.name }),
+                accountGroupState.value.map { it.id }.indexOf(accountGroup)) {
+                accountGroup = accountGroupState.value[it].id
+            }}
+            viewTextItems("Category")
             item {}
             item {}
-            for (rule in state.value.sortedBy { it.match }) {
-                viewTextItems(rule.match, categoryLookup[rule.category] ?: "")
+            for (rule in state.value.filter { it.accountGroup == accountGroup }.sortedBy { it.match }) {
+                item(span = { GridItemSpan(4) }) { ViewText(rule.match) }
+                viewTextItems(categoryLookup[rule.category] ?: "")
                 item { EditButton { navController -> navController.navigate(rule) } }
                 item { DeleteButton { viewModel.delete(rule) } }
             }
@@ -88,20 +85,22 @@ private fun RuleEditor(viewModel: RuleViewModel = koinInject(),
 
 @Suppress("ParamsComparedByRef")
 @Composable
-internal fun EditRule(rule: Rule?,
-                      viewModel: RuleViewModel = koinInject<RuleViewModel>(),
-                      transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
-    var match by remember { mutableStateOf(rule?.match ?: "") }
-    var type by remember { mutableIntStateOf(if (rule == null || rule.id == 0) 0 else rule.category) }
-    var accountGroup by remember { mutableIntStateOf(if (rule == null || rule.id == 0) 0 else rule.accountGroup) }
-    val title = if (rule == null) "Add Rule" else "Edit Rule"
-    val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
+internal fun EditRule(rule: Rule,
+                      viewModel: RuleViewModel = koinInject(),
+                      transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
+                      accountGroupViewModel: AccountGroupViewModel = koinInject()) {
+    var match by remember { mutableStateOf(rule.match) }
+    var category by remember { mutableIntStateOf(rule.category) }
+    var accountGroup by remember { mutableIntStateOf(rule.accountGroup) }
+    val title = if (rule.id == 0) "Add Rule" else "Edit Rule"
+    val categoryState = transCategoryViewModel.uiState.collectAsState()
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
 
     fun setEditorState() {
-        val matchChange = match.isNotEmpty() && (rule == null || match != rule.match)
-        val typeChange = type != rule?.category
-        val accountGroupChange = accountGroup != rule?.accountGroup
+        val matchChange = match.isNotEmpty() && match != rule.match
+        val typeChange = category != rule.category
+        val accountGroupChange = accountGroup != rule.accountGroup
         editorState = when {
             match.isEmpty() -> EditorState.DIRTY
             matchChange || typeChange || accountGroupChange -> EditorState.VALID
@@ -114,27 +113,33 @@ internal fun EditRule(rule: Rule?,
         description = "Return to Rules",
         bottomBar = {
             BottomBarWithButton(enabled = editorState == EditorState.VALID) {
-                save(rule, viewModel, match, type, accountGroup)
+                save(rule, viewModel, match, category, accountGroup)
                 it.popBackStack()
             }
         },
         confirm = {editorState == EditorState.VALID},
-        confirmAction = {save(rule, viewModel, match, type, accountGroup)},
+        confirmAction = {save(rule, viewModel, match, category, accountGroup)},
         content = { paddingValues ->
-            LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues), content = {
+            LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 4), modifier = Modifier.padding(paddingValues)) {
                 gridEntry("Value", match) {
                     match = it
                     setEditorState()
                 }
-                gridEntry("Category", categoryState.value.map { it.name }, type) {
-                    type = it
+                gridEntry(
+                    "Category",
+                    MutableStateFlow(categoryState.value.map { it.name }),
+                    categoryState.value.map { it.id }.indexOf(category)
+                ) {
+                    category = it
                     setEditorState()
                 }
-                gridEntry("Account Group", categoryState.value.map { it.name }, accountGroup) {
-                    accountGroup = it
-                    setEditorState()
-                }
-            })
+                val accountGroupName =
+                    accountGroupState.value
+                        .filter { it.id == rule.accountGroup }
+                        .map { it.name }
+                        .firstOrNull()
+                viewTextItems("Account Group", accountGroupName ?: "")
+            }
         })
 }
 

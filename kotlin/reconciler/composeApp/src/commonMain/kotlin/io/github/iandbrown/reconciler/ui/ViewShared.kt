@@ -41,6 +41,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +71,7 @@ import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
@@ -213,7 +215,7 @@ fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
 
 @Composable
 fun DropdownList(
-    itemList: List<String>,
+    itemList: MutableStateFlow<List<String>>,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     isLocked: () -> Boolean = { false },
@@ -221,11 +223,21 @@ fun DropdownList(
     onItemClick: (Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedText by remember { mutableStateOf(if (itemList.isNotEmpty()) itemList[selectedIndex] else "") }
+    val activeItemList = itemList.collectAsState(initial = emptyList())
 
-    if (isLocked()) {
-        ViewText(selectedText, modifier)
-    } else {
+    fun getCurrentValue() : String =
+        if (activeItemList.value.isNotEmpty() && selectedIndex >= 0) {
+            activeItemList.value[selectedIndex]
+        } else {
+            ""
+        }
+
+    if (!isLocked() && activeItemList.value.isNotEmpty() && selectedIndex < 0) {
+        onItemClick(0)
+    }
+    if (isLocked() || activeItemList.value.size <= 1) {
+        ViewText(getCurrentValue(), modifier)
+    } else if (selectedIndex >= 0) {
         // Up Icon when expanded and down icon when collapsed
         val icon = if (expanded)
             Icons.Filled.KeyboardArrowUp
@@ -242,7 +254,7 @@ fun DropdownList(
                 },
         ) {
             ViewTextField(
-                value = selectedText,
+                value = getCurrentValue(),
                 label = label,
                 trailingIcon = {
                     if (!isLocked()) {
@@ -254,12 +266,11 @@ fun DropdownList(
             ) {}
             if (!isLocked() && expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
-                    itemList.forEach { label ->
+                    activeItemList.value.forEach { label ->
                         DropdownMenuItem(
                             text = { ViewText(label) },
                             onClick = {
-                                selectedText = label
-                                onItemClick(itemList.indexOf(label))
+                                onItemClick(activeItemList.value.indexOf(label))
                                 expanded = false
                             }
                         )
@@ -383,7 +394,7 @@ fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boo
     item { Checkbox(value, onValueChange) }
 }
 
-fun LazyGridScope.gridEntry(title : String, itemList: List<String>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
+fun LazyGridScope.gridEntry(title: String, itemList: MutableStateFlow<List<String>>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
     item { ViewText(title) }
     item { DropdownList(itemList, selectedIndex, onItemClick = onItemClick) }
 }
@@ -459,5 +470,16 @@ fun exportButtonSettings(coroutineScope: CoroutineScope,
         exportToFile(suggestName, transformedDataSupplier = transformedDataSupplier)
     }}
 
-fun<ENTITY> addButtonSettings(blankEntity: () -> ENTITY) : ButtonSettings =
-    ButtonSettings("+") {it.navigate(blankEntity().toString())}
+@Composable
+fun CommonDialog(message: String) {
+    var isDialogOpen by remember { mutableStateOf(false) }
+    Button(onClick = { isDialogOpen = true }) { Text("Open") }
+    if (isDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { isDialogOpen = false },
+            confirmButton = { Button(onClick = { isDialogOpen = false }) { Text("OK") } },
+            title = { ViewText("Alert Dialog") },
+            text = { ViewText(message) }
+        )
+    }
+}

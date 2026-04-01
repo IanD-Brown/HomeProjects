@@ -1,7 +1,13 @@
 package io.github.iandbrown.reconciler.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -19,217 +25,254 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.reconciler.database.Rule
-import io.github.iandbrown.reconciler.database.Transaction
-import io.github.iandbrown.reconciler.database.TransactionDao
+import io.github.iandbrown.reconciler.database.TransactionListView
+import io.github.iandbrown.reconciler.database.TransactionListViewDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
-import kotlin.math.max
 
 private const val BASE_DATE = "01/01/2026"
 private var baseDate = DayDate(BASE_DATE).value()
 
-class TransactionViewModel(dao : TransactionDao = inject<TransactionDao>().value) :
-    BaseConfigCRUDViewModel<TransactionDao, Transaction>(dao)
+class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionListViewDao>().value) :
+    BaseReadViewModel<TransactionListViewDao, TransactionListView>(dao)
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewAllTransaction(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
-                       transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>(),
-                       accountViewModel:AccountViewModel = koinInject<AccountViewModel>()) {
+fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
+                       transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
+                       accountViewModel:AccountViewModel = koinInject(),
+                       accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
     var minDate by remember {mutableIntStateOf(baseDate)}
-    var filterSheet by remember { mutableIntStateOf(0) }
+    var filterAccount by remember { mutableIntStateOf(0) }
     var filterCategory by remember { mutableIntStateOf(-1) }
     val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
     val accounts = accountViewModel.uiState.collectAsState(emptyList())
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
+    var accountGroup by remember { mutableIntStateOf(-1) }
 
     ViewCommon(
         "Transactions",
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope,"transactions") { output ->
-                    toDataFrame(
-                        filterTransaction(state.value, minDate, filterSheet, filterCategory),
-                        accounts.value.associateBy({ it.id }, { it.name }),
-                        transactionCategories.value.associateBy({ it.id }, { it.name }))
+                    toDataFrame(filterTransaction(state.value, minDate, filterAccount, filterCategory, accountGroup))
                         .writeCsv(output)
                 }
             )
         }) { paddingValues ->
-        val categoryNameLookup = transactionCategories.value.associateBy( { it.id }, {it.name} )
-        val accountNameLookup = accounts.value.associateBy( { it.id }, {it.name} )
-
-        LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1), Modifier.padding(paddingValues)) {
-            item (span = { GridItemSpan(6) }) {
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ViewText("Account Group")
+                Spacer(modifier = Modifier.size(16.dp))
+                DropdownList(
+                    MutableStateFlow(accountGroupState.value.map { it.name }),
+                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                ) {
+                    accountGroup = accountGroupState.value[it].id
+                }
+                Spacer(modifier = Modifier.size(16.dp))
                 ViewText("Filters")
             }
-            item {
-                DatePickerView(minDate, Modifier.padding(0.dp), { true }) { minDate = it; baseDate = it }
-            }
-            item {
-                DropdownList(listOf("") + accounts.value.map { it.name }, 0) {
-                    filterSheet = it
-                }
-            }
-            item(span = { GridItemSpan(2) }) {}
-            item {
-                DropdownList(listOf("") + transactionCategories.value.map { it.name }, 0) {
-                    filterCategory = when (it) {
-                        0 -> -1
-                        else -> transactionCategories.value[it - 1].id
+            LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1)) {
+                item {DatePickerView(minDate, Modifier.padding(0.dp), { true }) {
+                    minDate = it
+                    baseDate = it
+                }}
+                item {
+                    DropdownList(MutableStateFlow(listOf("") + accounts.value.map { it.name }), 0) {
+                        filterAccount = when (it) {
+                            0 -> -1
+                            else -> accounts.value[it - 1].id
+                        }
                     }
                 }
-            }
-            item {}
-            item(span = { GridItemSpan(2) }) {}
-            viewTextItems("Description", "Amount")
-            item(span = { GridItemSpan(2) }) {}
-            for (transaction in filterTransaction(state.value, minDate, filterSheet, filterCategory)) {
-                viewTextItems(
-                    DayDate(transaction.date).toString(),
-                    accountNameLookup[transaction.account] ?: "",
-                    transaction.description,
-                    transaction.amount.toString(),
-                    categoryNameLookup[transaction.category] ?: "")
-                item { Icon(
-                    Icons.Default.Add,
-                    "add rule",
-                    Modifier.clickable(onClick =
-                        { appNavController.navigate(Rule(0, escapeString(transaction.description), 0, 0))}), Color.Green)}
+                item(span = { GridItemSpan(2) }) {}
+                item {
+                    DropdownList(MutableStateFlow(listOf("") + transactionCategories.value.map { it.name }), 0) {
+                        filterCategory = when (it) {
+                            0 -> -1
+                            else -> transactionCategories.value[it - 1].id
+                        }
+                    }
+                }
+                item {}
+                item(span = { GridItemSpan(2) }) {}
+                viewTextItems("Description", "Amount")
+                item(span = { GridItemSpan(2) }) {}
+                for (transaction in filterTransaction(state.value, minDate, filterAccount, filterCategory, accountGroup)) {
+                    viewTextItems(
+                        DayDate(transaction.date).toString(),
+                        transaction.accountName,
+                        transaction.description,
+                        transaction.amount.toString(),
+                        transaction.categoryName
+                    )
+                    item { Icon(
+                            Icons.Default.Add,
+                            "add rule",
+                            Modifier.clickable(onClick =
+                                    { appNavController.navigate(Rule(0, escapeString(transaction.description), 0, transaction.accountGroup)) }), Color.Green
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-private fun filterTransaction(state: List<Transaction>, minDate: Int, filterAccount: Int, filterCategory: Int): List<Transaction> =
+private fun filterTransaction(state: List<TransactionListView>, minDate: Int, filterAccount: Int, filterCategory: Int, accountGroup: Int): List<TransactionListView> =
     state
-    .filter { it.date >= minDate }
-    .filter { filterAccount == 0 || it.account == filterAccount }
-    .filter { filterCategory == -1 || it.category == filterCategory }
-    .sortedBy { it.date }
+        .filter { it.accountGroup == accountGroup }
+        .filter { it.date >= minDate }
+        .filter { filterAccount == 0 || it.account == filterAccount }
+        .filter { filterCategory == -1 || it.category == filterCategory }
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewSpendingSummary(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
-                        transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>(),
-                        accountViewModel:AccountViewModel = koinInject<AccountViewModel>()) {
+fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
+                        transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
+                        accountViewModel:AccountViewModel = koinInject(),
+                        accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     var minDate by remember {mutableIntStateOf(baseDate)}
     val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
     val accounts = accountViewModel.uiState.collectAsState(emptyList())
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
+    var accountGroup by remember { mutableIntStateOf(-1) }
 
     ViewCommon(
         "Spending Summary",
         bottomBar = {}) { paddingValues ->
         val includeCategories = transactionCategories.value.filter { it.isSpending }.map {it.id}.toSet()
-        val displayTransactions = state.value
-            .filter { it.date >= minDate }
-            .filter { it.category == 0 || includeCategories.contains(it.category) }
+        val displayTransactions = filterTransaction(state.value, minDate, 0, -1, accountGroup)
+            .filter { it.category in includeCategories }
         val byMonth = displayTransactions.groupBy { DayDate(it.date).startOfMonth().value() }
-        val maxDate = if (displayTransactions.isNotEmpty()) displayTransactions.maxOf { it.date } else minDate
-        val months = mutableListOf<DayDate>()
-        var date = DayDate(minDate).startOfMonth()
-        while (date.value() <= maxDate) {
-            months.add(date)
-            date = date.nextMonth()
-        }
+        val months = getMonths(displayTransactions, minDate)
 
-        LazyVerticalGrid(columns = GridCells.Fixed(2 + accounts.value.size), Modifier.padding(paddingValues)) {
-            item {ViewText("Filter date ")}
-            item {DatePickerView(
-                minDate,
-                Modifier.padding(0.dp),
-                { true }) {
-                minDate = it
-                baseDate = it
-            }}
-            if (accounts.value.isNotEmpty()) {
-                item(span = { GridItemSpan(accounts.value.size) }) {}
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ViewText("Account Group")
+                Spacer(modifier = Modifier.size(16.dp))
+                DropdownList(
+                    MutableStateFlow(accountGroupState.value.map { it.name }),
+                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                ) {
+                    accountGroup = accountGroupState.value[it].id
+                }
+                Spacer(modifier = Modifier.size(16.dp))
+                ViewText("Filter date ")
+                DatePickerView(minDate, Modifier.padding(0.dp), { true }) {
+                    minDate = it
+                    baseDate = it
+                }
             }
-            viewTextItems("Month", "Total")
-            for (account in accounts.value) {
-                item { ViewText("${account.name} transactions") }
-            }
-            for (month in months) {
-                item { ViewText(month.toString().substring(3)) }
-                val transactionsForMonth = byMonth[month.value()]
-                val total = transactionsForMonth?.sumOf { it.amount }
-                formatedNumber("%.2f", total)
+
+            LazyVerticalGrid(columns = GridCells.Fixed(accounts.value.size + 2)) {
+                viewTextItems("Month", "Total")
                 for (account in accounts.value) {
-                    item { ViewText(transactionsForMonth?.filter { it.account == account.id }?.size.toString())}
+                    item { ViewText("${account.name} transactions") }
+                }
+                for (month in months) {
+                    item { ViewText(month.toString().substring(3)) }
+                    val transactionsForMonth = byMonth[month.value()]
+                    val total = transactionsForMonth?.sumOf { it.amount }
+                    formatedNumber("%.2f", total)
+                    for (account in accounts.value) {
+                        item { ViewText(transactionsForMonth?.filter { it.account == account.id }?.size.toString()) }
+                    }
                 }
             }
         }
     }
 }
 
+private fun getMonths(transactions: List<TransactionListView>, minDate: Int): List<DayDate> {
+    val months = mutableListOf<DayDate>()
+    val maxDate = if (transactions.isNotEmpty()) transactions.maxOf { it.date } else minDate
+    var date = DayDate(minDate).startOfMonth()
+    while (date.value() <= maxDate) {
+        months.add(date)
+        date = date.nextMonth()
+    }
+    return months
+}
+
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewTransactionSummaryByCategory(viewModel: TransactionViewModel = koinInject<TransactionViewModel>(),
-                                     transCategoryViewModel:TransactionCategoryViewModel = koinInject<TransactionCategoryViewModel>()) {
+fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinInject(),
+                                     transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
+                                     accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState(emptyList())
     var minDate by remember {mutableIntStateOf(baseDate)}
     val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
+    val accountGroupState = accountGroupViewModel.uiState.collectAsState()
+    var accountGroup by remember { mutableIntStateOf(-1) }
 
     ViewCommon(
         "Transaction summary by category",
         bottomBar = {}) { paddingValues ->
-        val displayTransactions = state.value.filter { it.date >= minDate }
+        val displayTransactions = filterTransaction(state.value, minDate, 0, -1, accountGroup)
         val summaryByCategory = displayTransactions.groupBy { it.category }
-        val maxDate = if (displayTransactions.isNotEmpty()) displayTransactions.maxOf { it.date } else minDate
-        val months = mutableListOf<DayDate>()
-        var date = DayDate(minDate).startOfMonth()
-        while (date.value() <= maxDate) {
-            months.add(date)
-            date = date.nextMonth()
-        }
+        val months = getMonths(displayTransactions, minDate)
         val viewCategories = transactionCategories.value.filter { !it.filter }
-        val datePickerSpan = if (viewCategories.isEmpty()) 1 else 2
 
-        LazyVerticalGrid(columns = GridCells.Fixed(viewCategories.size + 2), Modifier.padding(paddingValues)) {
-            item {ViewText("Filter date ")}
-            item(span = { GridItemSpan(datePickerSpan) }) { DatePickerView(
-                minDate,
-                Modifier.padding(0.dp),
-                { true }) {
-                minDate = it
-                baseDate = it
-            }}
-            item(span = { GridItemSpan(max(1, viewCategories.size - 1)) }) {}
-            item { ViewText("") }
-            for (category in viewCategories) {
-                item { ViewText(category.name) }
-            }
-            item { ViewText("") }
-            for (month in months) {
-                item { ViewText(month.toString().substring(3)) }
-                val nextMonth = month.nextMonth()
-                for (category in viewCategories) {
-                    formatedNumber("%.2f", summaryByCategory[category.id]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ViewText("Account Group")
+                Spacer(modifier = Modifier.size(16.dp))
+                DropdownList(
+                    MutableStateFlow(accountGroupState.value.map { it.name }),
+                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                ) {
+                    accountGroup = accountGroupState.value[it].id
                 }
-                formatedNumber("%.2f", summaryByCategory[null]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
+                Spacer(modifier = Modifier.size(16.dp))
+                ViewText("Filter date ")
+                DatePickerView(minDate, Modifier.padding(0.dp), { true }) {
+                    minDate = it
+                    baseDate = it
+                }
             }
-            item {}
-            for (category in viewCategories) {
-                formatedNumber("%.2f", summaryByCategory[category.id]?.sumOf { it.amount })
+
+            LazyVerticalGrid(columns = GridCells.Fixed(viewCategories.size + 2)) {
+                // Second row - headers, blank for month
+                item { ViewText("") }
+                for (category in viewCategories) {
+                    item { ViewText(category.name) }
+                }
+                item { ViewText("") }
+                for (month in months) {
+                    item { ViewText(month.toString().substring(3)) }
+                    val nextMonth = month.nextMonth()
+                    for (category in viewCategories) {
+                        formatedNumber("%.2f", summaryByCategory[category.id]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
+                    }
+                    formatedNumber("%.2f", summaryByCategory[null]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
+                }
+                item {} // No month for totals
+                for (category in viewCategories) {
+                    formatedNumber("%.2f", summaryByCategory[category.id]?.sumOf { it.amount })
+                }
+                formatedNumber("%.2f", summaryByCategory[null]?.sumOf { it.amount })
             }
-            formatedNumber("%.2f", summaryByCategory[null]?.sumOf { it.amount })
         }
     }
 }
 
 private fun escapeString(string: String) = string.replace("*", "\\*")
 
-private fun toDataFrame(transactions: List<Transaction>, accountLookup: Map<Int, String>, categoryLookup: Map<Int, String>): DataFrame<Transaction> =
+private fun toDataFrame(transactions: List<TransactionListView>): DataFrame<TransactionListView> =
     transactions.toDataFrame {
         "Date" from { DayDate(it.date).toString() }
-        "Account" from { accountLookup[it.account] }
+        "Account" from { it.accountName }
         "Description" from { it.description }
-        "Category" from { categoryLookup[it.category] }
+        "Category" from { it.categoryName }
         "Amount" from { it.amount }
     }

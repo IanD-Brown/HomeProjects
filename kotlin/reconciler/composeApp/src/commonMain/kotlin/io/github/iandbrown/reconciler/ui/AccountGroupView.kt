@@ -1,9 +1,13 @@
 package io.github.iandbrown.reconciler.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -12,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import io.github.iandbrown.reconciler.database.AccountGroup
 import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.di.inject
@@ -45,13 +50,16 @@ internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<
                 ButtonSettings("+") { it.navigate(AccountGroup(name = "")) })
         }) { paddingValues ->
         LazyVerticalGrid(
-            columns = WeightedIconGridCells(2, 1),
+            columns = WeightedIconGridCells(3, 1),
             Modifier.padding(paddingValues)
         ) {
             item { ViewText("Name") }
-            item(span = { GridItemSpan(2) }) {}
+            item(span = { GridItemSpan(3) }) {}
             for (accountGroup in state.value) {
                 item { ViewText(accountGroup.name) }
+                item { Icon(Icons.Default.Upload, "export",
+                    Modifier.clickable(onClick = { coroutineScope.launch { export(accountGroup.id)}}), Color.Green)
+                }
                 item { EditButton { navController -> navController.navigate(accountGroup) } }
                 item { DeleteButton { viewModel.delete(accountGroup) } }
             }

@@ -1,12 +1,10 @@
 package io.github.iandbrown.reconciler
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import androidx.savedstate.read
 import com.softartdev.theme.material3.PreferableMaterialTheme
 import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.AccountGroup
@@ -48,7 +46,7 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
             }
 
             composable(getRoute(Editors.RULES)) {
-                NavigateRule(getArgument(it))
+                NavigateRule()
             }
 
             composable(getRoute(Editors.ALL_TRANSACTIONS)) {
@@ -102,6 +100,4 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
     }
 }
 
-private fun getRoute(editor : Editors) : String = "${editor.name}/{arg}"
-
-private fun getArgument(entry: NavBackStackEntry): String? = entry.arguments?.read { getString("arg") }
+private fun getRoute(editor : Editors) : String = editor.name

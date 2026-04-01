@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Transaction
+import io.github.iandbrown.reconciler.di.inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
@@ -33,4 +35,19 @@ interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<Impo
 
     @Query("SELECT * FROM $table")
     suspend fun getDefinitions() : List<ImportDefinition>
+
+    @Transaction
+    suspend fun save(importId: Int, name: String, importDefinitions: (Int) -> List<AccountImportDefinition>,
+                     accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value) {
+        if (importId == 0) {
+            insert(ImportDefinition(name = name))
+        } else {
+            update(ImportDefinition(importId, name))
+        }
+
+        for (importDefinition in importDefinitions(getByName("name")!!)) {
+            accountImportDefinitionDao.insert(importDefinition)
+        }
+
+    }
 }

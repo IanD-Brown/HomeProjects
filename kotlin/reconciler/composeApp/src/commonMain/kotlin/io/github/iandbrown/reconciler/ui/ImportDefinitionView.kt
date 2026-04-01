@@ -66,7 +66,14 @@ private const val DESCRIPTION_COLUMN = "DescriptionColumn"
 private const val SHEET_NAME = "SheetName"
 private const val TYPE = "Type"
 
-class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value)
+class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
+    fun save(importId: Int, name: String, importDefinitions: (Int) -> List<AccountImportDefinition>) {
+            coroutineScope.launch {
+                dao.save(importId, name, importDefinitions)
+                read()
+            }
+    }
+}
 
 class ImportDefinitionListViewModel : BaseReadViewModel<ImportDefinitionListViewDao, ImportDefinitionListView>(inject<ImportDefinitionListViewDao>().value) {
     fun delete(item: ImportDefinitionListView, importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value) {
@@ -159,7 +166,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     val amountOutEdits = remember { mutableStateMapOf<Int, String>() }
     var valid by remember { mutableStateOf(false) }
 
-    fun toImportDefinitions(): List<AccountImportDefinition> {
+    fun toImportDefinitions(importDefinitionId: Int): List<AccountImportDefinition> {
         val editingDefinitions = definitionState.value
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }.associateBy { it.accountId }
 
@@ -168,7 +175,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
 
             AccountImportDefinition(
                 it.id,
-                importDefinitionListView.importDefinitionId,
+                importDefinitionId,
                 if (activeEdits.containsKey(it.id)) activeEdits[it.id]!! else def.active,
                 if (clearEdits.containsKey(it.id)) clearEdits[it.id]!! else def.clear,
                 if (sheetNameEdits.containsKey(it.id)) sheetNameEdits[it.id]!! else def.sheetName,
@@ -181,7 +188,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 
     fun setValid() {
-        valid = name.isNotEmpty() && toImportDefinitions()
+        valid = name.isNotEmpty() && toImportDefinitions(0)
             .none { it.active && (it.dateColumn.isEmpty() || it.descriptionColumn.isEmpty() || it.amountInColumn.isEmpty() || it.amountOutColumn.isEmpty()) }
     }
 
@@ -231,13 +238,17 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
         title,
         description = "Return to Import Definitions",
         bottomBar = {
-            BottomBarWithButton(enabled = valid) {
-                save(importDefinitionListView.importDefinitionId, name, importDefinitionViewModel, toImportDefinitions())
-                it.popBackStack()
+            BottomBarWithButton(enabled = valid) { navController ->
+                importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name) { toImportDefinitions(it) }
+                navController.popBackStack()
             }
         },
         confirm = {valid && hasEdit()},
-        confirmAction = {save(importDefinitionListView.importDefinitionId, name, importDefinitionViewModel, toImportDefinitions())},
+        confirmAction = {
+                importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name) {
+                    toImportDefinitions(it)
+                }
+            },
     ) { paddingValues ->
         val editingDefinitions = definitionState.value
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }.associateBy { it.accountId }
@@ -260,26 +271,10 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 }
 
-private fun save(importId: Int, name: String, viewModel: ImportDefinitionViewModel, importDefinitions: List<AccountImportDefinition>,
-    accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value) {
-    if (importId == 0) {
-        viewModel.insert(ImportDefinition(name = name))
-    } else {
-        viewModel.update(ImportDefinition(importId, name))
-    }
-
-    viewModel.viewModelScope.launch {
-        for (importDefinition in importDefinitions) {
-            accountImportDefinitionDao.insert(importDefinition)
-        }
-    }
-}
-
 private suspend fun perform(
     importDefinitions: List<ImportDefinitionListView>,
     transactionDao: TransactionDao = inject<TransactionDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value) {
-
     val spreadSheetFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls")), mode = FileKitMode.Single)
     if (spreadSheetFile != null && spreadSheetFile.exists()) {
         val ruleCategoryMap = ruleDao.getRules().groupBy( { it.match.toRegex() }, {it.category})

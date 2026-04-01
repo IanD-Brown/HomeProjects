@@ -8,7 +8,7 @@ import io.github.iandbrown.reconciler.ui.ImportDefinitionListViewModel
 import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
 import io.github.iandbrown.reconciler.ui.RuleViewModel
 import io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel
-import io.github.iandbrown.reconciler.ui.TransactionViewModel
+import io.github.iandbrown.reconciler.ui.TransactionListViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
@@ -25,7 +25,7 @@ private val injectableModules = module {
     viewModelOf(::ImportDefinitionViewModel)
     viewModelOf(::RuleViewModel)
     viewModelOf(::TransactionCategoryViewModel)
-    viewModelOf(::TransactionViewModel)
+    viewModelOf(::TransactionListViewModel)
 
     // Provide DAOs
     single { get<AppDatabase>().getAccountDao() }
@@ -36,6 +36,7 @@ private val injectableModules = module {
     single { get<AppDatabase>().getRuleDao() }
     single { get<AppDatabase>().getTransactionCategoryDao() }
     single { get<AppDatabase>().getTransactionDao() }
+    single { get<AppDatabase>().getTransactionListViewDao() }
 }
 
 fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,
