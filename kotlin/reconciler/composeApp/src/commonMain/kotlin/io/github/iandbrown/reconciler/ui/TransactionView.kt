@@ -47,13 +47,13 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                        transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                        accountViewModel:AccountViewModel = koinInject(),
                        accountGroupViewModel: AccountGroupViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var minDate by remember {mutableIntStateOf(baseDate)}
     var filterAccount by remember { mutableIntStateOf(0) }
     var filterCategory by remember { mutableIntStateOf(-1) }
-    val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
-    val accounts = accountViewModel.uiState.collectAsState(emptyList())
+    val transactionCategories = transCategoryViewModel.uiState.collectAsState()
+    val accounts = accountViewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var accountGroup by remember { mutableIntStateOf(-1) }
 
@@ -62,20 +62,22 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope,"transactions") { output ->
-                    toDataFrame(filterTransaction(state.value, minDate, filterAccount, filterCategory, accountGroup))
+                    toDataFrame(filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup))
                         .writeCsv(output)
                 }
             )
-        }) { paddingValues ->
+        },
+        states = listOf(state.value, transactionCategories.value, accounts.value, accountGroupState.value)) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
+                val value = accountGroupState.value.values()
                 DropdownList(
-                    MutableStateFlow(accountGroupState.value.map { it.name }),
-                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                    MutableStateFlow(value.map { it.name }),
+                    value.map { it.id }.indexOf(accountGroup)
                 ) {
-                    accountGroup = accountGroupState.value[it].id
+                    accountGroup = value[it].id
                 }
                 Spacer(modifier = Modifier.size(16.dp))
                 ViewText("Filters")
@@ -86,19 +88,21 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                     baseDate = it
                 }}
                 item {
-                    DropdownList(MutableStateFlow(listOf("") + accounts.value.map { it.name }), 0) {
+                    val value = accounts.value.values()
+                    DropdownList(MutableStateFlow(listOf("") + value.map { it.name }), 0) {
                         filterAccount = when (it) {
                             0 -> -1
-                            else -> accounts.value[it - 1].id
+                            else -> value[it - 1].id
                         }
                     }
                 }
                 item(span = { GridItemSpan(2) }) {}
                 item {
-                    DropdownList(MutableStateFlow(listOf("") + transactionCategories.value.map { it.name }), 0) {
+                    val value = transactionCategories.value.values()
+                    DropdownList(MutableStateFlow(listOf("") + value.map { it.name }), 0) {
                         filterCategory = when (it) {
                             0 -> -1
-                            else -> transactionCategories.value[it - 1].id
+                            else -> value[it - 1].id
                         }
                     }
                 }
@@ -106,7 +110,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                 item(span = { GridItemSpan(2) }) {}
                 viewTextItems("Description", "Amount")
                 item(span = { GridItemSpan(2) }) {}
-                for (transaction in filterTransaction(state.value, minDate, filterAccount, filterCategory, accountGroup)) {
+                for (transaction in filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup)) {
                     viewTextItems(
                         DayDate(transaction.date).toString(),
                         transaction.accountName,
@@ -140,18 +144,19 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                         transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                         accountViewModel:AccountViewModel = koinInject(),
                         accountGroupViewModel: AccountGroupViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     var minDate by remember {mutableIntStateOf(baseDate)}
-    val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
-    val accounts = accountViewModel.uiState.collectAsState(emptyList())
+    val transactionCategories = transCategoryViewModel.uiState.collectAsState()
+    val accounts = accountViewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var accountGroup by remember { mutableIntStateOf(-1) }
 
     ViewCommon(
         "Spending Summary",
-        bottomBar = {}) { paddingValues ->
-        val includeCategories = transactionCategories.value.filter { it.isSpending }.map {it.id}.toSet()
-        val displayTransactions = filterTransaction(state.value, minDate, 0, -1, accountGroup)
+        bottomBar = {},
+        states = listOf(state.value, transactionCategories.value, accounts.value, accountGroupState.value)) { paddingValues ->
+        val includeCategories = transactionCategories.value.values().filter { it.isSpending }.map {it.id}.toSet()
+        val displayTransactions = filterTransaction(state.value.values(), minDate, 0, -1, accountGroup)
             .filter { it.category in includeCategories }
         val byMonth = displayTransactions.groupBy { DayDate(it.date).startOfMonth().value() }
         val months = getMonths(displayTransactions, minDate)
@@ -160,11 +165,12 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
+                val value = accountGroupState.value.values()
                 DropdownList(
-                    MutableStateFlow(accountGroupState.value.map { it.name }),
-                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                    MutableStateFlow(value.map { it.name }),
+                    value.map { it.id }.indexOf(accountGroup)
                 ) {
-                    accountGroup = accountGroupState.value[it].id
+                    accountGroup = value[it].id
                 }
                 Spacer(modifier = Modifier.size(16.dp))
                 ViewText("Filter date ")
@@ -174,9 +180,10 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                 }
             }
 
-            LazyVerticalGrid(columns = GridCells.Fixed(accounts.value.size + 2)) {
+            val data = accounts.value.values()
+            LazyVerticalGrid(columns = GridCells.Fixed(data.size + 2)) {
                 viewTextItems("Month", "Total")
-                for (account in accounts.value) {
+                for (account in data) {
                     item { ViewText("${account.name} transactions") }
                 }
                 for (month in months) {
@@ -184,7 +191,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                     val transactionsForMonth = byMonth[month.value()]
                     val total = transactionsForMonth?.sumOf { it.amount }
                     formatedNumber("%.2f", total)
-                    for (account in accounts.value) {
+                    for (account in data) {
                         item { ViewText(transactionsForMonth?.filter { it.account == account.id }?.size.toString()) }
                     }
                 }
@@ -209,29 +216,31 @@ private fun getMonths(transactions: List<TransactionListView>, minDate: Int): Li
 fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinInject(),
                                      transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                                      accountGroupViewModel: AccountGroupViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     var minDate by remember {mutableIntStateOf(baseDate)}
-    val transactionCategories = transCategoryViewModel.uiState.collectAsState(emptyList())
+    val transactionCategories = transCategoryViewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var accountGroup by remember { mutableIntStateOf(-1) }
 
     ViewCommon(
         "Transaction summary by category",
-        bottomBar = {}) { paddingValues ->
-        val displayTransactions = filterTransaction(state.value, minDate, 0, -1, accountGroup)
+        bottomBar = {},
+        states = listOf(state.value, transactionCategories.value, accountGroupState.value)) { paddingValues ->
+        val displayTransactions = filterTransaction(state.value.values(), minDate, 0, -1, accountGroup)
         val summaryByCategory = displayTransactions.groupBy { it.category }
         val months = getMonths(displayTransactions, minDate)
-        val viewCategories = transactionCategories.value.filter { !it.filter }
+        val viewCategories = transactionCategories.value.values().filter { !it.filter }
 
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
+                val value = accountGroupState.value.values()
                 DropdownList(
-                    MutableStateFlow(accountGroupState.value.map { it.name }),
-                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                    MutableStateFlow(value.map { it.name }),
+                    value.map { it.id }.indexOf(accountGroup)
                 ) {
-                    accountGroup = accountGroupState.value[it].id
+                    accountGroup = value[it].id
                 }
                 Spacer(modifier = Modifier.size(16.dp))
                 ViewText("Filter date ")

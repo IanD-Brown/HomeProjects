@@ -13,6 +13,11 @@ fun builder(): RoomDatabase.Builder<AppDatabase> =
         .fallbackToDestructiveMigration(true)
 
 private fun getFilePath(): String {
+    val path = getAppDataFolder()
+    return File(path, dbFileName).absolutePath
+}
+
+fun getAppDataFolder(): String? {
     val system = System.getProperty("os.name")
     val path = if (system.contains("Windows", true)) {
         System.getenv("APPDATA")
@@ -20,5 +25,5 @@ private fun getFilePath(): String {
         "${System.getProperty("user.home")}/Library/Application Support/"
 
     }
-    return File(path, dbFileName).absolutePath
+    return path
 }

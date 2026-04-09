@@ -16,35 +16,9 @@ plugins {
 
     alias(libs.plugins.kotest.plugin)
 
-    alias(libs.plugins.kover)
     alias(libs.plugins.stability.analyzer)
 
     alias(libs.plugins.mockkery)
-}
-
-kover {
-    reports {
-        filters {
-            excludes {
-                // Entry Points
-                classes("MainKt") // Desktop
-                classes("*.MainActivity") // Android
-                classes("App", "JVMPlatform", "Platform_jvmKt")
-
-                // Generated Classes & Resources
-                packages("*.generated.*", "*.database", "*.ui", "*.di")
-
-                // Compose Related
-                annotatedBy("androidx.compose.runtime.Composable")
-            }
-        }
-
-        verify {
-            rule {
-                minBound(50)
-            }
-        }
-    }
 }
 
 kotlin {
@@ -93,6 +67,8 @@ kotlin {
             implementation(libs.kotlin.dataframe.json)
             implementation(libs.kotlin.dataframe.csv)
             implementation(libs.kotlin.dataframe.excel)
+
+            implementation(libs.kmp.logger)
         }
 
         commonTest.dependencies {

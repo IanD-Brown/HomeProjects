@@ -39,8 +39,8 @@ internal const val ACCOUNT_GROUP = "AccountGroup"
 fun NavigateRule(viewModel: RuleViewModel = koinInject(),
                  transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                  accountGroupViewModel: AccountGroupViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
-    val categoryState = transCategoryViewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
+    val categoryState = transCategoryViewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var accountGroup by remember { mutableIntStateOf(-1) }
     val coroutineScope = rememberCoroutineScope()
@@ -51,14 +51,16 @@ fun NavigateRule(viewModel: RuleViewModel = koinInject(),
             BottomBarWithButtons(
                 importCsvButtonSettings(viewModel) { toRule(it) },
                 exportButtonSettings(coroutineScope,"rules") { output ->
-                    val categoryLookup = categoryState.value.associateBy({ it.id }, { it.name })
-                    val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
+                    val value = categoryState.value.values()
+                    val categoryLookup = value.associateBy({ it.id }, { it.name })
+                    val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
 
-                    toDataFrame(state.value, categoryLookup, groupLookup).writeCsv(output)
+                    toDataFrame(state.value.values(), categoryLookup, groupLookup).writeCsv(output)
                 },
                 ButtonSettings("+") { it.navigate(Rule(match = "", category = 0, accountGroup = accountGroup)) })
-        }) { paddingValues ->
-        val categoryLookup = categoryState.value.associateBy( { it.id }, {it.name} )
+        },
+        states = listOf(state.value, categoryState.value, accountGroupState.value)) { paddingValues ->
+        val categoryLookup = categoryState.value.values().associateBy( { it.id }, {it.name} )
 
         LazyVerticalGrid(
             columns = WeightedIconGridCells(2, 1, 1, 1, 1, 1),
@@ -66,14 +68,15 @@ fun NavigateRule(viewModel: RuleViewModel = koinInject(),
         ) {
             item(span = { GridItemSpan(2) }) { ViewText("Match")}
             item { ViewText("Account Group") }
-            item { DropdownList(MutableStateFlow(accountGroupState.value.map { it.name }),
-                accountGroupState.value.map { it.id }.indexOf(accountGroup)) {
-                accountGroup = accountGroupState.value[it].id
+            val value = accountGroupState.value.values()
+            item { DropdownList(MutableStateFlow(value.map { it.name }),
+                value.map { it.id }.indexOf(accountGroup)) {
+                accountGroup = value[it].id
             }}
             viewTextItems("Category")
             item {}
             item {}
-            for (rule in state.value.filter { it.accountGroup == accountGroup }.sortedBy { it.match }) {
+            for (rule in state.value.values().filter { it.accountGroup == accountGroup }.sortedBy { it.match }) {
                 item(span = { GridItemSpan(4) }) { ViewText(rule.match) }
                 viewTextItems(categoryLookup[rule.category] ?: "")
                 item { EditButton { navController -> navController.navigate(rule) } }
@@ -119,28 +122,29 @@ internal fun EditRule(rule: Rule,
         },
         confirm = {editorState == EditorState.VALID},
         confirmAction = {save(rule, viewModel, match, category, accountGroup)},
-        content = { paddingValues ->
+        states = listOf(categoryState.value, accountGroupState.value)) { paddingValues ->
             LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 4), modifier = Modifier.padding(paddingValues)) {
                 gridEntry("Value", match) {
                     match = it
                     setEditorState()
                 }
+                val value = categoryState.value.values()
                 gridEntry(
                     "Category",
-                    MutableStateFlow(categoryState.value.map { it.name }),
-                    categoryState.value.map { it.id }.indexOf(category)
+                    MutableStateFlow(value.map { it.name }),
+                    value.map { it.id }.indexOf(category)
                 ) {
                     category = it
                     setEditorState()
                 }
                 val accountGroupName =
-                    accountGroupState.value
+                    accountGroupState.value.values()
                         .filter { it.id == rule.accountGroup }
                         .map { it.name }
                         .firstOrNull()
                 viewTextItems("Account Group", accountGroupName ?: "")
             }
-        })
+        }
 }
 
 private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int, accountGroup: Int,

@@ -67,11 +67,14 @@ private const val SHEET_NAME = "SheetName"
 private const val TYPE = "Type"
 
 class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
-    fun save(importId: Int, name: String, importDefinitions: (Int) -> List<AccountImportDefinition>) {
-            coroutineScope.launch {
-                dao.save(importId, name, importDefinitions)
-                read()
-            }
+    suspend fun save(importId: Int, name: String, importDefinitions: (Int) -> List<AccountImportDefinition>) : Boolean {
+        try {
+            dao.save(importId, name, importDefinitions)
+            return true
+        }  catch (e: Exception) {
+            handleError(e)
+        }
+        return false
     }
 }
 
@@ -87,8 +90,8 @@ class ImportDefinitionListViewModel : BaseReadViewModel<ImportDefinitionListView
 @Composable
 fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<ImportDefinitionListViewModel>(),
                          accountViewModel: AccountViewModel = koinInject<AccountViewModel>()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
-    val accountState = accountViewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
+    val accountState = accountViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -97,19 +100,20 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch { import() }},
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("importDefinitions") { toDataFrame(state.value).writeCsv(it) }
+                    exportToFile("importDefinitions") { toDataFrame(state.value.values()).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
-        }) { paddingValues ->
+        },
+        states = listOf(state.value, accountState.value)) { paddingValues ->
         var importDefinitionId = 0
 
         LazyVerticalGrid(
             columns = WeightedIconGridCells(3, 5, 1, 5, 1, 1, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            val accountValues = state.value.associateBy { Pair(it.importDefinitionId, it.accountId) }
-            val orderedAccounts = accountState.value.sortedBy { it.name }
-            for (item in state.value) {
+            val accountValues = state.value.values().associateBy { Pair(it.importDefinitionId, it.accountId) }
+            val orderedAccounts = accountState.value.values().sortedBy { it.name }
+            for (item in state.value.values()) {
                 if (item.importDefinitionId != importDefinitionId) {
                     importDefinitionId = item.importDefinitionId
                     item(span = { GridItemSpan(7) }) { ViewText(item.name) }
@@ -118,7 +122,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                             Icons.Default.PlayArrow,
                             "run",
                             Modifier.clickable(onClick = {
-                                coroutineScope.launch { perform(state.value
+                                coroutineScope.launch { perform(state.value.values()
                                     .filter { it.importDefinitionId == item.importDefinitionId && it.active }) }
                             }),
                             Color.Green
@@ -152,11 +156,11 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
                                   viewModel: ImportDefinitionListViewModel = koinInject<ImportDefinitionListViewModel>(),
                                   accountViewModel: AccountViewModel = koinInject<AccountViewModel>(),
                                   importDefinitionViewModel: ImportDefinitionViewModel = koinInject<ImportDefinitionViewModel>()) {
-    val definitionState = viewModel.uiState.collectAsState(emptyList())
-    val accountState = accountViewModel.uiState.collectAsState(emptyList())
+    val definitionState = viewModel.uiState.collectAsState()
+    val accountState = accountViewModel.uiState.collectAsState()
     val title = if (importDefinitionListView.importDefinitionId == 0) "Add Import Definition" else "Edit Import Definition"
     var name by remember { mutableStateOf(importDefinitionListView.name) }
-    val accounts = accountState.value.associateBy { it.id }.toMutableMap()
+    val accounts = accountState.value.values().associateBy { it.id }.toMutableMap()
     val activeEdits = remember { mutableStateMapOf<Int, Boolean>() }
     val clearEdits = remember { mutableStateMapOf<Int, Boolean>() }
     val sheetNameEdits = remember { mutableStateMapOf<Int, String>() }
@@ -165,9 +169,11 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     val amountInEdits = remember { mutableStateMapOf<Int, String>() }
     val amountOutEdits = remember { mutableStateMapOf<Int, String>() }
     var valid by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val importDefinitionState = importDefinitionViewModel.uiState.collectAsState()
 
     fun toImportDefinitions(importDefinitionId: Int): List<AccountImportDefinition> {
-        val editingDefinitions = definitionState.value
+        val editingDefinitions = definitionState.value.values()
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }.associateBy { it.accountId }
 
         return accounts.values.map {
@@ -231,30 +237,40 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 
     fun hasEdit() : Boolean =
-        name != importDefinitionListView.name ||
-                listOf(activeEdits, clearEdits, sheetNameEdits, descriptionEdits, dateEdits, amountInEdits, amountOutEdits).none {it.isNotEmpty()}
+        importDefinitionState.value !is ViewModelState.Error && (name != importDefinitionListView.name ||
+                listOf(activeEdits, clearEdits, sheetNameEdits, descriptionEdits, dateEdits, amountInEdits, amountOutEdits).none {it.isNotEmpty()})
 
     ViewCommon(
         title,
         description = "Return to Import Definitions",
         bottomBar = {
-            BottomBarWithButton(enabled = valid) { navController ->
-                importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name) { toImportDefinitions(it) }
-                navController.popBackStack()
+            if (importDefinitionState.value !is ViewModelState.Error) {
+                BottomBarWithButton(enabled = valid) { navController ->
+                    coroutineScope.launch {
+                        if (importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name)
+                        { toImportDefinitions(it) }) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
             }
         },
         confirm = {valid && hasEdit()},
         confirmAction = {
+            coroutineScope.launch {
                 importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name) {
                     toImportDefinitions(it)
                 }
-            },
+            }
+        },
+        states = listOf(definitionState.value, accountState.value, importDefinitionState.value),
     ) { paddingValues ->
-        val editingDefinitions = definitionState.value
-            .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }.associateBy { it.accountId }
+        val editingDefinitions = definitionState.value.values()
+            .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }
+            .associateBy { it.accountId }
         LazyVerticalGrid(columns = GridCells.Fixed(8), Modifier.padding(paddingValues)) {
             viewTextItems("Name", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column")
-            item {ViewTextField(name, onValueChange = { name = it }) }
+            item { ViewTextField(name, onValueChange = { name = it }) }
             item(span = { GridItemSpan(7) }) { }
             for (account in accounts.values.sortedBy { it.name }) {
                 val def = editingDefinitions[account.id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = account.id)

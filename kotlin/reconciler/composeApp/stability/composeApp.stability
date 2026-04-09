@@ -16,15 +16,15 @@ internal fun io.github.iandbrown.reconciler.ui.AccountGroupListView(viewModel: i
   skippable: false
   restartable: true
   params:
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.AccountListView(viewModel: io.github.iandbrown.reconciler.ui.AccountViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.AppState.isDarkTheme(): kotlin.Boolean
@@ -107,8 +107,8 @@ internal fun io.github.iandbrown.reconciler.ui.EditAccount(account: io.github.ia
   restartable: true
   params:
     - account: STABLE (class with no mutable properties)
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.EditAccountGroup(accountGroup: io.github.iandbrown.reconciler.database.AccountGroup, viewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
@@ -116,7 +116,7 @@ internal fun io.github.iandbrown.reconciler.ui.EditAccountGroup(accountGroup: io
   restartable: true
   params:
     - accountGroup: STABLE (class with no mutable properties)
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.EditButton(navigateFun: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
@@ -132,8 +132,8 @@ internal fun io.github.iandbrown.reconciler.ui.EditImportDefinition(importDefini
   params:
     - importDefinitionListView: STABLE (class with no mutable properties)
     - viewModel: RUNTIME (requires runtime check)
-    - accountViewModel: UNSTABLE (has mutable properties or unstable members)
-    - importDefinitionViewModel: UNSTABLE (has mutable properties or unstable members)
+    - accountViewModel: RUNTIME (requires runtime check)
+    - importDefinitionViewModel: RUNTIME (requires runtime check)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.EditRule(rule: io.github.iandbrown.reconciler.database.Rule, viewModel: io.github.iandbrown.reconciler.ui.RuleViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
@@ -141,9 +141,9 @@ internal fun io.github.iandbrown.reconciler.ui.EditRule(rule: io.github.iandbrow
   restartable: true
   params:
     - rule: STABLE (class with no mutable properties)
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
-    - transCategoryViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
+    - transCategoryViewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.EditTransactionCategory(transactionCategory: io.github.iandbrown.reconciler.database.TransactionCategory, viewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
@@ -151,8 +151,8 @@ internal fun io.github.iandbrown.reconciler.ui.EditTransactionCategory(transacti
   restartable: true
   params:
     - transactionCategory: STABLE (class with no mutable properties)
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.HomeScreen(): kotlin.Unit
@@ -166,16 +166,16 @@ public fun io.github.iandbrown.reconciler.ui.ImportDefinitionList(viewModel: io.
   restartable: true
   params:
     - viewModel: RUNTIME (requires runtime check)
-    - accountViewModel: UNSTABLE (has mutable properties or unstable members)
+    - accountViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.NavigateRule(viewModel: io.github.iandbrown.reconciler.ui.RuleViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
-    - transCategoryViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
+    - transCategoryViewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.OutlinedTextButton(value: kotlin.String, modifier: androidx.compose.ui.Modifier, enabled: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit
@@ -192,8 +192,8 @@ internal fun io.github.iandbrown.reconciler.ui.TransactionCategoryListView(viewM
   skippable: false
   restartable: true
   params:
-    - viewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - viewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.ViewAllTransaction(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
@@ -201,13 +201,13 @@ public fun io.github.iandbrown.reconciler.ui.ViewAllTransaction(viewModel: io.gi
   restartable: true
   params:
     - viewModel: RUNTIME (requires runtime check)
-    - transCategoryViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - transCategoryViewModel: RUNTIME (requires runtime check)
+    - accountViewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
-  skippable: true
+public fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, states: kotlin.collections.List<io.github.iandbrown.reconciler.ui.ViewModelState<*>>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
+  skippable: false
   restartable: true
   params:
     - title: STABLE (String is immutable)
@@ -215,6 +215,7 @@ public fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, de
     - bottomBar: STABLE (composable function type)
     - confirm: STABLE (function type)
     - confirmAction: STABLE (function type)
+    - states: RUNTIME (requires runtime check)
     - content: STABLE (composable function type)
 
 @Composable
@@ -223,9 +224,9 @@ public fun io.github.iandbrown.reconciler.ui.ViewSpendingSummary(viewModel: io.g
   restartable: true
   params:
     - viewModel: RUNTIME (requires runtime check)
-    - transCategoryViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - transCategoryViewModel: RUNTIME (requires runtime check)
+    - accountViewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.ViewText(value: kotlin.String, modifier: androidx.compose.ui.Modifier): kotlin.Unit
@@ -252,8 +253,8 @@ public fun io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory(vi
   restartable: true
   params:
     - viewModel: RUNTIME (requires runtime check)
-    - transCategoryViewModel: UNSTABLE (has mutable properties or unstable members)
-    - accountGroupViewModel: UNSTABLE (has mutable properties or unstable members)
+    - transCategoryViewModel: RUNTIME (requires runtime check)
+    - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.textFieldColors(): androidx.compose.material3.TextFieldColors

@@ -45,9 +45,8 @@ interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<Impo
             update(ImportDefinition(importId, name))
         }
 
-        for (importDefinition in importDefinitions(getByName("name")!!)) {
+        for (importDefinition in importDefinitions(getByName(name)!!)) {
             accountImportDefinitionDao.insert(importDefinition)
         }
-
     }
 }

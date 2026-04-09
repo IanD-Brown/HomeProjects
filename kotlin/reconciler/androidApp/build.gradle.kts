@@ -46,4 +46,6 @@ dependencies {
     implementation(libs.androidx.startup)
 
     implementation(libs.filekit.dialogs.compose)
+
+    implementation(libs.kmp.logger.android)
 }

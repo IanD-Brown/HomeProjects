@@ -42,7 +42,7 @@ class TransactionCategoryViewModel :
 @Composable
 internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel = koinInject(),
                                          accountGroupViewModel: AccountGroupViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var accountGroup by remember { mutableIntStateOf(-1) }
@@ -53,27 +53,29 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
             BottomBarWithButtons(
                 importCsvButtonSettings(viewModel) { toTransactionCategory(it) },
                 exportButtonSettings(coroutineScope, "transactionCategories") { writer ->
-                    val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
-                    toDataFrame(state.value, groupLookup).writeCsv(writer)
+                    val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
+                    toDataFrame(state.value.values(), groupLookup).writeCsv(writer)
                 },
                 ButtonSettings("+") { TransactionCategory(name = "", filter = false, accountGroup = accountGroup) })
-        }) { paddingValues ->
+        },
+        states = listOf(state.value, accountGroupState.value)) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
+                val value = accountGroupState.value.values()
                 DropdownList(
-                    MutableStateFlow(accountGroupState.value.map { it.name }),
-                    accountGroupState.value.map { it.id }.indexOf(accountGroup)
+                    MutableStateFlow(value.map { it.name }),
+                    value.map { it.id }.indexOf(accountGroup)
                 ) {
-                    accountGroup = accountGroupState.value[it].id
+                    accountGroup = value[it].id
                 }
             }
 
             LazyVerticalGrid(columns = WeightedIconGridCells(2, 2, 1, 1)) {
                 viewTextItems("Name", "Filter", "Is Spending")
                 item(span = { GridItemSpan(2) }) {}
-                for (transactionCategory in state.value.filter { it.accountGroup == accountGroup }) {
+                for (transactionCategory in state.value.values().filter { it.accountGroup == accountGroup }) {
                     viewTextItems(
                         transactionCategory.name,
                         transactionCategory.filter.toString(),
@@ -124,7 +126,8 @@ internal fun EditTransactionCategory(
             }
         },
         confirm = { editorState == EditorState.VALID },
-        confirmAction = { save(transactionCategory, viewModel, name, filter, isSpending, accountGroup) }) { paddingValues ->
+        confirmAction = { save(transactionCategory, viewModel, name, filter, isSpending, accountGroup) },
+        states = listOf(accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) {
                 name = it
@@ -141,7 +144,7 @@ internal fun EditTransactionCategory(
                 setEditorState()
             }
             val accountGroupName =
-                accountGroupState.value
+                accountGroupState.value.values()
                     .filter { it.id == transactionCategory.accountGroup }
                     .map { it.name }
                     .firstOrNull()

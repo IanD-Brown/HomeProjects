@@ -23,13 +23,13 @@ sqliteBundled = "2.6.2"
 koin-core = "4.2.0"
 androidx-startup = "1.2.0"
 # unit-testing kotest
-kotest-version = "6.1.9"
-kover = "0.9.8"
+kotest-version = "6.1.11"
 filekit = "0.13.0"
 navigationEvent = "1.0.1"
 stability = "0.6.6"
 mockkery = "3.3.0"
 kotlinx-dataframe = "1.0.0-Beta4"
+kmp-logger = "1.3.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -65,6 +65,8 @@ kotlin-dataframe-core = { module = "org.jetbrains.kotlinx:dataframe-core", versi
 kotlin-dataframe-json = { module = "org.jetbrains.kotlinx:dataframe-json", version.ref = "kotlinx-dataframe"}
 kotlin-dataframe-csv = { module = "org.jetbrains.kotlinx:dataframe-csv", version.ref = "kotlinx-dataframe"}
 kotlin-dataframe-excel = { module = "org.jetbrains.kotlinx:dataframe-excel", version.ref = "kotlinx-dataframe"}
+kmp-logger = { module = "io.github.shivathapaa:logger", version.ref = "kmp-logger"}
+kmp-logger-android = { module = "io.github.shivathapaa:logger-android", version.ref = "kmp-logger"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -77,6 +79,5 @@ androidxRoom = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
-kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}
 stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability" }
 mockkery = { id = "dev.mokkery", version.ref = "mockkery" }

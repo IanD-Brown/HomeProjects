@@ -3,11 +3,13 @@ package io.github.iandbrown.reconciler.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -22,6 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -96,13 +99,33 @@ fun ViewCommon(
     bottomBar: @Composable () -> Unit = {},
     confirm: () -> Boolean = { false },
     confirmAction: () -> Unit = {},
+    states: List<ViewModelState<*>>,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { CreateTopBar(title, description, confirm, confirmAction) },
-        bottomBar = bottomBar,
-        content = content)
+    val errors = states.filterIsInstance<ViewModelState.Error>()
+    if (errors.isNotEmpty()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+        ) {paddingValues ->
+            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                for (error in errors) {
+                    ViewText(error.message)
+                }
+            }
+        }
+    } else if (states.filter { it !is ViewModelState.Error }.any { it !is ViewModelState.Success }) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
+        }
+    } else {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+            bottomBar = bottomBar,
+            content = content
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

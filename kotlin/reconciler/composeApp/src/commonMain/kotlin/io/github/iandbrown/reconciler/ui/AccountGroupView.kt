@@ -34,7 +34,7 @@ class AccountGroupViewModel : BaseConfigCRUDViewModel<AccountGroupDao, AccountGr
 @Suppress("ParamsComparedByRef")
 @Composable
 internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<AccountGroupViewModel>()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -45,17 +45,18 @@ internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<
                     importCsvFile(inject<AccountGroupDao>().value) { toAccountGroup(it) }
                 } },
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("accountGroups") { toDataFrame(state.value).writeCsv(it) }
+                    exportToFile("accountGroups") { toDataFrame(state.value.values()).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(AccountGroup(name = "")) })
-        }) { paddingValues ->
+        },
+        states = listOf(state.value)) { paddingValues ->
         LazyVerticalGrid(
             columns = WeightedIconGridCells(3, 1),
             Modifier.padding(paddingValues)
         ) {
             item { ViewText("Name") }
             item(span = { GridItemSpan(3) }) {}
-            for (accountGroup in state.value) {
+            for (accountGroup in state.value.values()) {
                 item { ViewText(accountGroup.name) }
                 item { Icon(Icons.Default.Upload, "export",
                     Modifier.clickable(onClick = { coroutineScope.launch { export(accountGroup.id)}}), Color.Green)
@@ -97,7 +98,8 @@ internal fun EditAccountGroup(accountGroup: AccountGroup,
             }
         },
         confirm = { editorState == EditorState.VALID },
-        confirmAction = {save(accountGroup, viewModel, name)}) { paddingValues ->
+        confirmAction = {save(accountGroup, viewModel, name)},
+        states = listOf()) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) { name = it
                 setEditorState()

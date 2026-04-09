@@ -32,7 +32,7 @@ class AccountViewModel : BaseConfigCRUDViewModel<AccountDao, Account>(inject<Acc
 @Composable
 internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountViewModel>(),
                              accountGroupViewModel: AccountGroupViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -42,19 +42,20 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
             BottomBarWithButtons(
                 importCsvButtonSettings(viewModel) { toAccount(it) },
                 exportButtonSettings(coroutineScope, "accounts") { writer ->
-                    val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
-                    toDataFrame(state.value, groupLookup).writeCsv(writer)
+                    val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
+                    toDataFrame(state.value.values(), groupLookup).writeCsv(writer)
                 },
                 ButtonSettings("+") { it.navigate(Account(name = "", accountGroup = 0)) })
-        }) { paddingValues ->
+        },
+        states = listOf(state.value, accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(
             columns = WeightedIconGridCells(2, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            val groupLookup = accountGroupState.value.associateBy ({ it.id }, {it.name} )
+            val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
             viewTextItems("Name", "Group")
             item(span = { GridItemSpan(2) }) {}
-            for (account in state.value) {
+            for (account in state.value.values()) {
                 viewTextItems(account.name, groupLookup[account.accountGroup] ?: "")
                 item { EditButton { it.navigate(account) } }
                 item { DeleteButton { viewModel.delete(account) } }
@@ -78,6 +79,7 @@ internal fun EditAccount(account: Account,
         editorState = when {
             account.id == 0 && name.isNotEmpty() -> EditorState.VALID
             account.id == 0 && name.isEmpty() && group == account.accountGroup -> EditorState.CLEAN
+            account.id != 0 && name.isNotEmpty() && (name != account.name || account.accountGroup != group) -> EditorState.VALID
             account.id != 0 && (name != account.name || group != account.accountGroup) -> EditorState.DIRTY
             account.id != 0 -> EditorState.CLEAN
             else -> EditorState.DIRTY
@@ -94,15 +96,17 @@ internal fun EditAccount(account: Account,
             }
         },
         confirm = { editorState == EditorState.VALID },
-        confirmAction = {save(account, viewModel, name, group)}) { paddingValues ->
+        confirmAction = {save(account, viewModel, name, group)},
+        states = listOf(accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) { name = it
                 setEditorState()
             }
+            val data = accountGroupState.value.values()
             gridEntry("Group",
-                MutableStateFlow(accountGroupState.value.map { it.name }),
-                accountGroupState.value.map {it.id}.indexOf(group)) {
-                group = accountGroupState.value.map {accountGroup ->  accountGroup.id}[it]
+                MutableStateFlow(data.map { it.name }),
+                data.map {it.id}.indexOf(group)) {
+                group = data.map {accountGroup ->  accountGroup.id}[it]
                 setEditorState()
             }
         }
