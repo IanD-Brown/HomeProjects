@@ -61,8 +61,14 @@ import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import androidx.room.RoomDatabase
+import androidx.room.TransactionScope
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
+import io.github.iandbrown.reconciler.database.AppDatabase
 import io.github.iandbrown.reconciler.database.BaseReadDao
 import io.github.iandbrown.reconciler.database.BaseWriteDao
+import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
@@ -84,16 +90,16 @@ import org.jetbrains.kotlinx.dataframe.io.readCsv
 import java.io.InputStream
 import java.util.Locale
 
-val fontSize = 16.sp
-const val OK = "OK"
+internal val fontSize = 16.sp
+internal const val OK = "OK"
 
-var appFileKitDialogSettings : FileKitDialogSettings? = null
-lateinit var appNavController : NavController
+internal var appFileKitDialogSettings : FileKitDialogSettings? = null
+internal lateinit var appNavController : NavController
 
 internal enum class EditorState {CLEAN, VALID, DIRTY}
 
 @Composable
-fun ViewCommon(
+internal fun ViewCommon(
     title: String,
     description: String = "Return to home screen",
     bottomBar: @Composable () -> Unit = {},
@@ -180,7 +186,7 @@ private fun closeConfirmDialog(navController: NavController, confirmAction : () 
 }
 
 @Composable
-fun ViewText(value : String, modifier: Modifier = Modifier) {
+internal fun ViewText(value : String, modifier: Modifier = Modifier) {
     Text(
         text = value,
         fontSize = fontSize,
@@ -191,7 +197,7 @@ fun ViewText(value : String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ViewTextField(
+internal fun ViewTextField(
     value: String,
     modifier: Modifier = Modifier,
     trailingIcon: @Composable (() -> Unit)? = null,
@@ -222,11 +228,11 @@ fun ViewTextField(
 }
 
 @Composable
-fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
+internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
+internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedTextColor = MaterialTheme.colorScheme.onSurface,
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
     cursorColor = MaterialTheme.colorScheme.onSurface,
@@ -237,7 +243,7 @@ fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
 )
 
 @Composable
-fun DropdownList(
+internal fun DropdownList(
     itemList: MutableStateFlow<List<String>>,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
@@ -306,7 +312,7 @@ fun DropdownList(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> Boolean, onItemClick: (Int) -> Unit) {
+internal fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> Boolean, onItemClick: (Int) -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     ViewTextField(
@@ -350,19 +356,19 @@ fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> B
 }
 
 @Composable
-fun EditButton(navigateFun : (NavController) -> Unit) {
+internal fun EditButton(navigateFun : (NavController) -> Unit) {
     Icon(Icons.Default.Edit, "edit", Modifier.clickable(onClick = { navigateFun(appNavController)}), Color.Green)
 }
 
 @Composable
-fun DeleteButton(disabled: Boolean = false, onClick : () -> Unit) =
+internal fun DeleteButton(disabled: Boolean = false, onClick : () -> Unit) =
     if (disabled) {
         Icon(Icons.Default.Delete, "delete", tint = Color(0x99990000))
     } else {
         Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
     }
 
-class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridCells {
+internal class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridCells {
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
         val columnCount = iconCount + weights.size
         val totalSpacing = spacing * (columnCount - 1)
@@ -382,7 +388,7 @@ class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridC
 }
 
 @Composable
-fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     OutlinedButton(enabled = enabled,
         shape = MaterialTheme.shapes.small,
         modifier = modifier.padding(6.dp),
@@ -390,14 +396,14 @@ fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Bo
     { ViewText(value) }
 }
 
-data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val navigateFun : (NavController) -> Unit)
+internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val navigateFun : (NavController) -> Unit)
 
 @Composable
-fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, navigateFun : (NavController) -> Unit) =
+internal fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, navigateFun : (NavController) -> Unit) =
     BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun))
 
 @Composable
-fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
+internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
         for (buttonSetting in buttonSettings) {
             OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
@@ -407,26 +413,26 @@ fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     }
 }
 
-fun LazyGridScope.gridEntry(title : String, value : String, onValueChange: (String) -> Unit) {
+internal fun LazyGridScope.gridEntry(title : String, value : String, onValueChange: (String) -> Unit) {
     item { ViewText(title) }
     item { ViewTextField(value = value, onValueChange = onValueChange) }
 }
 
-fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boolean) -> Unit) {
+internal fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boolean) -> Unit) {
     item { ViewText(title) }
     item { Checkbox(value, onValueChange) }
 }
 
-fun LazyGridScope.gridEntry(title: String, itemList: MutableStateFlow<List<String>>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
+internal fun LazyGridScope.gridEntry(title: String, itemList: MutableStateFlow<List<String>>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
     item { ViewText(title) }
     item { DropdownList(itemList, selectedIndex, onItemClick = onItemClick) }
 }
 
-fun LazyGridScope.formatedNumber(format : String, value : Double?) {
+internal fun LazyGridScope.formatedNumber(format : String, value : Double?) {
     item { ViewText(String.format(Locale.UK, format, value ?: 0.0)) }
 }
 
-fun LazyGridScope.viewTextItems(vararg values: String) {
+internal fun LazyGridScope.viewTextItems(vararg values: String) {
     for (value in values) {
         item {ViewText(value)}
     }
@@ -472,37 +478,35 @@ internal suspend fun <DAO, ENTITY> importCsvFile(dao: DAO, rowHandler: (DataRow<
             dataFrame
         }, { dao.insert(rowHandler(it)) })
 
-fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MODEL,
-                                                  rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
+internal fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
         where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
     ButtonSettings("Import") { viewModel.coroutineScope.launch {
-        importFromFile(
-            "csv",
-            {
-                val dataFrame = DataFrame.readCsv(it)
-                viewModel.dao.deleteAll()
-                dataFrame
-            }, { viewModel.insert(rowHandler(it)) })
+        tryTransaction({viewModel.handleException(it)}, {
+            importFromFile(
+                "csv",
+                {
+                    val dataFrame = DataFrame.readCsv(it)
+                    viewModel.dao.deleteAll()
+                    dataFrame
+                }, { viewModel.dao.insert(rowHandler(it)) })
+        })
+        }
+    }
 
-    }}
-
-fun exportButtonSettings(coroutineScope: CoroutineScope,
+internal fun exportButtonSettings(coroutineScope: CoroutineScope,
                          suggestName: String,
                          transformedDataSupplier: (Appendable) -> Unit) : ButtonSettings =
     ButtonSettings("Export") { coroutineScope.launch {
         exportToFile(suggestName, transformedDataSupplier = transformedDataSupplier)
     }}
 
-@Composable
-fun CommonDialog(message: String) {
-    var isDialogOpen by remember { mutableStateOf(false) }
-    Button(onClick = { isDialogOpen = true }) { Text("Open") }
-    if (isDialogOpen) {
-        AlertDialog(
-            onDismissRequest = { isDialogOpen = false },
-            confirmButton = { Button(onClick = { isDialogOpen = false }) { Text("OK") } },
-            title = { ViewText("Alert Dialog") },
-            text = { ViewText(message) }
-        )
+internal suspend fun<R> RoomDatabase.inTransaction(block: suspend TransactionScope<R>.() -> R) {
+        useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
+}
+internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit, block: suspend () -> Unit, db: AppDatabase = inject<AppDatabase>().value) {
+    try {
+        db.inTransaction { block() }
+    } catch (e: Exception) {
+        exceptionHandler(e)
     }
 }

@@ -72,7 +72,7 @@ class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, I
             dao.save(importId, name, importDefinitions)
             return true
         }  catch (e: Exception) {
-            handleError(e)
+            handleException(e)
         }
         return false
     }
@@ -84,6 +84,12 @@ class ImportDefinitionListViewModel : BaseReadViewModel<ImportDefinitionListView
             importDefinitionDao.deleteById(item.importDefinitionId)
         }
     }
+
+    suspend fun monitorImport() = import({handleException(it)})
+
+    suspend fun performImport(importDefinitions: List<ImportDefinitionListView>) =
+        perform({ handleException(it) }, importDefinitions)
+
 }
 
 @Suppress("ParamsComparedByRef")
@@ -98,7 +104,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
         "Import Definitions",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch { import() }},
+                ButtonSettings("Import") { coroutineScope.launch { viewModel.monitorImport() }},
                 ButtonSettings("Export") { coroutineScope.launch {
                     exportToFile("importDefinitions") { toDataFrame(state.value.values()).writeCsv(it) }
                 }},
@@ -122,7 +128,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                             Icons.Default.PlayArrow,
                             "run",
                             Modifier.clickable(onClick = {
-                                coroutineScope.launch { perform(state.value.values()
+                                coroutineScope.launch { viewModel.performImport(state.value.values()
                                     .filter { it.importDefinitionId == item.importDefinitionId && it.active }) }
                             }),
                             Color.Green
@@ -287,21 +293,23 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 }
 
-private suspend fun perform(
+private suspend fun perform(exceptionHandler: (Exception) -> Unit,
     importDefinitions: List<ImportDefinitionListView>,
     transactionDao: TransactionDao = inject<TransactionDao>().value,
-    ruleDao: RuleDao = inject<RuleDao>().value) {
-    val spreadSheetFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls")), mode = FileKitMode.Single)
-    if (spreadSheetFile != null && spreadSheetFile.exists()) {
-        val ruleCategoryMap = ruleDao.getRules().groupBy( { it.match.toRegex() }, {it.category})
-        for (importDefinition in importDefinitions) {
-            if (importDefinition.clear) {
-                transactionDao.deleteAllByAccount(importDefinition.accountId)
+    ruleDao: RuleDao = inject<RuleDao>().value
+) {
+    tryTransaction(exceptionHandler, {
+        val spreadSheetFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls")), mode = FileKitMode.Single)
+        if (spreadSheetFile != null && spreadSheetFile.exists()) {
+            val ruleCategoryMap = ruleDao.getRules().groupBy({ it.match.toRegex() }, { it.category })
+            for (importDefinition in importDefinitions) {
+                if (importDefinition.clear) {
+                    transactionDao.deleteAllByAccount(importDefinition.accountId)
+                }
+                perform(spreadSheetFile, importDefinition.sheetName, columns(importDefinition), ruleCategoryMap, transactionDao, importDefinition.accountId)
             }
-            perform(spreadSheetFile, importDefinition.sheetName, columns(importDefinition), ruleCategoryMap, transactionDao, importDefinition.accountId)
         }
-
-    }
+    })
 }
 
 private fun columns(def: ImportDefinitionListView) =
@@ -355,16 +363,20 @@ internal fun toDataFrame(importDefinitions: List<ImportDefinitionListView>): Dat
             AMOUNT_OUT from { it.amountOutColumn }
         }, JoinType.Full)
 
-private suspend fun import(dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
+private suspend fun import(exceptionHandler: (Exception) -> Unit,
+                           dao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
                            accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value,
                            accountDao: AccountDao = inject<AccountDao>().value) {
-    val dataFile = FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
-    if (dataFile != null && dataFile.exists()) {
-        dao.deleteAll()
+    tryTransaction(exceptionHandler, {
+        val dataFile =
+            FileKit.openFilePicker(FileKitType.File(listOf("csv")), mode = FileKitMode.Single)
+        if (dataFile != null && dataFile.exists()) {
+            dao.deleteAll()
 
-        DataFrame.readCsv(dataFile.readBytes().inputStream())
-            .rows().forEach { importRow(it, dao, accountImportDefinitionDao, accountDao) }
-    }
+            DataFrame.readCsv(dataFile.readBytes().inputStream())
+                .rows().forEach { importRow(it, dao, accountImportDefinitionDao, accountDao) }
+        }
+    })
 }
 
 internal suspend fun importRow(row: DataRow<Any?>,

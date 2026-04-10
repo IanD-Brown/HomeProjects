@@ -7,18 +7,18 @@ import dev.shivathapaa.logger.api.LoggerFactory
 import dev.shivathapaa.logger.core.LogEvent
 import dev.shivathapaa.logger.core.LoggerConfig
 import dev.shivathapaa.logger.formatters.LogEventFormatter
-import dev.shivathapaa.logger.formatters.LogFormatters
 import dev.shivathapaa.logger.sink.DefaultLogSink
 import dev.shivathapaa.logger.sink.LogSink
 import io.github.iandbrown.reconciler.database.builder
 import io.github.iandbrown.reconciler.database.getAppDataFolder
 import io.github.iandbrown.reconciler.di.startKoinCommon
+import io.github.iandbrown.reconciler.utils.LogFormatter
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import java.io.File
 
 fun main() {
     System.setProperty("apple.awt.application.appearance", "system")
-    val formatter = LogFormatters.default(showEmoji = false)
+    val formatter = LogFormatter()
     LoggerFactory.install(
         LoggerConfig.Builder()
             .minLevel(LogLevel.DEBUG)

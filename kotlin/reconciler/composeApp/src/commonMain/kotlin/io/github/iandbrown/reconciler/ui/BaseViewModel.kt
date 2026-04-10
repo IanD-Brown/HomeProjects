@@ -38,16 +38,20 @@ open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : 
             try {
                 dao.get().collect {data -> _state.update { ViewModelState.Success(data) } }
             } catch (e: Exception) {
-                handleError(e)
+                handleException(e)
             }
         }
     }
 
-    protected fun handleError(exception: Exception) {
-        val logger = LoggerFactory.get(javaClass.simpleName)
-        logger.error(exception) {"operation failed: ${exception.message}"}
+    fun handleException(exception: Exception) {
+        logException(javaClass.simpleName, exception, "operation failed:")
         _state.update { ViewModelState.Error(exception.message ?: exception.javaClass.simpleName, ::readAll) }
     }
+}
+
+fun logException(className: String, exception: Exception, context: String) {
+    val logger = LoggerFactory.get(className)
+    logger.error(exception) { "$context ${exception.message}" }
 }
 
 open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseReadViewModel<DAO, ENTITY>(dao)

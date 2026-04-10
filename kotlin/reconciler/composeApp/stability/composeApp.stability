@@ -55,13 +55,6 @@ public fun io.github.iandbrown.reconciler.ui.BottomBarWithButtons(buttonSettings
     - buttonSettings: UNSTABLE (has mutable properties or unstable members)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.CommonDialog(message: kotlin.String): kotlin.Unit
-  skippable: true
-  restartable: true
-  params:
-    - message: STABLE (String is immutable)
-
-@Composable
 private fun io.github.iandbrown.reconciler.ui.CreateTopBar(title: kotlin.String, description: kotlin.String, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true

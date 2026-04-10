@@ -7,10 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import dev.shivathapaa.logger.api.LogLevel
 import dev.shivathapaa.logger.api.LoggerFactory
 import dev.shivathapaa.logger.core.LoggerConfig
-import dev.shivathapaa.logger.formatters.LogFormatters
 import dev.shivathapaa.logger.sink.DefaultLogSink
 import io.github.iandbrown.reconciler.database.builder
 import io.github.iandbrown.reconciler.di.startKoinCommon
+import io.github.iandbrown.reconciler.utils.LogFormatter
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.init
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
             LoggerFactory.install(
                 LoggerConfig.Builder()
                     .minLevel(LogLevel.DEBUG)
-                    .addSink(DefaultLogSink(LogFormatters.default(showEmoji = false)))
+                    .addSink(DefaultLogSink(LogFormatter()))
                     .build())
             startKoinCommon(builder())
         }
