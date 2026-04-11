@@ -23,7 +23,7 @@ data class AccountGroup(
 
 @Dao
 interface AccountGroupDao : BaseReadDao<AccountGroup>, BaseWriteDao<AccountGroup> {
-    @Query("SELECT * FROM $table")
+    @Query("SELECT * FROM $table ORDER BY name")
     override fun get(): Flow<List<AccountGroup>>
 
     @Query("DELETE FROM $table")

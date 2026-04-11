@@ -138,7 +138,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                     item { DeleteButton { viewModel.delete(item) } }
                     for (account in orderedAccounts) {
                         val item = accountValues[Pair(item.importDefinitionId, account.id)]
-                        item { ViewText(account.name) }
+                        item { ViewText("  * ${account.name}") }
                         if (item != null) {
                             item { Checkbox(item.active, {}, enabled = false) }
                             viewTextItems(item.sheetName, item.dateColumn, item.descriptionColumn, item.amountInColumn, item.amountOutColumn)
