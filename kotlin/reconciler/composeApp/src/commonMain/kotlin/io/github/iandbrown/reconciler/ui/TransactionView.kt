@@ -163,6 +163,12 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
 
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
+                ViewText("Filter date ")
+                DatePickerView(minDate, Modifier.padding(0.dp), { true }) {
+                    minDate = it
+                    baseDate = it
+                }
+                Spacer(modifier = Modifier.size(16.dp))
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
                 val value = accountGroupState.value.values()
@@ -171,12 +177,6 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                     value.map { it.id }.indexOf(accountGroup)
                 ) {
                     accountGroup = value[it].id
-                }
-                Spacer(modifier = Modifier.size(16.dp))
-                ViewText("Filter date ")
-                DatePickerView(minDate, Modifier.padding(0.dp), { true }) {
-                    minDate = it
-                    baseDate = it
                 }
             }
 

@@ -134,7 +134,7 @@ internal fun EditRule(rule: Rule,
                     MutableStateFlow(value.map { it.name }),
                     value.map { it.id }.indexOf(category)
                 ) {
-                    category = it
+                    category = value[it].id
                     setEditorState()
                 }
                 val accountGroupName =
