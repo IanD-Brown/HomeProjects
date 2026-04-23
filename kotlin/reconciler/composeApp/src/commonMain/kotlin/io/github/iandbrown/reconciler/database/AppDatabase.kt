@@ -4,7 +4,7 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-private const val version = 3
+private const val version = 4
 private const val majorVersion = 1
 
 @Database(

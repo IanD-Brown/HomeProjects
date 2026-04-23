@@ -321,9 +321,8 @@ private suspend fun perform(
     columns: String,
     ruleCategoryMap: Map<Regex, List<Int>>,
     transactionDao: TransactionDao,
-    sheetNumber: Int) {
+    accountId: Int) {
     val df = DataFrame.readExcel(spreadSheetFile.readBytes().inputStream(), sheetName, columns = columns)
-    var rowNumber = 0
     for (row in df) {
         val cell0 = row[0]
         if (cell0 is LocalDateTime) {
@@ -334,7 +333,7 @@ private suspend fun perform(
                 val category =
                     ruleCategoryMap.entries.firstOrNull { it.key.containsMatchIn(description) }?.value?.firstOrNull()
                 transactionDao.insert(
-                    Transaction(sheetNumber, rowNumber++, date.value(), description, amount, category)
+                    Transaction(account = accountId, date = date.value(), description = description, amount = amount, category = category)
                 )
             }
         }

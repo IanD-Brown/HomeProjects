@@ -39,7 +39,7 @@ public fun io.github.iandbrown.reconciler.ui.AppState.switchThemeCallback(): kot
   params:
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.BottomBarWithButton(value: kotlin.String, enabled: kotlin.Boolean, navigateFun: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.BottomBarWithButton(value: kotlin.String, enabled: kotlin.Boolean, navigateFun: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -48,7 +48,7 @@ public fun io.github.iandbrown.reconciler.ui.BottomBarWithButton(value: kotlin.S
     - navigateFun: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.BottomBarWithButtons(buttonSettings: kotlin.Array<out io.github.iandbrown.reconciler.ui.ButtonSettings>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.BottomBarWithButtons(buttonSettings: kotlin.Array<out io.github.iandbrown.reconciler.ui.ButtonSettings>): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -65,7 +65,7 @@ private fun io.github.iandbrown.reconciler.ui.CreateTopBar(title: kotlin.String,
     - confirmAction: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.DatePickerView(current: kotlin.Int, modifier: androidx.compose.ui.Modifier, isSelectable: kotlin.Function1<kotlin.Long, kotlin.Boolean>, onItemClick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.DatePickerView(current: kotlin.Int, modifier: androidx.compose.ui.Modifier, isSelectable: kotlin.Function1<kotlin.Long, kotlin.Boolean>, onItemClick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -75,7 +75,7 @@ public fun io.github.iandbrown.reconciler.ui.DatePickerView(current: kotlin.Int,
     - onItemClick: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.DeleteButton(disabled: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.DeleteButton(disabled: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -83,7 +83,7 @@ public fun io.github.iandbrown.reconciler.ui.DeleteButton(disabled: kotlin.Boole
     - onClick: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.DropdownList(itemList: kotlinx.coroutines.flow.MutableStateFlow<kotlin.collections.List<kotlin.String>>, selectedIndex: kotlin.Int, modifier: androidx.compose.ui.Modifier, isLocked: kotlin.Function0<kotlin.Boolean>, label: kotlin.String?, onItemClick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.DropdownList(itemList: kotlinx.coroutines.flow.MutableStateFlow<kotlin.collections.List<kotlin.String>>, selectedIndex: kotlin.Int, modifier: androidx.compose.ui.Modifier, isLocked: kotlin.Function0<kotlin.Boolean>, label: kotlin.String?, onItemClick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -112,7 +112,7 @@ internal fun io.github.iandbrown.reconciler.ui.EditAccountGroup(accountGroup: io
     - viewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.EditButton(navigateFun: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.EditButton(navigateFun: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -171,7 +171,7 @@ public fun io.github.iandbrown.reconciler.ui.NavigateRule(viewModel: io.github.i
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.OutlinedTextButton(value: kotlin.String, modifier: androidx.compose.ui.Modifier, enabled: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.OutlinedTextButton(value: kotlin.String, modifier: androidx.compose.ui.Modifier, enabled: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -199,7 +199,7 @@ public fun io.github.iandbrown.reconciler.ui.ViewAllTransaction(viewModel: io.gi
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, states: kotlin.collections.List<io.github.iandbrown.reconciler.ui.ViewModelState<*>>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, states: kotlin.collections.List<io.github.iandbrown.reconciler.ui.ViewModelState<*>>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -222,7 +222,7 @@ public fun io.github.iandbrown.reconciler.ui.ViewSpendingSummary(viewModel: io.g
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewText(value: kotlin.String, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewText(value: kotlin.String, modifier: androidx.compose.ui.Modifier): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -230,7 +230,7 @@ public fun io.github.iandbrown.reconciler.ui.ViewText(value: kotlin.String, modi
     - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewTextField(value: kotlin.String, modifier: androidx.compose.ui.Modifier, trailingIcon: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, label: kotlin.String?, onValueChange: kotlin.Function1<kotlin.String, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewTextField(value: kotlin.String, modifier: androidx.compose.ui.Modifier, trailingIcon: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, label: kotlin.String?, onValueChange: kotlin.Function1<kotlin.String, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -250,13 +250,13 @@ public fun io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory(vi
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.textFieldColors(): androidx.compose.material3.TextFieldColors
+internal fun io.github.iandbrown.reconciler.ui.textFieldColors(): androidx.compose.material3.TextFieldColors
   skippable: true
   restartable: true
   params:
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.textStyle(): androidx.compose.ui.text.TextStyle
+internal fun io.github.iandbrown.reconciler.ui.textStyle(): androidx.compose.ui.text.TextStyle
   skippable: true
   restartable: true
   params:
