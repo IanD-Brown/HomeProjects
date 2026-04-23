@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
+import dev.shivathapaa.logger.api.LoggerFactory
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.AccountImportDefinition
 import io.github.iandbrown.reconciler.database.AccountImportDefinitionDao
@@ -39,7 +40,9 @@ import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.extension
 import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.readString
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -51,7 +54,11 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readCsv
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
+import org.jsoup.Jsoup
+import org.jsoup.select.Elements
 import org.koin.compose.koinInject
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private const val ACCOUNT = "Account"
 private const val ACCOUNT_NAME = "AccountName"
@@ -276,8 +283,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
             .associateBy { it.accountId }
         LazyVerticalGrid(columns = GridCells.Fixed(8), Modifier.padding(paddingValues)) {
             viewTextItems("Name", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column")
-            item { ViewTextField(name, onValueChange = { name = it }) }
-            item(span = { GridItemSpan(7) }) { }
+            item(span = { GridItemSpan(8) }) { ViewTextField(name, onValueChange = { name = it }) }
             for (account in accounts.values.sortedBy { it.name }) {
                 val def = editingDefinitions[account.id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = account.id)
                 item { ViewText(account.name) }
@@ -299,14 +305,18 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
     ruleDao: RuleDao = inject<RuleDao>().value
 ) {
     tryTransaction(exceptionHandler, {
-        val spreadSheetFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls")), mode = FileKitMode.Single)
-        if (spreadSheetFile != null && spreadSheetFile.exists()) {
-            val ruleCategoryMap = ruleDao.getRules().groupBy({ it.match.toRegex() }, { it.category })
+        val importFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls", "html")), mode = FileKitMode.Single)
+        if (importFile != null && importFile.exists()) {
+            val ruleCategoryMap = ruleDao.getRules().associateBy({ it.match.toRegex() }, { it.category })
             for (importDefinition in importDefinitions) {
                 if (importDefinition.clear) {
                     transactionDao.deleteAllByAccount(importDefinition.accountId)
                 }
-                perform(spreadSheetFile, importDefinition.sheetName, columns(importDefinition), ruleCategoryMap, transactionDao, importDefinition.accountId)
+                if (importFile.extension == "html") {
+                    readExcelWithHtml(importFile, importDefinition, ruleCategoryMap)
+                } else {
+                    perform(importFile, importDefinition, ruleCategoryMap)
+                }
             }
         }
     })
@@ -315,29 +325,80 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
 private fun columns(def: ImportDefinitionListView) =
     "${def.dateColumn},${def.descriptionColumn},${def.amountInColumn},${def.amountOutColumn}"
 
-private suspend fun perform(
-    spreadSheetFile: PlatformFile,
-    sheetName: String,
-    columns: String,
-    ruleCategoryMap: Map<Regex, List<Int>>,
-    transactionDao: TransactionDao,
-    accountId: Int) {
-    val df = DataFrame.readExcel(spreadSheetFile.readBytes().inputStream(), sheetName, columns = columns)
-    for (row in df) {
-        val cell0 = row[0]
-        if (cell0 is LocalDateTime) {
-            val date = DayDate(cell0)
-            val amount = asDouble(row[2]) - asDouble(row[3])
-            if (amount != 0.0) {
-                val description = description(row[1])
-                val category =
-                    ruleCategoryMap.entries.firstOrNull { it.key.containsMatchIn(description) }?.value?.firstOrNull()
-                transactionDao.insert(
-                    Transaction(account = accountId, date = date.value(), description = description, amount = amount, category = category)
-                )
-            }
+private fun toTextArray(elements: Elements) : List<String> {
+    val result = mutableListOf<String>()
+    elements.forEach { result.add(it.text()) }
+    return result
+}
+
+private suspend fun readExcelWithHtml(spreadSheetFile: PlatformFile,
+                                      definition: ImportDefinitionListView,
+                                      ruleCategoryMap: Map<Regex, Int>,
+                                      transactionDao: TransactionDao = inject<TransactionDao>().value) {
+    val htmlString = spreadSheetFile.readString()
+    if (htmlString.isBlank()) return
+
+    val doc = Jsoup.parse(htmlString)
+    val table = doc.select("table").first()
+    val dateIndex = definition.dateColumn[0] - 'A'
+    val descriptionIndex = definition.descriptionColumn[0] - 'A'
+    val amountInIndex = definition.amountInColumn[0] - 'A'
+    val amountOutIndex = definition.amountOutColumn[0] - 'A'
+    val datePattern = "[0-9]{4}-[0-9]{2}-[0-9]{2}".toRegex()
+    var imported = 0
+
+    table!!.select("tbody tr")
+        .map{ it.select("td, th") }
+        .map { toTextArray(it) }
+        .filter {datePattern.matches(it[dateIndex]) }
+        .filter { htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex]) != 0.0}
+        .map {
+            val description = description(it[descriptionIndex])
+            val category = ruleCategoryMap.entries.firstOrNull {entry -> entry.key.containsMatchIn(description) }?.value
+            Transaction(account = definition.accountId,
+                date = DayDate(LocalDate.parse(it[dateIndex], DateTimeFormatter.ofPattern("yyyy-MM-dd"))).value(),
+                description = description,
+                amount = htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex]),
+                category = category)}
+        .filter { definition.clear || !transactionDao.exists(it.account, it.description, it.date, it.amount) }
+        .forEach {
+            transactionDao.insert(it)
+            imported++
         }
-    }
+    val logger = LoggerFactory.get(transactionDao::class.simpleName!!)
+    logger.info { "${definition.sheetName} imported $imported" }
+}
+
+private fun htmlTextAsDouble(text: String) : Double = when {
+    text.startsWith("\ufffd ") -> text.substring(2).replace(Regex(","), "").toDouble()
+    text.isEmpty() -> 0.0
+    else -> text.toDouble()
+}
+
+private suspend fun perform(spreadSheetFile: PlatformFile,
+                            definition: ImportDefinitionListView,
+                            ruleCategoryMap: Map<Regex, Int>,
+                            transactionDao: TransactionDao = inject<TransactionDao>().value) {
+    val df = DataFrame.readExcel(spreadSheetFile.readBytes().inputStream(), definition.sheetName, columns = columns(definition))
+    var imported = 0
+    df.rows()
+        .filter { it[0] is LocalDateTime }
+        .filter { asDouble(it[2]) - asDouble(it[3]) != 0.0}
+        .map {
+            val description = description(it[1])
+            val category = ruleCategoryMap.entries.firstOrNull {entry -> entry.key.containsMatchIn(description) }?.value
+            Transaction(account = definition.accountId,
+            date = DayDate(it[0] as LocalDateTime).value(),
+            description = description,
+            amount = asDouble(it[2]) - asDouble(it[3]),
+            category = category)}
+        .filter { definition.clear || !transactionDao.exists(it.account, it.description, it.date, it.amount) }
+        .forEach {
+            transactionDao.insert(it)
+            imported++
+        }
+    val logger = LoggerFactory.get(transactionDao::class.simpleName!!)
+    logger.info { "${definition.sheetName} imported $imported" }
 }
 
 internal fun asDouble(value: Any?) = value as? Double ?: 0.0

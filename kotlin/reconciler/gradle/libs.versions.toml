@@ -1,6 +1,6 @@
 [versions]
-agp = "9.1.1"
-android-compileSdk = "36"
+agp = "9.2.0"
+android-compileSdk = "37"
 android-minSdk = "34"
 android-targetSdk = "36"
 androidx-activity = "1.13.0"
@@ -30,6 +30,7 @@ stability = "0.6.6"
 mockkery = "3.3.0"
 kotlinx-dataframe = "1.0.0-Beta4"
 kmp-logger = "1.4.0"
+jsoup = "1.22.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -67,6 +68,8 @@ kotlin-dataframe-csv = { module = "org.jetbrains.kotlinx:dataframe-csv", version
 kotlin-dataframe-excel = { module = "org.jetbrains.kotlinx:dataframe-excel", version.ref = "kotlinx-dataframe"}
 kmp-logger = { module = "io.github.shivathapaa:logger", version.ref = "kmp-logger"}
 kmp-logger-android = { module = "io.github.shivathapaa:logger-android", version.ref = "kmp-logger"}
+# jsoup - HTML parsing
+jsoup = {module = "org.jsoup:jsoup", version.ref= "jsoup"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

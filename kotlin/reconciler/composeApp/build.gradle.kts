@@ -69,6 +69,8 @@ kotlin {
             implementation(libs.kotlin.dataframe.excel)
 
             implementation(libs.kmp.logger)
+
+            implementation(libs.jsoup)
         }
 
         commonTest.dependencies {
