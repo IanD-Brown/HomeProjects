@@ -1,5 +1,6 @@
 package io.github.iandbrown.reconciler.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -16,7 +17,9 @@ private const val table = "ImportDefinitions"
 data class ImportDefinition(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val name: String = ""
+    val name: String = "",
+    @ColumnInfo(defaultValue = "0")
+    val type: Int = 0
 )
 
 @Dao
@@ -33,20 +36,18 @@ interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<Impo
     @Query("SELECT id FROM $table WHERE name = :name")
     suspend fun getByName(name: String) : Int?
 
-    @Query("SELECT * FROM $table")
-    suspend fun getDefinitions() : List<ImportDefinition>
-
     @Transaction
-    suspend fun save(importId: Int, name: String, importDefinitions: (Int) -> List<AccountImportDefinition>,
+    suspend fun save(importId: Int, name: String, type: Int, accountImportDefinitions: (Int) -> List<AccountImportDefinition>,
                      accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value) {
         if (importId == 0) {
-            insert(ImportDefinition(name = name))
+            insert(ImportDefinition(name = name, type = type))
         } else {
-            update(ImportDefinition(importId, name))
+            update(ImportDefinition(importId, name, type))
         }
 
-        for (importDefinition in importDefinitions(getByName(name)!!)) {
-            accountImportDefinitionDao.insert(importDefinition)
+        val importDefinitionId = getByName(name)!!
+        for (accountImportDefinition in accountImportDefinitions(importDefinitionId)) {
+            accountImportDefinitionDao.insert(accountImportDefinition)
         }
     }
 }

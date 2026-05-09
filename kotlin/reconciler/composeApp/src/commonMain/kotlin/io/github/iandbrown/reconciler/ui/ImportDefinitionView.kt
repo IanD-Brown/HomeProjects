@@ -1,6 +1,10 @@
 package io.github.iandbrown.reconciler.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -13,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,21 +38,27 @@ import io.github.iandbrown.reconciler.database.RuleDao
 import io.github.iandbrown.reconciler.database.Transaction
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
+import io.github.iandbrown.reconciler.di.koinApp
 import io.github.iandbrown.reconciler.logic.DayDate
+import io.github.iandbrown.reconciler.logic.PDFConverterInterface
+import io.github.iandbrown.reconciler.logic.Range
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.exists
-import io.github.vinceglb.filekit.extension
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.readString
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import org.jetbrains.kotlinx.dataframe.AnyFrame
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.JoinType
+import org.jetbrains.kotlinx.dataframe.api.concat
+import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
 import org.jetbrains.kotlinx.dataframe.api.join
 import org.jetbrains.kotlinx.dataframe.api.rows
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -55,10 +66,13 @@ import org.jetbrains.kotlinx.dataframe.io.readCsv
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
 
 private const val ACCOUNT = "Account"
 private const val ACCOUNT_NAME = "AccountName"
@@ -72,11 +86,18 @@ private const val DEFINITION_NAME = "DefinitionName"
 private const val DESCRIPTION_COLUMN = "DescriptionColumn"
 private const val SHEET_NAME = "SheetName"
 private const val TYPE = "Type"
+private const val FILE_TYPE = "FileType"
+
+private enum class ImportTypes(val displayName: String) {
+    EXCEL("Excel"),
+    CREDIT("Santander credit HTML"),
+    CURRENT("Santander current PDF")
+}
 
 class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
-    suspend fun save(importId: Int, name: String, importDefinitions: (Int) -> List<AccountImportDefinition>) : Boolean {
+    suspend fun save(importId: Int, name: String, type: Int, importDefinitions: (Int) -> List<AccountImportDefinition>) : Boolean {
         try {
-            dao.save(importId, name, importDefinitions)
+            dao.save(importId, name, type, importDefinitions)
             return true
         }  catch (e: Exception) {
             handleException(e)
@@ -129,7 +150,8 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
             for (item in state.value.values()) {
                 if (item.importDefinitionId != importDefinitionId) {
                     importDefinitionId = item.importDefinitionId
-                    item(span = { GridItemSpan(7) }) { ViewText(item.name) }
+                    item(span = { GridItemSpan(2) }) { ViewText(item.name) }
+                    item(span = { GridItemSpan(5)}) { ViewText(ImportTypes.entries[item.type].displayName)}
                     item {
                         Icon(
                             Icons.Default.PlayArrow,
@@ -173,6 +195,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     val accountState = accountViewModel.uiState.collectAsState()
     val title = if (importDefinitionListView.importDefinitionId == 0) "Add Import Definition" else "Edit Import Definition"
     var name by remember { mutableStateOf(importDefinitionListView.name) }
+    var type by remember { mutableIntStateOf(importDefinitionListView.type) }
     val accounts = accountState.value.values().associateBy { it.id }.toMutableMap()
     val activeEdits = remember { mutableStateMapOf<Int, Boolean>() }
     val clearEdits = remember { mutableStateMapOf<Int, Boolean>() }
@@ -218,7 +241,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
                     edits[listView.accountId]!!
                 } else if (activeField) {
                     listView.active
-                }else {
+                } else {
                     listView.clear
                 }),
                 onCheckedChange = {
@@ -250,7 +273,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 
     fun hasEdit() : Boolean =
-        importDefinitionState.value !is ViewModelState.Error && (name != importDefinitionListView.name ||
+        importDefinitionState.value !is ViewModelState.Error && (name != importDefinitionListView.name || type != importDefinitionListView.type ||
                 listOf(activeEdits, clearEdits, sheetNameEdits, descriptionEdits, dateEdits, amountInEdits, amountOutEdits).none {it.isNotEmpty()})
 
     ViewCommon(
@@ -260,7 +283,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
             if (importDefinitionState.value !is ViewModelState.Error) {
                 BottomBarWithButton(enabled = valid) { navController ->
                     coroutineScope.launch {
-                        if (importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name)
+                        if (importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name, type)
                         { toImportDefinitions(it) }) {
                             navController.popBackStack()
                         }
@@ -271,7 +294,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
         confirm = {valid && hasEdit()},
         confirmAction = {
             coroutineScope.launch {
-                importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name) {
+                importDefinitionViewModel.save(importDefinitionListView.importDefinitionId, name, type) {
                     toImportDefinitions(it)
                 }
             }
@@ -281,19 +304,29 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
         val editingDefinitions = definitionState.value.values()
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }
             .associateBy { it.accountId }
-        LazyVerticalGrid(columns = GridCells.Fixed(8), Modifier.padding(paddingValues)) {
-            viewTextItems("Name", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column")
-            item(span = { GridItemSpan(8) }) { ViewTextField(name, onValueChange = { name = it }) }
-            for (account in accounts.values.sortedBy { it.name }) {
-                val def = editingDefinitions[account.id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = account.id)
-                item { ViewText(account.name) }
-                gridEntry(activeEdits, def, true)
-                gridEntry(clearEdits, def, false)
-                gridEntry(sheetNameEdits, def, StringField.SHEET_NAME_COLUMN)
-                gridEntry(dateEdits, def, StringField.DATE_COLUMN)
-                gridEntry(descriptionEdits, def, StringField.DESCRIPTION_COLUMN)
-                gridEntry(amountInEdits, def, StringField.AMOUNT_IN_COLUMN)
-                gridEntry(amountOutEdits, def, StringField.AMOUNT_OUT_COLUMN)
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ViewText("Name")
+                ViewTextField(name) {name = it}
+                ViewText("Type")
+                DropdownList(MutableStateFlow(ImportTypes.entries.map { it.displayName }), type) {
+                    type = it
+                    setValid()
+                }
+            }
+            LazyVerticalGrid(columns = GridCells.Fixed(8)) {
+                viewTextItems("Account", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column")
+                for (account in accounts.values.sortedBy { it.name }) {
+                    val def = editingDefinitions[account.id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = account.id)
+                    item { ViewText(account.name) }
+                    gridEntry(activeEdits, def, true)
+                    gridEntry(clearEdits, def, false)
+                    gridEntry(sheetNameEdits, def, StringField.SHEET_NAME_COLUMN)
+                    gridEntry(dateEdits, def, StringField.DATE_COLUMN)
+                    gridEntry(descriptionEdits, def, StringField.DESCRIPTION_COLUMN)
+                    gridEntry(amountInEdits, def, StringField.AMOUNT_IN_COLUMN)
+                    gridEntry(amountOutEdits, def, StringField.AMOUNT_OUT_COLUMN)
+                }
             }
         }
     }
@@ -305,21 +338,88 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
     ruleDao: RuleDao = inject<RuleDao>().value
 ) {
     tryTransaction(exceptionHandler, {
-        val importFile = FileKit.openFilePicker(FileKitType.File(listOf("xlsx", "xls", "html")), mode = FileKitMode.Single)
+        val importType = ImportTypes.entries[importDefinitions[0].type]
+        val extensions = when (importType) {
+            ImportTypes.EXCEL -> listOf("xlsx", "xls")
+            ImportTypes.CREDIT -> listOf("html")
+            ImportTypes.CURRENT -> listOf("pdf")
+        }
+        val importFile = FileKit.openFilePicker(FileKitType.File(extensions), mode = FileKitMode.Single)
         if (importFile != null && importFile.exists()) {
             val ruleCategoryMap = ruleDao.getRules().associateBy({ it.match.toRegex() }, { it.category })
             for (importDefinition in importDefinitions) {
                 if (importDefinition.clear) {
                     transactionDao.deleteAllByAccount(importDefinition.accountId)
                 }
-                if (importFile.extension == "html") {
-                    readExcelWithHtml(importFile, importDefinition, ruleCategoryMap)
-                } else {
-                    perform(importFile, importDefinition, ruleCategoryMap)
+                val df = when (importType) {
+                    ImportTypes.CREDIT -> readHtml(importFile, importDefinition)
+                    ImportTypes.CURRENT -> readPdf(importFile, importDefinition)
+                    ImportTypes.EXCEL -> readExcel(importFile, importDefinition)
                 }
+                performDataFrame(df, ruleCategoryMap, importDefinition)
             }
         }
     })
+}
+
+private suspend fun readPdf(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {
+    val logger = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)
+    val sourceBytes = importFile.readBytes()
+    val converter: PDFConverterInterface = koinApp.koin.get { parametersOf(sourceBytes)}
+    val dateRange = converter.getDateRange()
+    val datePattern = "(\\d{1,2})(st |nd |rd |th )([a-zA-Z]{3})".toRegex()
+    val dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy")
+    var transactionDate: Long = 0
+
+    logger.debug {"Range ${converter.getDateRange()}"}
+    val rows = converter.rowContent { it.size >= 4 }
+
+    val headerRow = rows.firstOrNull { row -> row.values.toSet().containsAll(
+        listOf(importDefinition.dateColumn,
+        importDefinition.descriptionColumn,
+            importDefinition.amountInColumn,
+            importDefinition.amountOutColumn)) }
+    logger.debug {"HeaderRow $headerRow"}
+    val dateIndex = getRange(importDefinition.dateColumn, headerRow!!)
+    val descriptionIndex = getRange(importDefinition.descriptionColumn, headerRow)
+    val amountInIndex = getRange(importDefinition.amountInColumn, headerRow)
+    val amountOutIndex = getRange(importDefinition.amountOutColumn, headerRow)
+    logger.debug {"HeaderRanges   $dateIndex\n   $descriptionIndex\n   $amountInIndex\n   $amountOutIndex"}
+    var df = DataFrame.emptyOf<Any?>()
+    for (row in rows.filter { it.size >= 4 }) {
+        val dateColumn = getByRange(dateIndex, row)
+        val amountIn = getByRange(amountInIndex, row).replace(Regex(","), "").toDoubleOrNull()
+        val amountOut = getByRange(amountOutIndex, row).replace(Regex(","), "").toDoubleOrNull()
+        if (datePattern.matches(dateColumn) && (amountIn != null || amountOut != null)) {
+            val dateParts = datePattern.matchEntire(dateColumn)?.groupValues!!
+            val dayNumber = dateParts[1].toInt().toString().padStart(2, '0')
+            var date  = LocalDate.parse("$dayNumber-${dateParts[3]}-${dateRange.first}", dateFormatter)
+            if (date.toEpochDay() < transactionDate) {
+                date  = LocalDate.parse("$dayNumber-${dateParts[3]}-${dateRange.second}", dateFormatter)
+            }
+            transactionDate = date.toEpochDay()
+            val amount = (amountIn ?: 0.0) - (amountOut ?: 0.0)
+            df = df.concat(dataFrameOf("A", "B", "C")(DayDate(date), getByRange(descriptionIndex, row), amount))
+        } else {
+            logger.debug {"$dateColumn ${getByRange(descriptionIndex, row)} $amountIn $amountOut"}
+            for (cell in row) {
+                logger.debug {"Pair(Range(${cell.key.from}F, ${cell.key.to}F), \"${cell.value}\"),"}
+            }
+        }
+    }
+    return df
+}
+
+private fun getRange(content: String, row: Map<Range, String>) : Range
+    = row.filter { it.value == content }.keys.first()
+
+private fun asIntOneDecimal(position: Float) = (position * 10.0F).toInt()
+
+internal fun getByRange(range: Range, row: Map<Range, String>) : String {
+    val intFrom = asIntOneDecimal(range.from)
+    val intTo = asIntOneDecimal(range.to)
+    return row.filter { asIntOneDecimal(it.key.from) in intFrom..intTo }
+        .values.fold("") {acc, it -> acc + it}
 }
 
 private fun columns(def: ImportDefinitionListView) =
@@ -331,12 +431,14 @@ private fun toTextArray(elements: Elements) : List<String> {
     return result
 }
 
-private suspend fun readExcelWithHtml(spreadSheetFile: PlatformFile,
-                                      definition: ImportDefinitionListView,
-                                      ruleCategoryMap: Map<Regex, Int>,
-                                      transactionDao: TransactionDao = inject<TransactionDao>().value) {
+private fun rows(table: Element) : List<List<String>>
+    = table.select("tbody tr")
+        .map{ it.select("td, th") }
+        .map { toTextArray(it) }
+
+private suspend fun readHtml(spreadSheetFile: PlatformFile, definition: ImportDefinitionListView) : DataFrame<Any?> {
     val htmlString = spreadSheetFile.readString()
-    if (htmlString.isBlank()) return
+    if (htmlString.isBlank()) return DataFrame.emptyOf<Any?>()
 
     val doc = Jsoup.parse(htmlString)
     val table = doc.select("table").first()
@@ -345,28 +447,13 @@ private suspend fun readExcelWithHtml(spreadSheetFile: PlatformFile,
     val amountInIndex = definition.amountInColumn[0] - 'A'
     val amountOutIndex = definition.amountOutColumn[0] - 'A'
     val datePattern = "[0-9]{4}-[0-9]{2}-[0-9]{2}".toRegex()
-    var imported = 0
-
-    table!!.select("tbody tr")
-        .map{ it.select("td, th") }
-        .map { toTextArray(it) }
-        .filter {datePattern.matches(it[dateIndex]) }
-        .filter { htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex]) != 0.0}
-        .map {
-            val description = description(it[descriptionIndex])
-            val category = ruleCategoryMap.entries.firstOrNull {entry -> entry.key.containsMatchIn(description) }?.value
-            Transaction(account = definition.accountId,
-                date = DayDate(LocalDate.parse(it[dateIndex], DateTimeFormatter.ofPattern("yyyy-MM-dd"))).value(),
-                description = description,
-                amount = htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex]),
-                category = category)}
-        .filter { definition.clear || !transactionDao.exists(it.account, it.description, it.date, it.amount) }
-        .forEach {
-            transactionDao.insert(it)
-            imported++
-        }
-    val logger = LoggerFactory.get(transactionDao::class.simpleName!!)
-    logger.info { "${definition.sheetName} imported $imported" }
+    val dateFormatPattern = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    return rows(table!!)
+        .filter {datePattern.matches(it[dateIndex]) && htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex]) != 0.0}
+        .fold(DataFrame.emptyOf<Any?>()) {acc, it -> acc.concat(dataFrameOf("A", "B", "C")(
+            DayDate(LocalDate.parse(it[dateIndex], dateFormatPattern)),
+            description(it[descriptionIndex]),
+            htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex])))}
 }
 
 private fun htmlTextAsDouble(text: String) : Double = when {
@@ -375,23 +462,38 @@ private fun htmlTextAsDouble(text: String) : Double = when {
     else -> text.toDouble()
 }
 
-private suspend fun perform(spreadSheetFile: PlatformFile,
-                            definition: ImportDefinitionListView,
-                            ruleCategoryMap: Map<Regex, Int>,
-                            transactionDao: TransactionDao = inject<TransactionDao>().value) {
+private suspend fun readExcel(spreadSheetFile: PlatformFile, definition: ImportDefinitionListView) : DataFrame<Any?> {
     val df = DataFrame.readExcel(spreadSheetFile.readBytes().inputStream(), definition.sheetName, columns = columns(definition))
-    var imported = 0
+    var result = DataFrame.emptyOf<Any?>()
     df.rows()
         .filter { it[0] is LocalDateTime }
-        .filter { asDouble(it[2]) - asDouble(it[3]) != 0.0}
+        .filter { asDouble(it[2]) - asDouble(it[3]) != 0.0 }
+        .forEach {
+            result = result.concat(dataFrameOf("A", "B", "C")(
+                DayDate(it[0] as LocalDateTime),
+                description(it[1]),
+                asDouble(it[2]) - asDouble(it[3])))
+        }
+    return result
+}
+
+private suspend fun performDataFrame(dataFrame: AnyFrame,
+                                     ruleCategoryMap: Map<Regex, Int>,
+                                     definition: ImportDefinitionListView,
+                                     transactionDao: TransactionDao = inject<TransactionDao>().value) {
+    var imported = 0
+    dataFrame.rows()
         .map {
             val description = description(it[1])
-            val category = ruleCategoryMap.entries.firstOrNull {entry -> entry.key.containsMatchIn(description) }?.value
-            Transaction(account = definition.accountId,
-            date = DayDate(it[0] as LocalDateTime).value(),
-            description = description,
-            amount = asDouble(it[2]) - asDouble(it[3]),
-            category = category)}
+            val category = ruleCategoryMap.entries.firstOrNull { entry -> entry.key.containsMatchIn(description) }?.value
+            Transaction(
+                account = definition.accountId,
+                date = (it[0] as DayDate).value(),
+                description = description,
+                amount = asDouble(it[2]),
+                category = category
+            )
+        }
         .filter { definition.clear || !transactionDao.exists(it.account, it.description, it.date, it.amount) }
         .forEach {
             transactionDao.insert(it)
@@ -410,6 +512,7 @@ internal fun toDataFrame(importDefinitions: List<ImportDefinitionListView>): Dat
         .toDataFrame {
             TYPE from { DEFINITION }
             DEFINITION_NAME from { it.name }
+            FILE_TYPE from {it.type.toString()}
         }.join(importDefinitions.toDataFrame {
             TYPE from { ACCOUNT }
             DEFINITION_NAME from { it.name }
@@ -444,7 +547,7 @@ internal suspend fun importRow(row: DataRow<Any?>,
                                accountImportDefinitionDao: AccountImportDefinitionDao = inject<AccountImportDefinitionDao>().value,
                                accountDao: AccountDao = inject<AccountDao>().value) {
     when (row[TYPE]) {
-        DEFINITION -> dao.insert(ImportDefinition(name = string(row[DEFINITION_NAME])))
+        DEFINITION -> dao.insert(ImportDefinition(name = string(row[DEFINITION_NAME]), type = string(row[FILE_TYPE]).toInt()))
         ACCOUNT -> accountImportDefinitionDao.insert(AccountImportDefinition(
                 accountDao.getByName(string(row[ACCOUNT_NAME]))!!,
             dao.getByName(string(row[DEFINITION_NAME]))!!,

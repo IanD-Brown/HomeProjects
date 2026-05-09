@@ -12,6 +12,7 @@ private const val viewName = "ImportDefinitionListView"
     value = "SELECT " +
             "def.id AS importDefinitionId, " +
             "def.name AS name, " +
+            "def.type as type, " +
             "ad.accountId as accountId, " +
             "a.name as accountName, " +
             "ad.active, " +
@@ -30,6 +31,7 @@ private const val viewName = "ImportDefinitionListView"
 data class ImportDefinitionListView(
     val importDefinitionId: Int = 0,
     val name: String = "",
+    val type: Int = 0,
     val accountId: Int = 0,
     val accountName: String = "",
     val active: Boolean = false,

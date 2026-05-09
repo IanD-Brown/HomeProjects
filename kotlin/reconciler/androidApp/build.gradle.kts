@@ -48,4 +48,6 @@ dependencies {
     implementation(libs.filekit.dialogs.compose)
 
     implementation(libs.kmp.logger.android)
+
+    implementation(libs.pdfbox.android)
 }

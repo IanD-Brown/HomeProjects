@@ -4,12 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import dev.shivathapaa.logger.api.LogLevel
 import dev.shivathapaa.logger.api.LoggerFactory
 import dev.shivathapaa.logger.core.LoggerConfig
 import dev.shivathapaa.logger.sink.DefaultLogSink
 import io.github.iandbrown.reconciler.database.builder
 import io.github.iandbrown.reconciler.di.startKoinCommon
+import io.github.iandbrown.reconciler.logic.PDFConverter
 import io.github.iandbrown.reconciler.utils.LogFormatter
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
@@ -26,8 +28,9 @@ class MainActivity : ComponentActivity() {
                     .minLevel(LogLevel.DEBUG)
                     .addSink(DefaultLogSink(LogFormatter()))
                     .build())
-            startKoinCommon(builder())
+            startKoinCommon(builder(), {source -> PDFConverter(source) })
         }
+        PDFBoxResourceLoader.init(applicationContext)
         FileKit.init(this)
 
         setContent {

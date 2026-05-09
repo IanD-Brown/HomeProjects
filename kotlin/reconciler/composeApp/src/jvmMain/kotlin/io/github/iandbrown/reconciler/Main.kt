@@ -12,6 +12,7 @@ import dev.shivathapaa.logger.sink.LogSink
 import io.github.iandbrown.reconciler.database.builder
 import io.github.iandbrown.reconciler.database.getAppDataFolder
 import io.github.iandbrown.reconciler.di.startKoinCommon
+import io.github.iandbrown.reconciler.logic.PDFConverter
 import io.github.iandbrown.reconciler.utils.LogFormatter
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import java.io.File
@@ -28,7 +29,7 @@ fun main() {
     )
 
     application {
-        startKoinCommon(builder())
+        startKoinCommon(builder(), {source -> PDFConverter(source) })
         Window(onCloseRequest = ::exitApplication, title = "Account reconciler") {
             val fileKitDialogSettings = FileKitDialogSettings(parentWindow = this.window)
             App(fileKitDialogSettings)

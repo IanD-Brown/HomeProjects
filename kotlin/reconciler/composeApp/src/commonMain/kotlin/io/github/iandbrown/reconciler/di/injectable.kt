@@ -2,6 +2,7 @@ package io.github.iandbrown.reconciler.di
 
 import androidx.room.RoomDatabase
 import io.github.iandbrown.reconciler.database.AppDatabase
+import io.github.iandbrown.reconciler.logic.PDFConverterInterface
 import io.github.iandbrown.reconciler.ui.AccountGroupViewModel
 import io.github.iandbrown.reconciler.ui.AccountViewModel
 import io.github.iandbrown.reconciler.ui.ImportDefinitionListViewModel
@@ -9,6 +10,7 @@ import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
 import io.github.iandbrown.reconciler.ui.RuleViewModel
 import io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel
 import io.github.iandbrown.reconciler.ui.TransactionListViewModel
+import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
@@ -39,14 +41,18 @@ private val injectableModules = module {
     single { get<AppDatabase>().getTransactionListViewDao() }
 }
 
+internal lateinit var koinApp : KoinApplication
+
 fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,
+                    pdfConverterBuilder: (ByteArray) -> PDFConverterInterface,
                     appDeclaration: KoinAppDeclaration = {}) {
-    val dataModule = module {
+    val platformModule = module {
         // Database
         single<AppDatabase> { databaseBuilder.build() }
+        single<PDFConverterInterface> { (source: ByteArray) -> pdfConverterBuilder(source) }
     }
-    startKoin {
-        modules(injectableModules, dataModule)
+    koinApp = startKoin {
+        modules(injectableModules, platformModule)
         appDeclaration()
     }
 }

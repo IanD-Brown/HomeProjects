@@ -439,7 +439,7 @@ internal fun LazyGridScope.viewTextItems(vararg values: String) {
 }
 
 internal suspend fun exportToFile(suggestName: String, extension: String = "csv", transformedDataSupplier: (Appendable) -> Unit) {
-    val file = FileKit.openFileSaver(suggestedName = suggestName, extension = extension)
+    val file = FileKit.openFileSaver(suggestedName = suggestName, defaultExtension = extension)
     val sink = file?.sink(append = false)?.buffered()
 
     sink.use { bufferedSink ->
