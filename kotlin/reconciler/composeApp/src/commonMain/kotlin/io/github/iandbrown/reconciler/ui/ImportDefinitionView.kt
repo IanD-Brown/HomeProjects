@@ -40,7 +40,7 @@ import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.di.koinApp
 import io.github.iandbrown.reconciler.logic.DayDate
-import io.github.iandbrown.reconciler.logic.PDFConverterInterface
+import io.github.iandbrown.reconciler.logic.AbstractPDFConverter
 import io.github.iandbrown.reconciler.logic.Range
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
@@ -365,7 +365,7 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
 private suspend fun readPdf(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {
     val logger = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)
     val sourceBytes = importFile.readBytes()
-    val converter: PDFConverterInterface = koinApp.koin.get { parametersOf(sourceBytes)}
+    val converter: AbstractPDFConverter = koinApp.koin.get { parametersOf(sourceBytes)}
     val dateRange = converter.getDateRange()
     val datePattern = "(\\d{1,2})(st |nd |rd |th )([a-zA-Z]{3})".toRegex()
     val dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy")

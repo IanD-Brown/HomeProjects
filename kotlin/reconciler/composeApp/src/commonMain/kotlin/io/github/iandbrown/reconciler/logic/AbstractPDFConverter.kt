@@ -3,10 +3,85 @@ package io.github.iandbrown.reconciler.logic
 import dev.shivathapaa.logger.api.LoggerFactory
 import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
 import kotlin.collections.iterator
+import kotlin.collections.set
 
-interface PDFConverterInterface {
-    fun rowContent(rowFilter: (Set<String>) -> Boolean): List<Map<Range, String>>
-    fun getDateRange(): Pair<Int, Int>
+abstract class AbstractPDFConverter {
+    fun rowContent(rowFilter: (Set<String>) -> Boolean): List<Map<Range, String>> {
+        val sortedItems = getSortedItems(getItems())
+        val rowRanges = calcRows(sortedItems)
+        return rowContent(rowRanges, sortedItems, rowFilter)
+    }
+
+    fun getDateRange(): Pair<Int, Int> {
+        val dateRangePattern = "(1st|2nd|3rd|\\d{1,2}th)( [a-zA-Z]{3} )(\\d{4})( to )(1st|2nd|3rd|\\d{1,2}th)( [a-zA-Z]{3} )(\\d{4})".toRegex()
+        val dateResult = getItems().values.firstNotNullOf { dateRangePattern.matchEntire(it) }
+        return Pair(dateResult.groupValues[3].toInt(), dateResult.groupValues[7].toInt())
+    }
+
+    protected abstract fun getItems() : Map<RectArea, String>
+}
+
+class TextAreaHolder {
+    var dropThreshold = 0F
+    var pageOffset = 0F
+    var pageLowerLeftX: Float? = null
+    var pageLowerLeftY: Float? = null
+    var pageHeight: Float? = null
+    val positions = mutableListOf<RectArea>()
+    var currentText: String? = null
+    val items = mutableMapOf<RectArea, String>()
+
+    fun clear(dropThreshold: Float) {
+        this.dropThreshold = dropThreshold
+        items.clear()
+        currentText = null
+        positions.clear()
+    }
+
+    fun startPage(lowerLeftX: Float?, lowerLeftY: Float?, height: Float?) {
+        if (pageHeight != null) {
+            pageOffset += pageHeight!!
+        }
+        pageLowerLeftX = lowerLeftX
+        pageLowerLeftY = lowerLeftY
+        pageHeight = height
+        saveCurrent()
+    }
+
+    fun saveCurrent() {
+        if (currentText != null) {
+            items[mergePositions()] = currentText!!
+            currentText = null
+        }
+        positions.clear()
+    }
+
+    fun stringAt(text: String?, locations: Sequence<RectArea>) {
+        if (currentText != null && text != null) {
+            currentText += text
+        } else {
+            currentText = text
+        }
+        positions.addAll(locations)
+    }
+
+    private fun mergePositions() : RectArea {
+        var left = Float.MAX_VALUE
+        var top = Float.MAX_VALUE
+        var right = Float.NEGATIVE_INFINITY
+        var bottom = Float.NEGATIVE_INFINITY
+        for (it in positions) {
+            val x = it.left + pageLowerLeftX!!
+            val y = pageOffset + it.top + pageLowerLeftY!!
+
+            left = left.coerceAtMost(x)
+            right = right.coerceAtLeast(x + (it.right - it.left))
+            top = top.coerceAtMost(y)
+            bottom = bottom.coerceAtLeast(y + (it.bottom - it.top))
+        }
+
+        return RectArea(left, right, top, bottom + dropThreshold)
+    }
 }
 
 data class Range(val from: Float, val to: Float) {
@@ -17,10 +92,8 @@ data class Range(val from: Float, val to: Float) {
 
 data class RectArea(val left: Float, val right: Float, val top: Float, val bottom: Float)
 
-
 fun getSortedItems(items: Map<RectArea, String>): List<Pair<RectArea, String>> =
     items.map { Pair(it.key, it.value) }.sortedBy { it.first.top }
-
 
 fun calcRows(sortedItems: List<Pair<RectArea, String>>) : List<Range> {
     var top: Float = Float.MAX_VALUE
@@ -45,7 +118,6 @@ fun calcRows(sortedItems: List<Pair<RectArea, String>>) : List<Range> {
 
     return rows
 }
-
 
 fun rowContent(rowRanges: List<Range>,
                         sortedItems: List<Pair<RectArea, String>>,

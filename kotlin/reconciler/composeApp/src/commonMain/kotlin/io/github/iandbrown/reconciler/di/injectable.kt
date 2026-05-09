@@ -2,7 +2,7 @@ package io.github.iandbrown.reconciler.di
 
 import androidx.room.RoomDatabase
 import io.github.iandbrown.reconciler.database.AppDatabase
-import io.github.iandbrown.reconciler.logic.PDFConverterInterface
+import io.github.iandbrown.reconciler.logic.AbstractPDFConverter
 import io.github.iandbrown.reconciler.ui.AccountGroupViewModel
 import io.github.iandbrown.reconciler.ui.AccountViewModel
 import io.github.iandbrown.reconciler.ui.ImportDefinitionListViewModel
@@ -44,12 +44,12 @@ private val injectableModules = module {
 internal lateinit var koinApp : KoinApplication
 
 fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,
-                    pdfConverterBuilder: (ByteArray) -> PDFConverterInterface,
+                    pdfConverterBuilder: (ByteArray) -> AbstractPDFConverter,
                     appDeclaration: KoinAppDeclaration = {}) {
     val platformModule = module {
         // Database
         single<AppDatabase> { databaseBuilder.build() }
-        single<PDFConverterInterface> { (source: ByteArray) -> pdfConverterBuilder(source) }
+        single<AbstractPDFConverter> { (source: ByteArray) -> pdfConverterBuilder(source) }
     }
     koinApp = startKoin {
         modules(injectableModules, platformModule)
