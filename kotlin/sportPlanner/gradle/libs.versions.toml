@@ -1,34 +1,34 @@
 [versions]
-agp = "9.1.0"
-android-compileSdk = "36"
+agp = "9.2.1"
+android-compileSdk = "37"
 android-minSdk = "34"
 android-targetSdk = "36"
-androidx-activity = "1.12.4"
-androidx-lifecycle = "2.9.6"
-composeHotReload = "1.0.0"
-composeMultiplatform = "1.10.2"
+androidx-activity = "1.13.0"
+androidx-lifecycle = "2.10.0"
+composeHotReload = "1.1.1"
+composeMultiplatform = "1.10.3"
 kotlin = "2.3.10"
-kotlinx-coroutines = "1.10.2"
+kotlinx-coroutines = "1.11.0"
 # navigation
 navigationCompose = "2.9.2"
 # theme prefs
 materialThemePrefs = "1.0.0"
 # json serialize
-kotlin-serialize = "1.10.0"
+kotlin-serialize = "1.11.0"
 # room
 room = "2.8.4"
 ksp = "2.3.6"
 sqliteBundled = "2.6.2"
 # koin
-koin-core = "4.1.1"
+koin-core = "4.2.1"
 androidx-startup = "1.2.0"
 # unit-testing kotest
-kotest-version = "6.1.4"
-kover = "0.9.7"
-filekit = "0.13.0"
+kotest-version = "6.1.11"
+kover = "0.9.8"
+filekit = "0.14.1"
 navigationEvent = "1.0.1"
 stability = "0.6.6"
-mockkery = "3.2.0"
+mockkery = "3.3.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

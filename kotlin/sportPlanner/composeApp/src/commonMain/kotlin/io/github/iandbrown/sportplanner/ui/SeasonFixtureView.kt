@@ -54,7 +54,6 @@ import io.github.iandbrown.sportplanner.logic.SeasonWeeksImpl.Companion.createSe
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
-import kotlin.time.measureTime
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
@@ -62,6 +61,7 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.time.measureTime
 
 internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 internal typealias TeamCountMap = Map<TeamCountKey, Short>
@@ -155,6 +155,7 @@ private fun FixtureView() {
 
 private enum class SumType {HOME_TEAM, AWAY_TEAM}
 
+@Suppress("NewApi")
 @TraceRecomposition
 @Composable
 private fun SummaryFixtureView(season: Season) {
@@ -243,7 +244,7 @@ private fun FixtureTableView(season: Season) {
             BottomBarWithButton("Export") {
                 coroutineScope.launch {
                     val teamCounts = seasonLeagueTeamState.associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
-                    val file = FileKit.openFileSaver(suggestedName = "seasonFixtures", extension = "csv")
+                    val file = FileKit.openFileSaver(suggestedName = "seasonFixtures", defaultExtension = "csv")
                     val sink = file?.sink(append = false)?.buffered()
 
                     sink.use { bufferedSink ->

@@ -303,7 +303,7 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
                 ButtonSettings("Export", edits.isEmpty()) {
                     coroutineScope.launch {
                         val file =
-                            FileKit.openFileSaver(suggestedName = "cupFixtures", extension = "csv")
+                            FileKit.openFileSaver(suggestedName = "cupFixtures", defaultExtension = "csv")
                         val sink = file?.sink(append = false)?.buffered()
 
                         sink.use { bufferedSink ->
