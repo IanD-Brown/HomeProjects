@@ -13,7 +13,7 @@ abstract class AbstractPDFConverter {
     }
 
     fun getDateRange(): Pair<Int, Int> {
-        val dateRangePattern = "(1st|2nd|3rd|\\d{1,2}th)( [a-zA-Z]{3} )(\\d{4})( to )(1st|2nd|3rd|\\d{1,2}th)( [a-zA-Z]{3} )(\\d{4})".toRegex()
+        val dateRangePattern = "(1st|2nd|3rd|\\d{1,2}th|31st)( [a-zA-Z]{3} )(\\d{4})( to )(1st|2nd|3rd|\\d{1,2}th|31st)( [a-zA-Z]{3} )(\\d{4})".toRegex()
         val dateResult = getItems().values.firstNotNullOf { dateRangePattern.matchEntire(it) }
         return Pair(dateResult.groupValues[3].toInt(), dateResult.groupValues[7].toInt())
     }
