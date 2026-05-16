@@ -485,7 +485,7 @@ private suspend fun performDataFrame(dataFrame: AnyFrame,
     dataFrame.rows()
         .map {
             val description = description(it[1])
-            val category = ruleCategoryMap.entries.firstOrNull { entry -> entry.key.containsMatchIn(description) }?.value
+            val category = getCategory(ruleCategoryMap, description)
             Transaction(
                 account = definition.accountId,
                 date = (it[0] as DayDate).value(),
@@ -501,6 +501,11 @@ private suspend fun performDataFrame(dataFrame: AnyFrame,
         }
     val logger = LoggerFactory.get(transactionDao::class.simpleName!!)
     logger.info { "${definition.sheetName} imported $imported" }
+}
+
+internal fun getCategory(ruleCategoryMap: Map<Regex, Int>, description: String): Int? {
+    val matchingEntry = ruleCategoryMap.filter { entry -> entry.key.matches(description) }.map { it.value }
+    return if (matchingEntry.isNotEmpty()) matchingEntry[0] else null
 }
 
 internal fun asDouble(value: Any?) = value as? Double ?: 0.0

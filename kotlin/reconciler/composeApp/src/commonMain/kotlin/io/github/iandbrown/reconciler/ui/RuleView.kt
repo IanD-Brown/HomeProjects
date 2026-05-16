@@ -36,7 +36,7 @@ internal const val ACCOUNT_GROUP = "AccountGroup"
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun NavigateRule(viewModel: RuleViewModel = koinInject(),
+fun RuleListView(viewModel: RuleViewModel = koinInject(),
                  transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                  accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState()
@@ -49,6 +49,18 @@ fun NavigateRule(viewModel: RuleViewModel = koinInject(),
         "Rules",
         bottomBar = {
             BottomBarWithButtons(
+                genericButtonSettings("Reapply", viewModel) {
+                    val transactionDao = inject<TransactionDao>().value
+                    val transactions = transactionDao.getByAccountGroup(accountGroup)
+                    val ruleCategoryMap = state.value.values().associateBy({ it.match.toRegex() }, { it.category })
+                    transactions.forEach {
+                        val category = getCategory(ruleCategoryMap, it.description)
+
+                        if (category != it.category) {
+                            transactionDao.setCategory(it.id, category)
+                        }
+                    }
+                },
                 importCsvButtonSettings(viewModel) { toRule(it) },
                 exportButtonSettings(coroutineScope,"rules") { output ->
                     val value = categoryState.value.values()

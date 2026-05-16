@@ -61,4 +61,7 @@ interface TransactionDao : BaseReadDao<Transaction>, BaseWriteDao<Transaction> {
 
     @Query("SELECT EXISTS (SELECT 1 FROM $table WHERE account = :account AND description = :description AND date = :date AND amount = :amount)")
     suspend fun exists(account: Int, description: String, date:Int, amount: Double): Boolean
+
+    @Query("SELECT * FROM $table WHERE account IN (SELECT id from Accounts WHERE accountGroup = :accountGroup)")
+    suspend fun getByAccountGroup(accountGroup: Int) : List<Transaction>
 }

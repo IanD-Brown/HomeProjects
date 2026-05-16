@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastCoerceAtMost
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.TransactionListView
 import io.github.iandbrown.reconciler.database.TransactionListViewDao
@@ -56,13 +57,14 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
     val accounts = accountViewModel.uiState.collectAsState()
     val accountGroupState = accountGroupViewModel.uiState.collectAsState()
     var accountGroup by remember { mutableIntStateOf(-1) }
+    var matchDistance by remember { mutableIntStateOf(0)}
 
     ViewCommon(
         "Transactions",
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope,"transactions") { output ->
-                    toDataFrame(filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup))
+                    toDataFrame(filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup, matchDistance))
                         .writeCsv(output)
                 }
             )
@@ -96,7 +98,14 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                         }
                     }
                 }
-                item(span = { GridItemSpan(2) }) {}
+                item {}
+                item { ViewTextField(matchDistance.toString()) {
+                    val i = it.toIntOrNull()
+                    if (i != null) {
+                        matchDistance = i
+                    }
+                } }
+
                 item {
                     val value = transactionCategories.value.values()
                     DropdownList(MutableStateFlow(listOf("") + value.map { it.name }), 0) {
@@ -110,7 +119,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                 item(span = { GridItemSpan(2) }) {}
                 viewTextItems("Description", "Amount")
                 item(span = { GridItemSpan(2) }) {}
-                for (transaction in filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup)) {
+                for (transaction in filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup, matchDistance)) {
                     viewTextItems(
                         DayDate(transaction.date).toString(),
                         transaction.accountName,
@@ -131,12 +140,45 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
     }
 }
 
-private fun filterTransaction(state: List<TransactionListView>, minDate: Int, filterAccount: Int, filterCategory: Int, accountGroup: Int): List<TransactionListView> =
-    state
+private fun filterTransaction(state: List<TransactionListView>,
+                              minDate: Int,
+                              filterAccount: Int,
+                              filterCategory: Int,
+                              accountGroup: Int,
+                              matchDistamnce: Int = 0): List<TransactionListView> {
+    val filtered = state
+        .asSequence()
         .filter { it.accountGroup == accountGroup }
         .filter { it.date >= minDate }
         .filter { filterAccount == 0 || it.account == filterAccount }
         .filter { filterCategory == -1 || it.category == filterCategory }
+        .toMutableList()
+
+    if (matchDistamnce > 0) {
+        val removed = mutableSetOf<TransactionListView>()
+        for (i in 0..filtered.lastIndex) {
+            if (removed.contains(filtered[i])) {
+                continue
+            }
+            for (j in (i+1)..(filtered.lastIndex.fastCoerceAtMost(i + matchDistamnce))) {
+                if (removed.contains(filtered[j])) {
+                    continue
+                }
+                val added = filtered[i].amount + filtered[j].amount
+                if (added >= -0.1 && added <= 0.1) {
+                    removed.add(filtered[i])
+                    removed.add(filtered[j])
+                    break
+                }
+            }
+        }
+        filtered.removeAll(removed)
+        println("Removed ${removed.size}")
+        removed.forEach { println("${it.account}, ${DayDate(it.date)}, ${it.description}, ${it.amount}") }
+    }
+
+    return filtered
+}
 
 @Suppress("ParamsComparedByRef")
 @Composable

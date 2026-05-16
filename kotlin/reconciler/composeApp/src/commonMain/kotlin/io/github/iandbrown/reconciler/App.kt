@@ -21,7 +21,7 @@ import io.github.iandbrown.reconciler.ui.EditTransactionCategory
 import io.github.iandbrown.reconciler.ui.Editors
 import io.github.iandbrown.reconciler.ui.HomeScreen
 import io.github.iandbrown.reconciler.ui.ImportDefinitionList
-import io.github.iandbrown.reconciler.ui.NavigateRule
+import io.github.iandbrown.reconciler.ui.RuleListView
 import io.github.iandbrown.reconciler.ui.TransactionCategoryListView
 import io.github.iandbrown.reconciler.ui.ViewAllTransaction
 import io.github.iandbrown.reconciler.ui.ViewSpendingSummary
@@ -46,7 +46,7 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
             }
 
             composable(getRoute(Editors.RULES)) {
-                NavigateRule()
+                RuleListView()
             }
 
             composable(getRoute(Editors.ALL_TRANSACTIONS)) {

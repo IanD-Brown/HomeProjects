@@ -89,6 +89,7 @@ import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readCsv
 import java.io.InputStream
 import java.util.Locale
+import kotlin.Any
 
 internal val fontSize = 16.sp
 internal const val OK = "OK"
@@ -477,6 +478,14 @@ internal suspend fun <DAO, ENTITY> importCsvFile(dao: DAO, rowHandler: (DataRow<
             dao.deleteAll()
             dataFrame
         }, { dao.insert(rowHandler(it)) })
+
+internal fun<DAO, ENTITY, VIEW_MODEL> genericButtonSettings(name: String,
+                                                            viewModel: VIEW_MODEL,
+                                                            function: suspend (VIEW_MODEL) -> Unit) : ButtonSettings
+        where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
+    ButtonSettings(name) { viewModel.coroutineScope.launch {
+        tryTransaction({viewModel.handleException(it)}, { function(viewModel)}) }
+    }
 
 internal fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
         where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
