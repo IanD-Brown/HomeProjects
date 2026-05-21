@@ -145,7 +145,7 @@ private fun filterTransaction(state: List<TransactionListView>,
                               filterAccount: Int,
                               filterCategory: Int,
                               accountGroup: Int,
-                              matchDistamnce: Int = 0): List<TransactionListView> {
+                              matchDistance: Int = 0): List<TransactionListView> {
     val filtered = state
         .asSequence()
         .filter { it.accountGroup == accountGroup }
@@ -154,13 +154,13 @@ private fun filterTransaction(state: List<TransactionListView>,
         .filter { filterCategory == -1 || it.category == filterCategory }
         .toMutableList()
 
-    if (matchDistamnce > 0) {
+    if (matchDistance > 0) {
         val removed = mutableSetOf<TransactionListView>()
         for (i in 0..filtered.lastIndex) {
             if (removed.contains(filtered[i])) {
                 continue
             }
-            for (j in (i+1)..(filtered.lastIndex.fastCoerceAtMost(i + matchDistamnce))) {
+            for (j in (i+1)..(filtered.lastIndex.fastCoerceAtMost(i + matchDistance))) {
                 if (removed.contains(filtered[j])) {
                     continue
                 }
