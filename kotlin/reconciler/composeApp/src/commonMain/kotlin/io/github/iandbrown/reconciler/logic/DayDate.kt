@@ -9,6 +9,8 @@ import java.util.Locale
 
 private const val YEAR_FACTOR = 500
 
+internal const val TO_STRING_PATTERN = "dd/MM/yy"
+
 class DayDate {
     private val value: Int
 
@@ -16,8 +18,8 @@ class DayDate {
         this.value = dayDate
     }
 
-    constructor(dateString : String) {
-        val date = LocalDate.parse(dateString, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+    constructor(dateString : String, datePattern: String = "dd/MM/yyyy") {
+        val date = LocalDate.parse(dateString, DateTimeFormatter.ofPattern(datePattern))
         value = YEAR_FACTOR * date.year + date.dayOfYear
     }
 
@@ -36,7 +38,7 @@ class DayDate {
             return ""
         }
 
-        return getLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yy"))
+        return getLocalDate().format(DateTimeFormatter.ofPattern(TO_STRING_PATTERN))
     }
 
     fun value() : Int = value

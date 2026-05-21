@@ -27,6 +27,8 @@ import io.github.iandbrown.reconciler.database.ImportDefinitionDao
 import io.github.iandbrown.reconciler.database.ImportDefinitionListViewDao
 import io.github.iandbrown.reconciler.database.RuleDao
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
+import io.github.iandbrown.reconciler.database.TransactionDao
+import io.github.iandbrown.reconciler.database.TransactionListViewDao
 import io.github.iandbrown.reconciler.di.inject
 import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -108,18 +110,21 @@ private const val TRANSACTION_CATEGORY = "Transaction Category"
 private const val RULE = "Rule"
 private const val IMPORT_DEFINITION = "ImportDefinition"
 private const val ENTITY = "entity"
+private const val TRANSACTION = "Transaction"
 
 internal suspend fun export(accountGroupId: Int = -1,
-    accountDao: AccountDao = inject<AccountDao>().value,
-    transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
-    ruleDao: RuleDao = inject<RuleDao>().value,
-    importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value,
-    accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value) {
+                            accountDao: AccountDao = inject<AccountDao>().value,
+                            transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
+                            ruleDao: RuleDao = inject<RuleDao>().value,
+                            importDefinitionDao: ImportDefinitionListViewDao = inject<ImportDefinitionListViewDao>().value,
+                            accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value,
+                            transactionListViewDao: TransactionListViewDao = inject<TransactionListViewDao>().value) {
     val accounts = accountDao.getAccounts().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
     val transactionCategories = transactionCategoryDao.getCategories().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
     val rules = ruleDao.getRules().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
     val importDefinitions = importDefinitionDao.getAll().filter { accountGroupId == -1 || accounts.any {account -> account.id == it.accountId } }
     val accountGroups = accountGroupDao.getAll().filter { accountGroupId == -1 || it.id == accountGroupId }
+    val transactions = transactionListViewDao.getAll().filter { accountGroupId == -1 || it.accountGroup == accountGroupId }
 
     exportToFile("configuration", extension = "json") { output ->
         val categoryNameLookup = transactionCategories.associateBy({ it.id }, { it.name })
@@ -140,6 +145,9 @@ internal suspend fun export(accountGroupId: Int = -1,
             "importDefinitions" from {
                 toDataFrame(importDefinitions).insert(ENTITY) { IMPORT_DEFINITION }.at(0)
             }
+            "transactions" from {
+                toDataFrame(transactions).insert(ENTITY) { TRANSACTION }.at(0)
+            }
         }.writeJson(output, true)
     }
 }
@@ -149,7 +157,8 @@ private suspend fun import(
     transactionCategoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value,
     ruleDao: RuleDao = inject<RuleDao>().value,
     importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value,
-    accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value
+    accountGroupDao: AccountGroupDao = inject<AccountGroupDao>().value,
+    transactionDao: TransactionDao = inject<TransactionDao>().value
 ) {
     importFromFile(
         "json",
@@ -171,6 +180,7 @@ private suspend fun import(
                             TRANSACTION_CATEGORY -> transactionCategoryDao.insert(toTransactionCategory(it))
                             RULE -> ruleDao.insert(toRule(it))
                             IMPORT_DEFINITION -> importRow(it)
+                            TRANSACTION -> transactionDao.insert(toTransaction(it))
                         }
                     }
                 }

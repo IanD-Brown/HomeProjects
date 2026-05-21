@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
+import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
 import io.github.iandbrown.reconciler.database.TransactionDao
@@ -34,8 +35,10 @@ import io.github.iandbrown.reconciler.database.TransactionListView
 import io.github.iandbrown.reconciler.database.TransactionListViewDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
+import io.github.iandbrown.reconciler.logic.TO_STRING_PATTERN
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
@@ -408,7 +411,7 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinI
 
 private fun escapeString(string: String) = string.replace("*", "\\*")
 
-private fun toDataFrame(transactions: List<TransactionListView>): DataFrame<TransactionListView> =
+internal fun toDataFrame(transactions: List<TransactionListView>): DataFrame<TransactionListView> =
     transactions.toDataFrame {
         "Date" from { DayDate(it.date).toString() }
         "Account" from { it.accountName }
@@ -416,3 +419,12 @@ private fun toDataFrame(transactions: List<TransactionListView>): DataFrame<Tran
         "Category" from { it.categoryName }
         "Amount" from { it.amount }
     }
+
+
+internal suspend fun toTransaction(row: DataRow<Any?>, accountDao: AccountDao = inject<AccountDao>().value): Transaction =
+    Transaction(
+        account = accountDao.getByName(row["Account"] as String)!!,
+        date = DayDate(row["Date"] as String, TO_STRING_PATTERN).value(),
+        description = row["Description"] as String,
+        amount = (row["Amount"] as Float).toDouble()
+    )

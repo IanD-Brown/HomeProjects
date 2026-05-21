@@ -139,6 +139,13 @@ internal fun io.github.iandbrown.reconciler.ui.EditRule(rule: io.github.iandbrow
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
+internal fun io.github.iandbrown.reconciler.ui.EditTransaction(item: io.github.iandbrown.reconciler.database.TransactionListView): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - item: STABLE (class with no mutable properties)
+
+@Composable
 internal fun io.github.iandbrown.reconciler.ui.EditTransactionCategory(transactionCategory: io.github.iandbrown.reconciler.database.TransactionCategory, viewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
