@@ -399,7 +399,7 @@ private suspend fun readPdf(importFile: PlatformFile, importDefinition: ImportDe
             }
             transactionDate = date.toEpochDay()
             val amount = (amountIn ?: 0.0) - (amountOut ?: 0.0)
-            df = df.concat(dataFrameOf("A", "B", "C")(DayDate(date), getByRange(descriptionIndex, row).trim(), amount))
+            df = df.concat(dataFrameOf("A", "B", "C")(DayDate.of(date), getByRange(descriptionIndex, row).trim(), amount))
         } else {
             logger.debug {"$dateColumn ${getByRange(descriptionIndex, row)} $amountIn $amountOut"}
             for (cell in row) {
@@ -451,7 +451,7 @@ private suspend fun readHtml(spreadSheetFile: PlatformFile, definition: ImportDe
     return rows(table!!)
         .filter {datePattern.matches(it[dateIndex]) && htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex]) != 0.0}
         .fold(DataFrame.emptyOf<Any?>()) {acc, it -> acc.concat(dataFrameOf("A", "B", "C")(
-            DayDate(LocalDate.parse(it[dateIndex], dateFormatPattern)),
+            DayDate.of(LocalDate.parse(it[dateIndex], dateFormatPattern)),
             description(it[descriptionIndex]).trim(),
             htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex])))}
 }
@@ -470,7 +470,7 @@ private suspend fun readExcel(spreadSheetFile: PlatformFile, definition: ImportD
         .filter { asDouble(it[2]) - asDouble(it[3]) != 0.0 }
         .forEach {
             result = result.concat(dataFrameOf("A", "B", "C")(
-                DayDate(it[0] as LocalDateTime),
+                DayDate.of(it[0] as LocalDateTime),
                 description(it[1]).trim(),
                 asDouble(it[2]) - asDouble(it[3])))
         }

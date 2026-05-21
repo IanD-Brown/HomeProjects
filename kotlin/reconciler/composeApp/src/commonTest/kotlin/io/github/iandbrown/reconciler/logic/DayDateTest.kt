@@ -16,7 +16,7 @@ class DayDateTest : ShouldSpec({
             for (day in 1..daysInYear) {
                 val dateString = LocalDate.ofYearDay(year, day)
                     .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                val date = DayDate(dateString)
+                val date = DayDate.of(dateString)
 
                 date.toString() shouldBe LocalDate.ofYearDay(year, day)
                     .format(DateTimeFormatter.ofPattern("dd/MM/yy"))
@@ -31,7 +31,7 @@ class DayDateTest : ShouldSpec({
             for (day in 1..daysInYear) {
                 val dateString = LocalDate.ofYearDay(year, day)
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                val date = DayDate(LocalDateTime(kotlinx.datetime.LocalDate.parse(dateString),
+                val date = DayDate.of(LocalDateTime(kotlinx.datetime.LocalDate.parse(dateString),
                     LocalTime(1, 1, 1, 1)))
 
                 date.toString() shouldBe LocalDate.ofYearDay(year, day)
@@ -46,7 +46,7 @@ class DayDateTest : ShouldSpec({
             val daysInYear = if (IsoChronology.INSTANCE.isLeapYear(year.toLong())) 366 else 365
             for (day in 1..daysInYear) {
                 val localDate = LocalDate.ofYearDay(year, day)
-                val date = DayDate(localDate.toEpochDay() * 24 * 60 * 60 * 1000)
+                val date = DayDate.of(localDate.toEpochDay() * 24 * 60 * 60 * 1000)
 
                 date.toString() shouldBe LocalDate.ofYearDay(year, day)
                     .format(DateTimeFormatter.ofPattern("dd/MM/yy"))
@@ -57,31 +57,31 @@ class DayDateTest : ShouldSpec({
 
     context("asUtcMs") {
         should("return correct ms for a given date") {
-            val date = DayDate("01/01/1970")
+            val date = DayDate.of("01/01/1970")
             date.asUtcMs() shouldBe 0L
         }
 
         should("return the current day start ms when constructed with 0") {
-            DayDate(0).asUtcMs() shouldNotBe 0
+            DayDate.of(0).asUtcMs() shouldNotBe 0
         }
     }
 
     context("toString") {
         should("return empty string when constructed with 0") {
-            DayDate(0).toString() shouldBe ""
+            DayDate.of(0).toString() shouldBe ""
         }
     }
 
     context("startOfMonth") {
         should("return the first day of the month") {
-            val date = DayDate("21/01/2023")
+            val date = DayDate.of("21/01/2023")
             date.startOfMonth().toString() shouldBe "01/01/23"
         }
     }
 
     context("nextMonth") {
         should("return the first day of the next month") {
-            val date = DayDate("21/01/2023")
+            val date = DayDate.of("21/01/2023")
             date.nextMonth().toString() shouldBe "01/02/23"
         }
     }

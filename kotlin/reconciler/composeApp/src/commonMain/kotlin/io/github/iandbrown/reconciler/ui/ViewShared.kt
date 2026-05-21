@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -107,6 +108,7 @@ internal fun ViewCommon(
     confirm: () -> Boolean = { false },
     confirmAction: () -> Unit = {},
     states: List<ViewModelState<*>>,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val errors = states.filterIsInstance<ViewModelState.Error>()
@@ -128,7 +130,7 @@ internal fun ViewCommon(
     } else {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+            topBar = { CreateTopBar(title, description, confirm, confirmAction, actions) },
             bottomBar = bottomBar,
             content = content
         )
@@ -141,7 +143,8 @@ private fun CreateTopBar(
     title: String,
     description: String,
     confirm: () -> Boolean,
-    confirmAction: () -> Unit
+    confirmAction: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     var isDialogOpen by remember { mutableStateOf(false) }
     val navState = rememberNavigationEventState(NavigationEventInfo.None)
@@ -151,17 +154,19 @@ private fun CreateTopBar(
         onBackCompleted = {}
     )
 
-    TopAppBar(title = { Text(title) }, navigationIcon = {
-        IconButton(onClick = {
-            if (confirm()) {
-                isDialogOpen = true
-            } else {
-                appNavController.navigateUp()
+    TopAppBar(title = { Text(title) },
+        navigationIcon = {
+            IconButton(onClick = {
+                if (confirm()) {
+                    isDialogOpen = true
+                } else {
+                    appNavController.navigateUp()
+                }
+            }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
             }
-        }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
-        }
-    })
+        },
+        actions = actions)
     if (isDialogOpen) {
         AlertDialog(
             onDismissRequest = {},
@@ -317,7 +322,7 @@ internal fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (L
     var showDatePicker by remember { mutableStateOf(false) }
 
     ViewTextField(
-        value = DayDate(current).toString(),
+        value = DayDate.of(current).toString(),
         modifier = modifier,
         trailingIcon = {
             IconButton(onClick = { showDatePicker = !showDatePicker }) {
@@ -331,7 +336,7 @@ internal fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (L
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = DayDate(current).asUtcMs(),
+            initialSelectedDateMillis = DayDate.of(current).asUtcMs(),
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean = isSelectable(utcTimeMillis)
             })
@@ -343,7 +348,7 @@ internal fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (L
                 TextButton(
                     enabled = (datePickerState.selectedDateMillis ?: 0) > 0L,
                     onClick = {
-                        onItemClick(DayDate(datePickerState.selectedDateMillis!!).value())
+                        onItemClick(DayDate.of(datePickerState.selectedDateMillis!!).value())
                         onDismissRequest()
                     }) { ViewText("OK") }
             },

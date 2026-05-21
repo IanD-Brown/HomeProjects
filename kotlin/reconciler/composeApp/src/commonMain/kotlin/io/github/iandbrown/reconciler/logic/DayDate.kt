@@ -1,36 +1,43 @@
 package io.github.iandbrown.reconciler.logic
 
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import kotlin.time.Clock
 
 private const val YEAR_FACTOR = 500
 
 internal const val TO_STRING_PATTERN = "dd/MM/yy"
 
-class DayDate {
-    private val value: Int
+class DayDate private constructor(private val value: Int) {
 
-    constructor(dayDate: Int) {
-        this.value = dayDate
-    }
+    companion object {
+        fun of(dayDate: Int) = DayDate(dayDate)
 
-    constructor(dateString : String, datePattern: String = "dd/MM/yyyy") {
-        val date = LocalDate.parse(dateString, DateTimeFormatter.ofPattern(datePattern))
-        value = YEAR_FACTOR * date.year + date.dayOfYear
-    }
+        fun of(dateString : String, datePattern: String = "dd/MM/yyyy"): DayDate {
+            val date = LocalDate.parse(dateString, DateTimeFormatter.ofPattern(datePattern))
+            return DayDate(YEAR_FACTOR * date.year + date.dayOfYear)
+        }
 
-    constructor(msTime: Long) : this(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(msTime)))
+        fun of(msTime: Long): DayDate = of(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(msTime)))
 
-    constructor(localDateTime: kotlinx.datetime.LocalDateTime) {
-        value = YEAR_FACTOR * localDateTime.year + localDateTime.dayOfYear
-    }
+        fun of(localDateTime: kotlinx.datetime.LocalDateTime): DayDate {
+            return DayDate(YEAR_FACTOR * localDateTime.year + localDateTime.dayOfYear)
+        }
 
-    constructor(localDate : LocalDate) {
-        value = YEAR_FACTOR * localDate.year + localDate.dayOfYear
+        fun of(localDate : LocalDate): DayDate {
+            return DayDate(YEAR_FACTOR * localDate.year + localDate.dayOfYear)
+        }
+
+        fun ofCurrentYearStart(): DayDate {
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            return DayDate(YEAR_FACTOR * today.year + 1)
+        }
     }
 
     override fun toString() : String {
@@ -53,12 +60,12 @@ class DayDate {
 
     fun startOfMonth() : DayDate {
         val date = getLocalDate()
-        return DayDate(date.withDayOfMonth(1))
+        return of(date.withDayOfMonth(1))
     }
 
     fun nextMonth() : DayDate {
         val date = getLocalDate()
-        return DayDate(date.plusMonths(1)).startOfMonth()
+        return of(date.plusMonths(1)).startOfMonth()
     }
 
     private fun getLocalDate(): LocalDate = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
