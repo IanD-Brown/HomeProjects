@@ -10,6 +10,7 @@ private const val viewName = "TransactionListView"
 
 @DatabaseView(viewName = viewName,
     value = "SELECT " +
+            "t.id, " +
             "t.account, " +
             "t.date, " +
             "t.description, " +
@@ -27,6 +28,7 @@ private const val viewName = "TransactionListView"
 
 @Serializable
 data class TransactionListView(
+    val id: Long,
     val account: Int,
     val date: Int,
     val description: String,

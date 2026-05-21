@@ -10,6 +10,7 @@ import io.github.iandbrown.reconciler.ui.ImportDefinitionViewModel
 import io.github.iandbrown.reconciler.ui.RuleViewModel
 import io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel
 import io.github.iandbrown.reconciler.ui.TransactionListViewModel
+import io.github.iandbrown.reconciler.ui.TransactionViewModel
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModelOf
@@ -28,6 +29,7 @@ private val injectableModules = module {
     viewModelOf(::RuleViewModel)
     viewModelOf(::TransactionCategoryViewModel)
     viewModelOf(::TransactionListViewModel)
+    viewModelOf(::TransactionViewModel)
 
     // Provide DAOs
     single { get<AppDatabase>().getAccountDao() }

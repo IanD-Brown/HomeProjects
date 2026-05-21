@@ -17,7 +17,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -26,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import io.github.iandbrown.reconciler.database.Rule
+import io.github.iandbrown.reconciler.database.Transaction
+import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.database.TransactionListView
 import io.github.iandbrown.reconciler.database.TransactionListViewDao
 import io.github.iandbrown.reconciler.di.inject
@@ -35,12 +39,16 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
+import java.util.Locale
 
 private const val BASE_DATE = "01/01/2026"
 private var baseDate = DayDate(BASE_DATE).value()
 
 class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionListViewDao>().value) :
     BaseReadViewModel<TransactionListViewDao, TransactionListView>(dao)
+
+class TransactionViewModel(dao: TransactionDao = inject<TransactionDao>().value) :
+    BaseConfigCRUDViewModel<TransactionDao, Transaction>(dao)
 
 @Suppress("ParamsComparedByRef")
 @Composable
@@ -84,7 +92,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                 Spacer(modifier = Modifier.size(16.dp))
                 ViewText("Filters")
             }
-            LazyVerticalGrid(columns = WeightedIconGridCells(1, 1, 1, 6, 1, 1)) {
+            LazyVerticalGrid(columns = WeightedIconGridCells(2, 1, 1, 6, 1, 1)) {
                 item {DatePickerView(minDate, Modifier.padding(0.dp), { true }) {
                     minDate = it
                     baseDate = it
@@ -118,7 +126,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                 item {}
                 item(span = { GridItemSpan(2) }) {}
                 viewTextItems("Description", "Amount")
-                item(span = { GridItemSpan(2) }) {}
+                item(span = { GridItemSpan(3) }) {}
                 for (transaction in filterTransaction(state.value.values(), minDate, filterAccount, filterCategory, accountGroup, matchDistance)) {
                     viewTextItems(
                         DayDate(transaction.date).toString(),
@@ -127,6 +135,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                         transaction.amount.toString(),
                         transaction.categoryName
                     )
+                    item { EditButton { navController -> navController.navigate(transaction) } }
                     item { Icon(
                             Icons.Default.Add,
                             "add rule",
@@ -178,6 +187,86 @@ private fun filterTransaction(state: List<TransactionListView>,
     }
 
     return filtered
+}
+
+@Composable
+internal fun EditTransaction(item: TransactionListView) {
+    var description by remember { mutableStateOf(item.description) }
+    var amount by remember { mutableDoubleStateOf(item.amount) }
+    var editorState by remember { mutableStateOf(EditorState.CLEAN) }
+    var split by remember { mutableStateOf<Transaction?>(null)}
+
+    fun setEditorState() {
+        editorState = if (description == item.description && amount == item.amount && split == null) {
+            EditorState.CLEAN
+        } else if (description.isEmpty() || (split != null && split!!.description.isEmpty()) || (split != null && amount + split!!.amount != item.amount)) {
+            println(split)
+            EditorState.DIRTY
+        } else {
+            EditorState.VALID
+        }
+    }
+
+    ViewCommon(
+        "Edit transaction",
+        description = "Return to Transactions",
+        bottomBar = {
+            BottomBarWithButtons(
+                ButtonSettings("Split", split == null) {
+                    split = Transaction(account = item.account, date = item.date, description = description, amount = 0.0)
+                    setEditorState()
+                },
+                ButtonSettings(enabled = editorState == EditorState.VALID) {
+                    save(Transaction(item.id, item.account, item.date, description, amount, item.category))
+                    it.popBackStack()
+                }
+            )
+        },
+        confirm = { editorState == EditorState.VALID },
+        confirmAction = {save(Transaction(item.id, item.account, item.date, description, amount, item.category))},
+        states = listOf()) { paddingValues ->
+        LazyVerticalGrid(columns = GridCells.Fixed(5), Modifier.padding(paddingValues)) {
+            viewTextItems("Date", "Account", "Description", "Amount", "Category")
+            item { ViewText(DayDate(item.date).toString())}
+            item { ViewText(item.accountName)}
+            item { ViewTextField(description) {
+                description = it.trim()
+                setEditorState()
+            }}
+            item { ViewTextField(String.format(Locale.UK, "%.2f", amount), onValueChange = { newValue ->
+                // Filter to allow only digits and one decimal point
+                val filtered = newValue.filter { it.isDigit() || it == '.' }
+                // Ensure only one decimal point exists
+                if (filtered.count { it == '.' } <= 1) {
+                    amount = newValue.toDouble()
+                    setEditorState()
+                }
+            })}
+            item { ViewText(item.categoryName) }
+            if (split != null) {
+                item { ViewText(DayDate(item.date).toString())}
+                item { ViewText(item.accountName)}
+                item { ViewTextField(split!!.description) {
+                    split = Transaction(account = item.account, date = item.date, description = it.trim(), amount = split!!.amount)
+                    setEditorState()
+                }}
+                item { ViewTextField(String.format(Locale.UK, "%.2f", split!!.amount), onValueChange = { newValue ->
+                    // Filter to allow only digits and one decimal point
+                    val filtered = newValue.filter { it.isDigit() || it == '.' }
+                    // Ensure only one decimal point exists
+                    if (filtered.count { it == '.' } <= 1) {
+                        split = Transaction(account = item.account, date = item.date, description = split!!.description, amount = newValue.toDouble())
+                        setEditorState()
+                    }
+                })}
+                item {  }
+            }
+        }
+    }
+}
+
+private fun save(transaction: Transaction, viewModel : TransactionViewModel = inject<TransactionViewModel>().value) {
+    viewModel.update(transaction)
 }
 
 @Suppress("ParamsComparedByRef")

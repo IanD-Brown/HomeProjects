@@ -4,7 +4,7 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-private const val version = 5
+private const val version = 6
 private const val majorVersion = 1
 
 @Database(
@@ -23,7 +23,8 @@ private const val majorVersion = 1
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
-        AutoMigration(from = 4, to = 5)
+        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6)
     ]
 )
 abstract class AppDatabase : RoomDatabase() {

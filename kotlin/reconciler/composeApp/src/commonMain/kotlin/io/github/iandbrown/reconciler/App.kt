@@ -11,12 +11,14 @@ import io.github.iandbrown.reconciler.database.AccountGroup
 import io.github.iandbrown.reconciler.database.ImportDefinitionListView
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.TransactionCategory
+import io.github.iandbrown.reconciler.database.TransactionListView
 import io.github.iandbrown.reconciler.ui.AccountGroupListView
 import io.github.iandbrown.reconciler.ui.AccountListView
 import io.github.iandbrown.reconciler.ui.EditAccount
 import io.github.iandbrown.reconciler.ui.EditAccountGroup
 import io.github.iandbrown.reconciler.ui.EditImportDefinition
 import io.github.iandbrown.reconciler.ui.EditRule
+import io.github.iandbrown.reconciler.ui.EditTransaction
 import io.github.iandbrown.reconciler.ui.EditTransactionCategory
 import io.github.iandbrown.reconciler.ui.Editors
 import io.github.iandbrown.reconciler.ui.HomeScreen
@@ -95,6 +97,10 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
 
             composable<AccountGroup> {
                 EditAccountGroup(it.toRoute())
+            }
+
+            composable<TransactionListView> {
+                EditTransaction(it.toRoute())
             }
         }
     }
