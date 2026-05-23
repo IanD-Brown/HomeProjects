@@ -40,6 +40,7 @@ import androidx.compose.ui.window.Dialog
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
+import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.database.TransactionListView
 import io.github.iandbrown.reconciler.database.TransactionListViewDao
@@ -513,10 +514,13 @@ internal fun toDataFrame(transactions: List<TransactionListView>): DataFrame<Tra
     }
 
 
-internal suspend fun toTransaction(row: DataRow<Any?>, accountDao: AccountDao = inject<AccountDao>().value): Transaction =
+internal suspend fun toTransaction(row: DataRow<Any?>,
+                                   accountDao: AccountDao = inject<AccountDao>().value,
+                                   categoryDao: TransactionCategoryDao = inject<TransactionCategoryDao>().value): Transaction =
     Transaction(
         account = accountDao.getByName(row["Account"] as String)!!,
         date = DayDate.of(row["Date"] as String, TO_STRING_PATTERN).value(),
         description = row["Description"] as String,
-        amount = (row["Amount"] as Float).toDouble()
+        amount = (row["Amount"] as Float).toDouble(),
+        category = categoryDao.getByName(row["Category"] as String)
     )
