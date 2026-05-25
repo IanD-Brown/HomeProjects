@@ -17,8 +17,6 @@ plugins {
     alias(libs.plugins.kotest.plugin)
 
     alias(libs.plugins.stability.analyzer)
-
-    alias(libs.plugins.mockkery)
 }
 
 kotlin {

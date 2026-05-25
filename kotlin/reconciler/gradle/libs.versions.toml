@@ -27,7 +27,6 @@ kotest-version = "6.1.11"
 filekit = "0.14.1"
 navigationEvent = "1.1.0"
 stability = "0.7.5"
-mockkery = "3.3.0"
 kotlinx-dataframe = "1.0.0-Beta5"
 kmp-logger = "1.4.0"
 jsoup = "1.22.2"
@@ -88,4 +87,3 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
 stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability" }
-mockkery = { id = "dev.mokkery", version.ref = "mockkery" }
