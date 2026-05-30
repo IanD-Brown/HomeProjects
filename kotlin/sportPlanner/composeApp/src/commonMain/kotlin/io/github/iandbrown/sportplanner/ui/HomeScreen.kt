@@ -25,7 +25,8 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SEASONS("Seasons"),
     COMPETITIONS("Competitions"),
     TEAM_CATEGORIES("Team Categories"),
-    ASSOCIATIONS("Associations");
+    ASSOCIATIONS("Associations"),
+    FAR_ASSOCIATIONS("Distant Away Games");
 
     fun viewRoute() : String = "$name/View"
     fun addRoute() : String = "$name/Add"

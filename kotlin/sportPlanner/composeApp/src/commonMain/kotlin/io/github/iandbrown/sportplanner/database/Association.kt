@@ -15,7 +15,7 @@ private const val table = "Associations"
     indices = [Index(value = ["name"], unique = true)])
 data class Association(
     @PrimaryKey(autoGenerate = true)
-    val id : Short = 0,
+    val id : AssociationId = 0,
     val name: String)
 
 @Dao

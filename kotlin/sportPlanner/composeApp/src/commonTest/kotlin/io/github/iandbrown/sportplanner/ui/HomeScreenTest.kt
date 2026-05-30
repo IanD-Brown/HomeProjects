@@ -34,7 +34,8 @@ class HomeScreenTest : ShouldSpec({
                 "SEASONS",
                 "COMPETITIONS",
                 "TEAM_CATEGORIES",
-                "ASSOCIATIONS"
+                "ASSOCIATIONS",
+                "FAR_ASSOCIATIONS"
             )
         }
     }

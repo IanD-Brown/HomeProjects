@@ -11,6 +11,7 @@ import io.github.iandbrown.sportplanner.ui.Editors
 import io.github.iandbrown.sportplanner.ui.NavigateAssociation
 import io.github.iandbrown.sportplanner.ui.HomeScreen
 import io.github.iandbrown.sportplanner.ui.NavigateCompetitions
+import io.github.iandbrown.sportplanner.ui.NavigateFarAssociation
 import io.github.iandbrown.sportplanner.ui.NavigateFixtures
 import io.github.iandbrown.sportplanner.ui.NavigateSeason
 import io.github.iandbrown.sportplanner.ui.NavigateSeasonBreak
@@ -42,6 +43,10 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
 
             composable(getRoute(Editors.COMPETITIONS)) {
                 NavigateCompetitions(getArgument(it))
+            }
+
+            composable(getRoute(Editors.FAR_ASSOCIATIONS)) {
+                NavigateFarAssociation(getArgument(it))
             }
 
             composable(getRoute(Editors.SEASONS)) {

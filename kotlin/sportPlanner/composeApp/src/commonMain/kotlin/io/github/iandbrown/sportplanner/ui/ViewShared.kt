@@ -239,7 +239,7 @@ fun DropdownList(
     onItemClick: (Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedText by remember { mutableStateOf(if (itemList.isNotEmpty()) itemList[selectedIndex] else "") }
+    val selectedText = if (itemList.isNotEmpty() && selectedIndex >= 0) itemList[selectedIndex] else ""
 
     if (isLocked()) {
         ViewText(selectedText, modifier)
@@ -276,7 +276,6 @@ fun DropdownList(
                         DropdownMenuItem(
                             text = { ViewText(label) },
                             onClick = {
-                                selectedText = label
                                 onItemClick(itemList.indexOf(label))
                                 expanded = false
                             }

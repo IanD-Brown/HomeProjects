@@ -4,6 +4,8 @@ import androidx.room.RoomDatabase
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.ui.AssociationViewModel
 import io.github.iandbrown.sportplanner.ui.CompetitionViewModel
+import io.github.iandbrown.sportplanner.ui.FarAssociationListViewModel
+import io.github.iandbrown.sportplanner.ui.FarAssociationViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonBreakViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionRoundViewModel
@@ -27,6 +29,8 @@ inline fun <reified T : Any> inject() = lazy { getKoin().get<T>() }
 
 private val injectableModules = module {
     viewModelOf(::AssociationViewModel)
+    viewModelOf(::FarAssociationViewModel)
+    viewModelOf(::FarAssociationListViewModel)
     viewModelOf(::CompetitionViewModel)
     viewModel {parameters -> SeasonBreakViewModel(parameters.get()) }
     viewModel { p -> SeasonCompetitionRoundViewModel(p.get(), p.get()) }
@@ -43,6 +47,8 @@ private val injectableModules = module {
     // Provide DAOs
     single { get<AppDatabase>().getAssociationDao() }
     single { get<AppDatabase>().getCompetitionDao() }
+    single { get<AppDatabase>().getFarAssociationDao() }
+    single { get<AppDatabase>().getFarAssociationViewDao() }
     single { get<AppDatabase>().getSeasonBreakDao() }
     single { get<AppDatabase>().getSeasonCompViewDao() }
     single { get<AppDatabase>().getSeasonCompetitionDao() }
