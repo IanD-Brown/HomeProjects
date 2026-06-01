@@ -54,6 +54,7 @@ import io.github.iandbrown.sportplanner.logic.SeasonWeeksImpl.Companion.createSe
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
@@ -96,7 +97,7 @@ private fun CompetitionFilter(seasonCompViews : List<SeasonCompView>, selectedCo
     val competitionIdToName = seasonCompViews.associateBy ({ it.competitionId }, {it.competitionName})
     val competitionNames = seasonCompViews
         .filter {it.competitionType == CompetitionTypes.LEAGUE.ordinal.toShort()}
-        .map { it.competitionName }
+        .map { it.competitionName }.toImmutableList()
     val selectedIndex = competitionNames.indexOf(competitionIdToName[selectedCompetitionId])
     if (competitionNames.isNotEmpty() && selectedIndex < 0) {
         onClick(competitionNameToId[competitionNames[0]]!!)
@@ -287,11 +288,11 @@ private fun FixtureTableView(season: Season) {
                     val teamCategoryList = listOf("") + teamCategoryState.map { it.name }
                     val modifier = Modifier.align(Alignment.CenterVertically).weight(1f)
                     ViewText("Filter Association", modifier)
-                    DropdownList(associationList, 0, modifier = modifier) {
+                    DropdownList(associationList.toImmutableList(), 0, modifier = modifier) {
                         filterAssociation.value = associationList[it]
                     }
                     ViewText("Filter Team Category", modifier)
-                    DropdownList(teamCategoryList, 0, modifier = modifier) {
+                    DropdownList(teamCategoryList.toImmutableList(), 0, modifier = modifier) {
                         filterTeamCategory.value = teamCategoryList[it]
                     }
                 }

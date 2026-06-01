@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 
@@ -87,7 +88,7 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
                 item { ReadonlyViewText(value = "Match Day") }
                 item { ViewTextField(value = name, onValueChange = { name = it }) }
                 item { DropdownList(
-                    itemList = Day.entries.map { it.display },
+                    itemList = Day.entries.map { it.display }.toImmutableList(),
                     selectedIndex = matchDay,
                 ) { matchDay = it } }
             }

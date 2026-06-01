@@ -18,6 +18,7 @@ import io.github.iandbrown.sportplanner.database.FarAssociationDao
 import io.github.iandbrown.sportplanner.database.FarAssociationView
 import io.github.iandbrown.sportplanner.database.FarAssociationViewDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
@@ -98,7 +99,7 @@ private fun EditFarAssociation(farAssociation: FarAssociationView?,
                         SpacedViewText(farAssociation.homeAssociationName)
                     } else {
                         val idList = associationState.value.map {it.id}
-                        DropdownList(associationState.value.map {it.name}, idList.indexOf(homeAssociation)) {
+                        DropdownList(associationState.value.map {it.name}.toImmutableList(), idList.indexOf(homeAssociation)) {
                             homeAssociation = associationState.value[it].id
                         }
                     }
@@ -115,11 +116,9 @@ private fun EditFarAssociation(farAssociation: FarAssociationView?,
                             .filter { it.id != homeAssociation }
                             .filter { !invalidAwayAssociations.contains(it.id) }
                         val idList = possibleAwayAssociations.map { it.id }
-                        DropdownList(
-                            possibleAwayAssociations.map { it.name },
-                            idList.indexOf(awayAssociation)
-                        ) {
-                            awayAssociation = associationState.value[it].id
+                        val nameList = possibleAwayAssociations.map { it.name }
+                        DropdownList(nameList.toImmutableList(), idList.indexOf(awayAssociation)) {
+                            awayAssociation = idList[it]
                         }
                     } else {
                         ViewText("")
@@ -130,8 +129,12 @@ private fun EditFarAssociation(farAssociation: FarAssociationView?,
 }
 
 private fun save(farAssociation: FarAssociationView?, viewModel: FarAssociationViewModel, homeAssociation: AssociationId, awayAssociation: AssociationId) {
-    if (farAssociation == null)
-        viewModel.insert(FarAssociation(homeAssociation, awayAssociation))
-    else
-        viewModel.update(FarAssociation(farAssociation.homeAssociationId, awayAssociation))
+    if (farAssociation != null) {
+        if (farAssociation.awayAssociationId == awayAssociation) {
+            return
+        }
+        viewModel.delete(FarAssociation(farAssociation.homeAssociationId, farAssociation.awayAssociationId))
+        println("Update ${farAssociation.awayAssociationId} to $awayAssociation")
+    }
+    viewModel.insert(FarAssociation(homeAssociation, awayAssociation))
 }

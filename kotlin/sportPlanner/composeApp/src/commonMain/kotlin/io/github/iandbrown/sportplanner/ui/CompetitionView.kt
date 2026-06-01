@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -85,7 +86,7 @@ private fun EditCompetition(editCompetition: Competition?) {
                 item { ReadonlyViewText(value = "Type") }
                 item { ViewTextField(value = name, onValueChange = { name = it }) }
                 item { DropdownList(
-                    itemList = CompetitionTypes.entries.map { it.display },
+                    itemList = CompetitionTypes.entries.map { it.display }.toImmutableList(),
                     selectedIndex = type.toInt(),
                 ) { type = it.toShort() } }
             }

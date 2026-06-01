@@ -48,6 +48,7 @@ import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
+import kotlinx.collections.immutable.toImmutableList
 import kotlin.random.Random
 import kotlin.time.measureTime
 import kotlinx.coroutines.launch
@@ -338,7 +339,7 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
         LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
             item(span = { GridItemSpan(columns) }) {
                 DropdownList(
-                    teamCategoryList,
+                    teamCategoryList.toImmutableList(),
                     0,
                     label = "Filter Team Category"
                 ) { filterTeamCategory.value = teamCategoryList[it] }
@@ -358,7 +359,7 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
                 item { ViewText(away) }
                 item {
                     DropdownList(
-                        itemList = FixtureResult.entries.map { it.display },
+                        itemList = FixtureResult.entries.map { it.display }.toImmutableList(),
                         selectedIndex = result.toInt(),
                         isLocked = { isLocked || blankAwayAssociation },
                     ) { edits[fixtureId] = it.toShort() }

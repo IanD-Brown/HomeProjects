@@ -59,6 +59,7 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import kotlinx.collections.immutable.ImmutableList
 
 val fontSize = 16.sp
 const val OK = "OK"
@@ -231,7 +232,7 @@ fun ItemButtons(editClick : () -> String, deleteClick : () -> Unit) {
 
 @Composable
 fun DropdownList(
-    itemList: List<String>,
+    itemList: ImmutableList<String>,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     isLocked: () -> Boolean = { false },
