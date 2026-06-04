@@ -6,7 +6,7 @@ android-targetSdk = "37"
 androidx-activity = "1.13.0"
 androidx-lifecycle = "2.10.0"
 composeHotReload = "1.1.1"
-composeMultiplatform = "1.11.0"
+composeMultiplatform = "1.11.1"
 kotlin = "2.3.21"
 kotlinx-coroutines = "1.11.0"
 # navigation
@@ -27,8 +27,9 @@ kotest-version = "6.1.11"
 kover = "0.9.8"
 filekit = "0.14.1"
 navigationEvent = "1.1.0"
-stability = "0.7.5"
+stability = "0.8.0"
 mockkery = "3.3.0"
+immutableCollections = "0.4.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -57,9 +58,12 @@ androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = 
 kotest-core = {module = "io.kotest:kotest-assertions-core", version.ref = "kotest-version"}
 kotest-framework = {module = "io.kotest:kotest-framework-engine", version.ref = "kotest-version"}
 kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref = "kotest-version"}
+# file dialogs
 filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
+#
 navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationEvent" }
+immutable-collections = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "immutableCollections"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
