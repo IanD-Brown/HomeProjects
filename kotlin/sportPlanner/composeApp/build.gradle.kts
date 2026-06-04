@@ -49,6 +49,7 @@ kover {
 
 kotlin {
     android {
+        minSdk = libs.versions.android.minSdk.get().toInt()
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         namespace = "io.github.iandbrown.sportplanner"
         compilerOptions {
@@ -92,6 +93,8 @@ kotlin {
             implementation(libs.filekit.dialogs.compose)
 
             implementation(libs.navigationevent.compose)
+
+            implementation(libs.immutable.collections)
         }
 
         commonTest.dependencies {
