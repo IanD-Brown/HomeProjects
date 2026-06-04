@@ -1,10 +1,13 @@
 package io.github.iandbrown.sportplanner.logic
 
+import io.github.iandbrown.sportplanner.database.AssociationId
+import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundView
 import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.database.TeamNumber
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
@@ -17,7 +20,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
         )
         val seasonLeagueGames = SeasonLeagueGames()
 
-        `when`("a single game structure is prepared") {
+        When("a single game structure is prepared") {
             seasonLeagueGames.prepareGames(1, 1, 1, teams)
             val plannedGames = seasonLeagueGames.getPlannedGames(1)
             val expandedTeams = buildAllTeams(teams)
@@ -25,10 +28,10 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             then("each team should play against every other team once") {
                 for (team in expandedTeams) {
                     val opponents = plannedGames.map {
-                        if (it.homeAssociationId == team.first && it.homeTeamNumber == team.second)
-                            Pair(it.awayAssociationId, it.awayTeamNumber)
+                        if (it.home.associationId == team.first && it.home.teamNumber == team.second)
+                            Pair(it.away.associationId, it.away.teamNumber)
                         else
-                            Pair(it.homeAssociationId, it.homeTeamNumber)
+                            Pair(it.home.associationId, it.home.teamNumber)
                     }.toSet()
                     opponents.size shouldBe 2
                 }
@@ -38,7 +41,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
                 val gameCounts = mutableMapOf<Pair<Short, Short>, Pair<Int, Int>>()
                 for (team in expandedTeams) {
                     for (plannedGame in plannedGames) {
-                        val isHome = plannedGame.homeAssociationId == team.first && plannedGame.homeTeamNumber == team.second
+                        val isHome = plannedGame.home.associationId == team.first && plannedGame.home.teamNumber == team.second
 
                         gameCounts.getOrPut(team) { Pair(0, 0) }.let {
                             gameCounts[team] = Pair(it.first + if (isHome) 1 else 0, it.second + if (isHome) 0 else 1)
@@ -54,7 +57,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             }
         }
 
-        `when`("a home and away game structure is prepared") {
+        When("a home and away game structure is prepared") {
             seasonLeagueGames.prepareGames(1, 1, 2, teams)
             val plannedGames = seasonLeagueGames.getPlannedGames(1)
 
@@ -64,17 +67,17 @@ class SeasonLeagueGamesTest : BehaviorSpec({
 
             then("the games should be correct") {
                 plannedGames shouldContainExactlyInAnyOrder listOf(
-                    PlannedGame(1, 1, 1, 1, 2),
-                    PlannedGame(1, 1, 2, 1, 1),
-                    PlannedGame(1, 1, 1, 2, 1),
-                    PlannedGame(1, 2, 1, 1, 1),
-                    PlannedGame(1, 1, 2, 2, 1),
-                    PlannedGame(1, 2, 1, 1, 2)
+                    plannedGameOf(1, 1, 1, 1, 2),
+                    plannedGameOf(1, 1, 2, 1, 1),
+                    plannedGameOf(1, 1, 1, 2, 1),
+                    plannedGameOf(1, 2, 1, 1, 1),
+                    plannedGameOf(1, 1, 2, 2, 1),
+                    plannedGameOf(1, 2, 1, 1, 2)
                 )
             }
         }
 
-        `when`("an unsupported game structure") {
+        When("an unsupported game structure") {
             seasonLeagueGames.prepareGames(1, 1, 0, teams)
             val plannedGames = seasonLeagueGames.getPlannedGames(1)
 
@@ -83,7 +86,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             }
         }
 
-        `when`("the fixtures are scheduled") {
+        When("the fixtures are scheduled") {
             val seasonCompetitions = listOf(
                 createSeasonCompView(1, "01/09/2025", "24/11/2025")
             )
@@ -143,6 +146,13 @@ class SeasonLeagueGamesTest : BehaviorSpec({
         }
     }
 })
+
+private fun plannedGameOf(compId: CompetitionId,
+                          homeAssoc: AssociationId,
+                          homeNumber: TeamNumber,
+                          awayAssoc: AssociationId,
+                          awayNumber: TeamNumber) : PlannedGame =
+    PlannedGame(compId, Side(1, homeAssoc, homeNumber), Side(1, awayAssoc, awayNumber))
 
 private fun buildAllTeams(teams: List<SeasonTeam>): List<Pair<Short, Short>> = teams.flatMap { seasonTeam ->
     (1..seasonTeam.count).map { teamNumber ->

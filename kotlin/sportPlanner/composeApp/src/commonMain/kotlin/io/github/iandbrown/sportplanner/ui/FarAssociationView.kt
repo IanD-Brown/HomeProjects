@@ -93,26 +93,27 @@ private fun EditFarAssociation(farAssociation: FarAssociationView?,
         confirm = {homeAssociation > 0 && awayAssociation > 0 && (farAssociation == null || awayAssociation != farAssociation.awayAssociationId)},
         confirmAction = {save(farAssociation, viewModel, homeAssociation, awayAssociation)}) { paddingValues ->
             Column(modifier = Modifier.padding(paddingValues)) {
+                val sortedAssociations = associationState.value.sortedBy { it.name }
                 Row {
-                    ViewText("Home Association")
+                    ReadonlyViewText("Home Association")
                     if (farAssociation != null) {
                         SpacedViewText(farAssociation.homeAssociationName)
                     } else {
-                        val idList = associationState.value.map {it.id}
-                        DropdownList(associationState.value.map {it.name}.toImmutableList(), idList.indexOf(homeAssociation)) {
-                            homeAssociation = associationState.value[it].id
+                        val idList = sortedAssociations.map {it.id}
+                        DropdownList(sortedAssociations.map {it.name}.toImmutableList(), idList.indexOf(homeAssociation)) {
+                            homeAssociation = sortedAssociations[it].id
                         }
                     }
                 }
                 Row {
-                    ViewText("Away Association")
+                    ReadonlyViewText("Away Association")
                     if (homeAssociation > 0) {
                         val invalidAwayAssociations = state.value
                             .filter { it.homeAssociation == homeAssociation }
                             .filter { it.awayAssociation != awayAssociation }
                             .map { it.awayAssociation }
                             .toSet()
-                        val possibleAwayAssociations = associationState.value
+                        val possibleAwayAssociations = sortedAssociations
                             .filter { it.id != homeAssociation }
                             .filter { !invalidAwayAssociations.contains(it.id) }
                         val idList = possibleAwayAssociations.map { it.id }

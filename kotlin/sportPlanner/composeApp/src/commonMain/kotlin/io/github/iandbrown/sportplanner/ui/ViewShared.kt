@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -463,5 +464,11 @@ fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
                 buttonSetting.onClick()
             }
         }
+    }
+}
+
+internal fun LazyGridScope.viewTextItems(vararg values: String) {
+    for (value in values) {
+        item { ViewText(value) }
     }
 }

@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.skydoves.compose.stability.runtime.TraceRecomposition
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
@@ -91,6 +90,7 @@ fun NavigateFixtures(argument: String?) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
 private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
                               seasonId: SeasonId,
@@ -163,16 +163,21 @@ private fun FixtureView() {
     }
 }
 
-private enum class SumType {HOME_TEAM, AWAY_TEAM}
+private enum class SumType(val displayName: String) {HOME_TEAM("Home"), AWAY_TEAM("Away"), DISTANT("Distant")}
 
-@Suppress("NewApi")
-@TraceRecomposition
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SummaryFixtureView(season: Season) {
+private fun SummaryFixtureView(season: Season,
+                               seasonFixtureViewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) },
+                               seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel { parametersOf(season.id) },
+                               seasonTeamCategoryModel : SeasonTeamCategoryViewModel = koinViewModel { parametersOf(season.id) },
+                               farAssociationViewModel: FarAssociationListViewModel = koinViewModel()) {
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val seasonFixtureViewModel = koinInject<SeasonFixtureViewModel> { parametersOf(season.id) }
     val state = seasonFixtureViewModel.uiState.collectAsState(emptyList())
-    val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState(emptyList())
+    val seasonLeagueTeamState by seasonLeagueTeamModel.uiState.collectAsState(emptyList())
+    val seasonTeamCategoryState by seasonTeamCategoryModel.uiState.collectAsState()
+    val farAssociationState by farAssociationViewModel.uiState.collectAsState()
+    var typeFilter by remember { mutableStateOf<SumType?>(null) }
 
     ViewCommon(
         "Season fixture Summary",
@@ -183,6 +188,10 @@ private fun SummaryFixtureView(season: Season) {
             val teamCategories = sortedSetOf<String>()
             val teams = sortedSetOf<String>()
             val filteredFixtures = state.value.filter { it.competitionId == competitionFilter && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) }
+            val singleGameTeamCategories = seasonTeamCategoryState.filter { it.games == 1.toShort() }.map { it.teamCategoryId }.toSet()
+            val distantAwayFixtures = farAssociationState.groupBy { it.homeAssociationName }
+                .mapValues { it.value.map {value -> value.awayAssociationName }.toSet() }
+
             for (seasonFixture in filteredFixtures) {
                 teamCategories += seasonFixture.teamCategoryName
                 val homeTeamName = teamName(seasonFixture, true, teamCounts)
@@ -192,35 +201,60 @@ private fun SummaryFixtureView(season: Season) {
 
                 countsByTeamAndCategory.merge(Triple(homeTeamName, seasonFixture.teamCategoryName, SumType.HOME_TEAM), 1, Int::plus)
                 countsByTeamAndCategory.merge(Triple(awayTeamName, seasonFixture.teamCategoryName, SumType.AWAY_TEAM), 1, Int::plus)
+                if (singleGameTeamCategories.contains(seasonFixture.teamCategoryId)) {
+                    if (distantAwayFixtures[seasonFixture.homeAssociation]?.contains(seasonFixture.awayAssociation) == true) {
+                        countsByTeamAndCategory.merge(Triple(awayTeamName, seasonFixture.teamCategoryName, SumType.DISTANT), 1, Int::plus)
+                    }
+                }
             }
+
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
                     ViewText("Competition", Modifier.align(Alignment.CenterVertically))
                     CompetitionFilter(competitionFilter, season.id) {
                         competitionFilter = it
                     }
-                })
-                LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size + 2)) {
-                    item { ViewText("") }
-                    item { ViewText("") }
-                    for (teamCategory in teamCategories) {
-                        item { ViewText(teamCategory) }
-                    }
-                    for (team in teams) {
-                        item { ViewText(team) }
-                        item { ViewText("HOME") }
-                        for (teamCategory in teamCategories) {
-                            item {
-                                val key = Triple(team, teamCategory, SumType.HOME_TEAM)
-                                ViewText("${countsByTeamAndCategory[key] ?: 0}")
-                            }
+                    SpacedViewText("Summary Type")
+                    val t = listOf("") + SumType.entries.map { it.displayName }
+                    DropdownList(t.toImmutableList(), 0) {
+                        typeFilter = when(it) {
+                            0 -> null
+                            else -> SumType.entries[it - 1]
                         }
-                        item { ViewText("") }
-                        item { ViewText("AWAY") }
-                        for (teamCategory in teamCategories) {
-                            item {
-                                val key = Triple(team, teamCategory, SumType.AWAY_TEAM)
-                                ViewText("${countsByTeamAndCategory[key] ?: 0}")
+                    }
+                })
+                val columns = when (typeFilter) {
+                    null -> teamCategories.size + 2
+                    else -> teamCategories.size + 1
+                }
+                LazyVerticalGrid(columns = DoubleFirstGridCells(columns)) {
+                    viewTextItems("")
+                    if (typeFilter == null) {
+                        viewTextItems("")
+                    }
+                    viewTextItems(*teamCategories.toTypedArray())
+                    for (team in teams) {
+                        fun sumValue(teamCategory: String, sumType: SumType) : String {
+                            return countsByTeamAndCategory[Triple(team, teamCategory, sumType)]?.toString() ?: "0"
+                        }
+                        when (typeFilter) {
+                            null -> {
+                                viewTextItems(team, "HOME")
+                                viewTextItems(*teamCategories.map { sumValue(it, SumType.HOME_TEAM) }.toTypedArray())
+                                viewTextItems("", "AWAY")
+                                viewTextItems(*teamCategories.map { sumValue(it, SumType.AWAY_TEAM) }.toTypedArray())
+                                viewTextItems("", "DISTANT")
+                                viewTextItems(*teamCategories.map { sumValue(it, SumType.DISTANT) }.toTypedArray())
+                            }
+                            SumType.DISTANT -> {
+                                viewTextItems(team)
+                                viewTextItems(*teamCategories.map {
+                                     "${sumValue(it, SumType.DISTANT)} (${sumValue(it, SumType.AWAY_TEAM)})"
+                                }.toTypedArray())
+                            }
+                            else -> {
+                                viewTextItems(team)
+                                viewTextItems(*teamCategories.map { sumValue(it, typeFilter!!) }.toTypedArray())
                             }
                         }
                     }

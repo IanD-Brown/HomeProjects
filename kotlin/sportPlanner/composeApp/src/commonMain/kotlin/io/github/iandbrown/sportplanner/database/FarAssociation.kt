@@ -14,11 +14,13 @@ private const val table = "FarAssociations"
 data class FarAssociation(
     val homeAssociation : AssociationId,
     val awayAssociation : AssociationId
-) {
-}
+)
 
 @Dao
 interface FarAssociationDao : BaseReadDao<FarAssociation>, BaseWriteDao<FarAssociation> {
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<FarAssociation>>
+
+    @Query("SELECT * FROM $table")
+    suspend fun getAll() : List<FarAssociation>
 }
