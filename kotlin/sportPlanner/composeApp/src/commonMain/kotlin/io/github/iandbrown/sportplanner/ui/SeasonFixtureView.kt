@@ -3,6 +3,7 @@ package io.github.iandbrown.sportplanner.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,7 +33,6 @@ import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundViewDao
-import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonFixture
 import io.github.iandbrown.sportplanner.database.SeasonFixtureDao
@@ -92,22 +92,31 @@ fun NavigateFixtures(argument: String?) {
 }
 
 @Composable
-private fun CompetitionFilter(seasonCompViews : List<SeasonCompView>, selectedCompetitionId: CompetitionId, onClick : (Short) -> Unit) {
+private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
+                              seasonId: SeasonId,
+                              seasonCompModel : SeasonCompViewModel = koinViewModel(),
+                              onClick : (CompetitionId) -> Unit) {
+    val seasonCompetitionState by seasonCompModel.uiState.collectAsState()
+    val seasonCompViews = seasonCompetitionState
+        .filter { it.seasonId == seasonId }
+        .filter { it.competitionType == CompetitionTypes.LEAGUE.ordinal.toShort() }
     val competitionNameToId = seasonCompViews.associateBy({ it.competitionName }, { it.competitionId })
     val competitionIdToName = seasonCompViews.associateBy ({ it.competitionId }, {it.competitionName})
-    val competitionNames = seasonCompViews
-        .filter {it.competitionType == CompetitionTypes.LEAGUE.ordinal.toShort()}
-        .map { it.competitionName }.toImmutableList()
+    val competitionNames = seasonCompViews.map { it.competitionName }.toImmutableList()
     val selectedIndex = competitionNames.indexOf(competitionIdToName[selectedCompetitionId])
     if (competitionNames.isNotEmpty() && selectedIndex < 0) {
         onClick(competitionNameToId[competitionNames[0]]!!)
     }
+    Spacer(modifier = Modifier.size(16.dp))
     DropdownList(
         competitionNames,
         if (selectedIndex >= 0) selectedIndex else 0,
         isLocked = { competitionNames.size == 1 }
     ) {
-        onClick(competitionNameToId[competitionNames[it]]!!)
+        val filterCompetition = competitionNameToId[competitionNames[it]]!!
+        if (filterCompetition != selectedCompetitionId) {
+            onClick(filterCompetition)
+        }
     }
 }
 
@@ -162,7 +171,6 @@ private enum class SumType {HOME_TEAM, AWAY_TEAM}
 private fun SummaryFixtureView(season: Season) {
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
     val seasonFixtureViewModel = koinInject<SeasonFixtureViewModel> { parametersOf(season.id) }
-    val seasonCompetitionState by koinInject<SeasonCompViewModel>().uiState.collectAsState()
     val state = seasonFixtureViewModel.uiState.collectAsState(emptyList())
     val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState(emptyList())
 
@@ -188,10 +196,8 @@ private fun SummaryFixtureView(season: Season) {
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
                     ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                    CompetitionFilter(seasonCompetitionState.filter { it.seasonId == season.id }, competitionFilter) {
-                        if (competitionFilter != it) {
-                            competitionFilter = it
-                        }
+                    CompetitionFilter(competitionFilter, season.id) {
+                        competitionFilter = it
                     }
                 })
                 LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategories.size + 2)) {
@@ -229,7 +235,6 @@ private fun FixtureTableView(season: Season,
                              viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) },
                              associationModel : AssociationViewModel = koinViewModel(),
                              teamCategoryModel : TeamCategoryViewModel = koinViewModel(),
-                             seasonCompModel : SeasonCompViewModel = koinViewModel(),
                              seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel{ parametersOf(season.id) }) {
     val associationState by associationModel.uiState.collectAsState(emptyList())
     val teamCategoryState by teamCategoryModel.uiState.collectAsState(emptyList())
@@ -239,9 +244,6 @@ private fun FixtureTableView(season: Season,
     val coroutineScope = rememberCoroutineScope()
     val withTeamCategory = filterTeamCategory.isBlank()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val seasonCompetitionState by koinInject<SeasonCompViewModel>().uiState.collectAsState()
-    val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState(emptyList())
-    val seasonCompetitionState by seasonCompModel.uiState.collectAsState()
     val seasonLeagueTeamState by seasonLeagueTeamModel.uiState.collectAsState(emptyList())
 
     ViewCommon(
@@ -280,18 +282,11 @@ private fun FixtureTableView(season: Season,
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth(), content = {
                     ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                    CompetitionFilter(
-                        seasonCompetitionState.filter { it.seasonId == season.id },
-                        competitionFilter
-                    ) {
-                        if (competitionFilter != it) {
-                            competitionFilter = it
-                        }
+                    CompetitionFilter(competitionFilter, season.id) {
+                        competitionFilter = it
                     }
                 })
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    val associationList = listOf("") + associationState.map { it.name }
-                    val teamCategoryList = listOf("") + teamCategoryState.map { it.name }
                     val associationList = listOf("") + associationState.map { it.name }.sorted()
                     val teamCategoryList = listOf("") + teamCategoryState.map { it.name }.sorted()
                     val modifier = Modifier.align(Alignment.CenterVertically).weight(1f)
@@ -340,7 +335,6 @@ private fun FixtureDateView(season: Season) {
     val associationState by koinInject<AssociationViewModel>().uiState.collectAsState(emptyList())
     val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState(emptyList())
     val state = viewModel.uiState.collectAsState(emptyList())
-    val seasonCompetitionState by koinInject<SeasonCompViewModel>().uiState.collectAsState()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
     val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState(emptyList())
 
@@ -355,13 +349,8 @@ private fun FixtureDateView(season: Season) {
         Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
             Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
                 ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                CompetitionFilter(
-                    seasonCompetitionState.filter { it.seasonId == season.id },
-                    competitionFilter
-                ) {
-                    if (competitionFilter != it) {
-                        competitionFilter = it
-                    }
+                CompetitionFilter(competitionFilter, season.id) {
+                    competitionFilter = it
                 }
             })
             getFixtures(
