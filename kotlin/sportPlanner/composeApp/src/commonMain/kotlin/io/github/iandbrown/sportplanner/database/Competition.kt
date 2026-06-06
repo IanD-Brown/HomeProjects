@@ -26,4 +26,7 @@ data class Competition(
 interface CompetitionDao : BaseReadDao<Competition>, BaseWriteDao<Competition> {
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<Competition>>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

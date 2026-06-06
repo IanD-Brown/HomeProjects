@@ -44,4 +44,7 @@ interface SeasonCupFixtureDao : BaseSeasonCompReadDao<SeasonCupFixture>, BaseWri
 
     @Query("DELETE FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId AND round = :round")
     suspend fun deleteByRound(seasonId : SeasonId, competitionId: CompetitionId, round: Short)
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

@@ -43,4 +43,7 @@ data class SeasonCompetitionRound(
 interface SeasonCompetitionRoundDao : BaseSeasonCompReadDao<SeasonCompetitionRound>, BaseWriteDao<SeasonCompetitionRound> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
     override fun get(seasonId : SeasonId, competitionId: CompetitionId): Flow<List<SeasonCompetitionRound>>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

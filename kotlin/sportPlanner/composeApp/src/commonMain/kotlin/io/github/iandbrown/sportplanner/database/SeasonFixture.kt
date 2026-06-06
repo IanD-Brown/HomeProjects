@@ -45,4 +45,7 @@ interface SeasonFixtureDao : BaseSeasonCompReadDao<SeasonFixture>, BaseWriteDao<
 
     @Query("DELETE FROM $table WHERE seasonId = :seasonId")
     suspend fun deleteBySeason(seasonId: SeasonId)
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

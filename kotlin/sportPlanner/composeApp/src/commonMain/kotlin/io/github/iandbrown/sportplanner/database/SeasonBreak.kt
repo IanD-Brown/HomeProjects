@@ -35,4 +35,7 @@ interface SeasonBreakDao : BaseSeasonReadDao<SeasonBreak>, BaseWriteDao<SeasonBr
 
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
     suspend fun getAsList(seasonId : SeasonId): List<SeasonBreak>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

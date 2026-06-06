@@ -102,12 +102,13 @@ abstract class BaseSeasonCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId, dao
             )
 }
 
-abstract class BaseCRUDViewModel<DAO: BaseWriteDao<ENTITY>, ENTITY>(protected val dao : DAO) : ViewModel() {
+abstract class BaseCRUDViewModel<DAO: BaseWriteDao<ENTITY>, ENTITY>(val dao : DAO) : ViewModel() {
     protected abstract fun read(): StateFlow<List<ENTITY>>
+    val coroutineScope = viewModelScope
 
     fun insert(entity: ENTITY) : Long {
         var result = 0L
-        viewModelScope.launch {
+        coroutineScope.launch {
             result = dao.insert(entity)
             read()
         }
@@ -115,14 +116,14 @@ abstract class BaseCRUDViewModel<DAO: BaseWriteDao<ENTITY>, ENTITY>(protected va
     }
 
     fun update(entity: ENTITY) {
-        viewModelScope.launch {
+        coroutineScope.launch {
             dao.update(entity)
             read()
         }
     }
 
     fun delete(entity: ENTITY) {
-        viewModelScope.launch {
+        coroutineScope.launch {
             dao.delete(entity)
             read()
         }

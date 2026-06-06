@@ -60,4 +60,7 @@ interface SeasonTeamDao : BaseSeasonCompReadDao<SeasonTeam>, BaseWriteDao<Season
 
     @Query("SELECT * FROM $table WHERE seasonId=:seasonId AND competitionId = :competitionId AND teamCategoryId = :teamCategoryId")
     suspend fun getTeams(seasonId : SeasonId, competitionId : CompetitionId, teamCategoryId : TeamCategoryId) : List<SeasonTeam>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

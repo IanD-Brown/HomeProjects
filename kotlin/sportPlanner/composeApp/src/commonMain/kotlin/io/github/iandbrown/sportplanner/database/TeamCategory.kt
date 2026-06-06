@@ -26,4 +26,7 @@ interface TeamCategoryDao : BaseReadDao<TeamCategory>, BaseWriteDao<TeamCategory
 
     @Query("SELECT * FROM $table")
     suspend fun getAsList() : List<TeamCategory>
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

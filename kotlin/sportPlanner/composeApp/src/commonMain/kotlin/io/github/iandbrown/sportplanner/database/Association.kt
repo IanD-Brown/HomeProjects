@@ -22,4 +22,10 @@ data class Association(
 interface AssociationDao : BaseReadDao<Association>, BaseWriteDao<Association> {
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<Association>>
+
+    @Query("SELECT id FROM $table WHERE name = :name")
+    suspend fun getByName(name: String) : AssociationId?
+
+    @Query("DELETE FROM $table")
+    override suspend fun deleteAll()
 }

@@ -95,6 +95,11 @@ kotlin {
             implementation(libs.navigationevent.compose)
 
             implementation(libs.immutable.collections)
+
+            // dataframe
+            implementation(libs.kotlin.dataframe.core)
+            implementation(libs.kotlin.dataframe.json)
+            implementation(libs.kotlin.dataframe.csv)
         }
 
         commonTest.dependencies {

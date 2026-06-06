@@ -50,14 +50,13 @@ import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
 import io.github.iandbrown.sportplanner.logic.SeasonWeeks
 import io.github.iandbrown.sportplanner.logic.SeasonWeeksImpl.Companion.createSeasonWeeks
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.openFileSaver
-import io.github.vinceglb.filekit.sink
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.concat
+import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -228,33 +227,33 @@ private fun SummaryFixtureView(season: Season,
                     else -> teamCategories.size + 1
                 }
                 LazyVerticalGrid(columns = DoubleFirstGridCells(columns)) {
-                    viewTextItems("")
+                    viewTextItems(listOf(""))
                     if (typeFilter == null) {
-                        viewTextItems("")
+                        viewTextItems(listOf(""))
                     }
-                    viewTextItems(*teamCategories.toTypedArray())
+                    viewTextItems(teamCategories.toImmutableList())
                     for (team in teams) {
                         fun sumValue(teamCategory: String, sumType: SumType) : String {
                             return countsByTeamAndCategory[Triple(team, teamCategory, sumType)]?.toString() ?: "0"
                         }
                         when (typeFilter) {
                             null -> {
-                                viewTextItems(team, "HOME")
-                                viewTextItems(*teamCategories.map { sumValue(it, SumType.HOME_TEAM) }.toTypedArray())
-                                viewTextItems("", "AWAY")
-                                viewTextItems(*teamCategories.map { sumValue(it, SumType.AWAY_TEAM) }.toTypedArray())
-                                viewTextItems("", "DISTANT")
-                                viewTextItems(*teamCategories.map { sumValue(it, SumType.DISTANT) }.toTypedArray())
+                                viewTextItems(listOf(team, "HOME") +
+                                        teamCategories.map { sumValue(it, SumType.HOME_TEAM) })
+                                viewTextItems(listOf("", "AWAY") +
+                                        teamCategories.map { sumValue(it, SumType.AWAY_TEAM) })
+                                viewTextItems(listOf("", "DISTANT") +
+                                        teamCategories.map { sumValue(it, SumType.DISTANT) })
                             }
                             SumType.DISTANT -> {
-                                viewTextItems(team)
-                                viewTextItems(*teamCategories.map {
-                                     "${sumValue(it, SumType.DISTANT)} (${sumValue(it, SumType.AWAY_TEAM)})"
-                                }.toTypedArray())
+                                viewTextItems(listOf(team) +
+                                        teamCategories.map {
+                                            "${sumValue(it, SumType.DISTANT)} (${sumValue(it, SumType.AWAY_TEAM)})"
+                                        })
                             }
                             else -> {
-                                viewTextItems(team)
-                                viewTextItems(*teamCategories.map { sumValue(it, typeFilter!!) }.toTypedArray())
+                                viewTextItems(listOf(team) +
+                                        teamCategories.map { sumValue(it, typeFilter!!) })
                             }
                         }
                     }
@@ -284,31 +283,23 @@ private fun FixtureTableView(season: Season,
         "Season fixtures",
         "Return to seasons screen",
         {
-            BottomBarWithButton("Export") {
-                coroutineScope.launch {
+            BottomBarWithButtons(
+                exportButtonSettings(coroutineScope, "seasonFixtures", "csv") { writer ->
                     val teamCounts = seasonLeagueTeamState.associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
-                    val file = FileKit.openFileSaver(suggestedName = "seasonFixtures", defaultExtension = "csv")
-                    val sink = file?.sink(append = false)?.buffered()
-
-                    sink.use { bufferedSink ->
-                        if (bufferedSink != null) {
-                            if (withTeamCategory) {
-                                bufferedSink.writeString("Date,Team Category,Message,Home,Away\n")
-                            }else {
-                                bufferedSink.writeString("Date,Message,Home,Away\n")
-                            }
-                            getFixtures(state.value, competitionFilter, filterAssociation, filterTeamCategory, teamCategoryState, teamCounts) {
-                                    date, teamCategory, message, home, away ->
-                                if (withTeamCategory) {
-                                    bufferedSink.writeString("$date,$teamCategory,$message,$home,$away\n")
-                                } else {
-                                    bufferedSink.writeString("$date,$message,$home,$away\n")
-                                }
-                            }
+                    var df = DataFrame.emptyOf<Any?>()
+                    getFixtures(state.value, competitionFilter, filterAssociation, filterTeamCategory, teamCategoryState, teamCounts) {
+                            date, teamCategory, message, home, away ->
+                        df = if (withTeamCategory) {
+                            df.concat(dataFrameOf("Date", "Team Category", "Message", "Home", "Away")
+                                (date, teamCategory, message, home, away))
+                        } else {
+                            df.concat(dataFrameOf("Date", "Message", "Home", "Away")
+                                (date, message, home, away))
                         }
                     }
+                    df.writeCsv(writer)
                 }
-            }
+            )
         },
         content = { paddingValues ->
             val columns = if (withTeamCategory) 5 else 4

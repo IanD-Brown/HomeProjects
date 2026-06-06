@@ -19,6 +19,8 @@ interface BaseWriteDao<ENTITY> {
 
     @Update
     suspend fun update(entity : ENTITY)
+
+    suspend fun deleteAll()
 }
 
 interface BaseSeasonReadDao<ENTITY> {

@@ -1,6 +1,7 @@
 package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,15 +10,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
@@ -57,10 +62,29 @@ import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import io.github.iandbrown.sportplanner.database.BaseReadDao
+import io.github.iandbrown.sportplanner.database.BaseWriteDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.logic.DayDate
+import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.dialogs.openFileSaver
+import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.sink
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.io.buffered
+import kotlinx.io.writeString
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.io.readJson
+import java.io.InputStream
+import kotlin.use
 
 val fontSize = 16.sp
 const val OK = "OK"
@@ -449,26 +473,83 @@ fun BottomBarWithButtonN(value : String = OK, enabled: Boolean = true, onClick :
     }
 }
 
-data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val onClick : () -> Unit)
+// data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val onClick : () -> Unit)
+internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val navigateFun : (NavController) -> Unit)
 
 @Composable
-fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
-    BottomBarWithButtons(ButtonSettings(value, enabled, onClick))
+fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : (NavController) -> Unit) =
+    BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun = onClick))
 
 @Composable
-fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
-    Row {
-        ReadonlyViewText("", Modifier.weight(4f))
+internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
+    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
         for (buttonSetting in buttonSettings) {
-            OutlinedTextButton(buttonSetting.value, Modifier.weight(1f), buttonSetting.enabled) {
-                buttonSetting.onClick()
+            if (buttonSetting.imageVector == null) {
+                OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
+                    buttonSetting.navigateFun(appNavController)
+                }
+            } else {
+                IconButton(onClick = { buttonSetting.navigateFun(appNavController) }) {
+                    Icon(buttonSetting.imageVector, contentDescription = null)
+                }
             }
         }
     }
 }
 
-internal fun LazyGridScope.viewTextItems(vararg values: String) {
-    for (value in values) {
-        item { ViewText(value) }
+internal fun exportButtonSettings(coroutineScope: CoroutineScope,
+                                  suggestName: String,
+                                  extension: String = "json",
+                                  transformedDataSupplier: (Appendable) -> Unit) : ButtonSettings =
+    ButtonSettings(imageVector = Icons.Default.Download) { coroutineScope.launch {
+        exportToFile(suggestName, extension, transformedDataSupplier)
+    }}
+
+internal suspend fun exportToFile(suggestName: String, extension: String = "json", transformedDataSupplier: (Appendable) -> Unit) {
+    val file = FileKit.openFileSaver(suggestedName = suggestName, defaultExtension = extension)
+    val sink = file?.sink(append = false)?.buffered()
+
+    sink.use { bufferedSink ->
+        if (bufferedSink != null) {
+            val sb = StringBuilder()
+            transformedDataSupplier(sb)
+            bufferedSink.writeString(sb.toString())
+        }
+    }
+}
+
+internal fun<DAO, ENTITY, VIEW_MODEL> importJsonButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
+        where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
+    ButtonSettings(imageVector = Icons.Default.Upload) { viewModel.coroutineScope.launch {
+            importFromFile(
+                "json",
+                {
+                    val dataFrame = DataFrame.readJson(it)
+                    viewModel.dao.deleteAll()
+                    dataFrame
+                }, { viewModel.dao.insert(rowHandler(it)) })
+        }
+    }
+
+internal suspend fun importFromFile(
+    extension: String = "csv",
+    beginImporting: suspend (InputStream) -> DataFrame<Any?>,
+    rowHandler: suspend (DataRow<Any?>) -> Unit
+) {
+    val dataFile =
+        FileKit.openFilePicker(FileKitType.File(listOf(extension)), mode = FileKitMode.Single)
+    if (dataFile != null && dataFile.exists()) {
+        val df = beginImporting(dataFile.readBytes().inputStream())
+        for (row in df) {
+            if (row[0] != null) {
+                rowHandler(row)
+            }
+        }
+    }
+}
+
+internal fun LazyGridScope.viewTextItems(values: List<String>) {
+    items(items = values) {
+        ViewText(it)
     }
 }

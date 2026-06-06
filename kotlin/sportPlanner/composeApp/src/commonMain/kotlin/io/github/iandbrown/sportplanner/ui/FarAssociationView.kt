@@ -4,14 +4,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
+import io.github.iandbrown.sportplanner.database.AssociationDao
 import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.FarAssociation
 import io.github.iandbrown.sportplanner.database.FarAssociationDao
@@ -21,6 +25,10 @@ import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 
 class FarAssociationViewModel : BaseConfigCRUDViewModel<FarAssociationDao, FarAssociation>(inject<FarAssociationDao>().value)
@@ -33,8 +41,9 @@ class FarAssociationListViewModel : BaseReadViewModel<FarAssociationViewDao, Far
     }
 }
 
-
 private val editor = Editors.FAR_ASSOCIATIONS
+private const val HOME = "Home"
+private const val AWAY = "Away"
 
 @Composable
 fun NavigateFarAssociation(argument: String?) {
@@ -47,13 +56,26 @@ fun NavigateFarAssociation(argument: String?) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinInject<FarAssociationListViewModel>()) {
+private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinInject<FarAssociationListViewModel>(),
+                                 farAssociationViewModel: FarAssociationViewModel= koinInject<FarAssociationViewModel>()) {
     val state = viewModel.uiState.collectAsState()
+    val farAssociationState = farAssociationViewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         editor.displayName,
         bottomBar = {
-            BottomBarWithButtonN("+") {editor.addRoute()}
+            BottomBarWithButtons(
+                exportButtonSettings(coroutineScope, "distant-away-games") {
+                    toDataFrame(state.value).writeJson(it)
+                },
+                importJsonButtonSettings(farAssociationViewModel) {
+                    toFarAssociation(it)
+                },
+                ButtonSettings(imageVector = Icons.Default.Add) {
+                    it.navigate(editor.addRoute())
+                }
+            )
         }){ paddingValues ->
         LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
             item { ViewText("Home Association") }
@@ -69,6 +91,18 @@ private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinIn
         }
     }
 }
+
+internal fun toDataFrame(rules: List<FarAssociationView>): DataFrame<FarAssociationView> =
+    rules.toDataFrame {
+        HOME from { it.homeAssociationName }
+        AWAY from { it.awayAssociationName }
+    }
+
+internal suspend fun toFarAssociation(row: DataRow<Any?>,
+                                      associationDao: AssociationDao = inject<AssociationDao>().value): FarAssociation =
+    FarAssociation(associationDao.getByName(row[HOME] as String)!!,
+        associationDao.getByName(row[AWAY] as String)!!)
+
 
 @Suppress("ParamsComparedByRef")
 @Composable
