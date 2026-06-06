@@ -45,7 +45,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,8 +79,8 @@ import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.sink
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
@@ -90,7 +89,6 @@ import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readCsv
 import java.io.InputStream
 import java.util.Locale
-import kotlin.Any
 
 internal val fontSize = 16.sp
 internal const val OK = "OK"
@@ -107,7 +105,7 @@ internal fun ViewCommon(
     bottomBar: @Composable () -> Unit = {},
     confirm: () -> Boolean = { false },
     confirmAction: () -> Unit = {},
-    states: List<ViewModelState<*>>,
+    states: ImmutableList<ViewModelState<*>>,
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -250,7 +248,7 @@ internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
 
 @Composable
 internal fun DropdownList(
-    itemList: MutableStateFlow<List<String>>,
+    itemList: ImmutableList<String>,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     isLocked: () -> Boolean = { false },
@@ -258,21 +256,15 @@ internal fun DropdownList(
     onItemClick: (Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val activeItemList = itemList.collectAsState(initial = emptyList())
+    val selectedText = if (itemList.isNotEmpty() && selectedIndex >= 0) itemList[selectedIndex] else ""
 
-    fun getCurrentValue() : String =
-        if (activeItemList.value.isNotEmpty() && selectedIndex >= 0) {
-            activeItemList.value[selectedIndex]
-        } else {
-            ""
-        }
-
-    if (!isLocked() && activeItemList.value.isNotEmpty() && selectedIndex < 0) {
+    if (!isLocked() && itemList.isNotEmpty() && selectedIndex < 0) {
         onItemClick(0)
     }
-    if (isLocked() || activeItemList.value.size <= 1) {
-        ViewText(getCurrentValue(), modifier)
-    } else if (selectedIndex >= 0) {
+
+    if (isLocked() || itemList.size <= 1) {
+        ViewText(selectedText, modifier)
+    } else {
         // Up Icon when expanded and down icon when collapsed
         val icon = if (expanded)
             Icons.Filled.KeyboardArrowUp
@@ -289,7 +281,7 @@ internal fun DropdownList(
                 },
         ) {
             ViewTextField(
-                value = getCurrentValue(),
+                value = selectedText,
                 label = label,
                 trailingIcon = {
                     if (!isLocked()) {
@@ -301,11 +293,11 @@ internal fun DropdownList(
             ) {}
             if (!isLocked() && expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
-                    activeItemList.value.forEach { label ->
+                    itemList.forEach { label ->
                         DropdownMenuItem(
                             text = { ViewText(label) },
                             onClick = {
-                                onItemClick(activeItemList.value.indexOf(label))
+                                onItemClick(itemList.indexOf(label))
                                 expanded = false
                             }
                         )
@@ -429,7 +421,7 @@ internal fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueCha
     item { Checkbox(value, onValueChange) }
 }
 
-internal fun LazyGridScope.gridEntry(title: String, itemList: MutableStateFlow<List<String>>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
+internal fun LazyGridScope.gridEntry(title: String, itemList: ImmutableList<String>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
     item { ViewText(title) }
     item { DropdownList(itemList, selectedIndex, onItemClick = onItemClick) }
 }

@@ -47,7 +47,8 @@ import io.github.iandbrown.reconciler.database.TransactionListViewDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.iandbrown.reconciler.logic.TO_STRING_PATTERN
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -101,7 +102,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                             is ViewModelState.Success -> {
                                 val accountValues = accounts.value.values()
                                 DropdownList(
-                                    MutableStateFlow(listOf("") + accountValues.map { it.name }),
+                                    (listOf("") + accountValues.map { it.name }).toImmutableList(),
                                     if (account == null) 0 else accountValues.map { it.id }.indexOf(account)
                                 ) {
                                     account = when (it) {
@@ -121,7 +122,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                             is ViewModelState.Success -> {
                                 val transactionCategoryValues = transactionCategories.value.values()
                                 DropdownList(
-                                    MutableStateFlow(listOf("") + transactionCategoryValues.map { it.name }),
+                                    (listOf("") + transactionCategoryValues.map { it.name }).toImmutableList(),
                                     if (category == null) 0 else transactionCategoryValues.map { it.id }.indexOf(category)
                                 ) {
                                     category = when (it) {
@@ -186,7 +187,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                     }
                 )
             },
-            states = listOf(state.value, transactionCategories.value, accounts.value, accountGroupState.value),
+            states = persistentListOf(state.value, transactionCategories.value, accounts.value, accountGroupState.value),
             actions = {
                 IconButton({ showDialog = true }) { Icon(Icons.Default.Menu, "") }
             }
@@ -197,7 +198,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                     Spacer(modifier = Modifier.size(16.dp))
                     val value = accountGroupState.value.values()
                     DropdownList(
-                        MutableStateFlow(value.map { it.name }),
+                        value.map { it.name }.toImmutableList(),
                         value.map { it.id }.indexOf(accountGroup)
                     ) {
                         accountGroup = value[it].id
@@ -247,17 +248,17 @@ private fun filterTransaction(state: List<TransactionListView>,
 
     if (fullFilter && (baseFilterConfig.matchDistance ?: 0) > 0) {
         val removed = mutableSetOf<TransactionListView>()
-        for (i in 0..filtered.lastIndex) {
-            if (removed.contains(filtered[i])) {
+        for ((i, element) in filtered.withIndex()) {
+            if (removed.contains(element)) {
                 continue
             }
             for (j in (i+1)..(filtered.lastIndex.fastCoerceAtMost(i + baseFilterConfig.matchDistance!!))) {
                 if (removed.contains(filtered[j])) {
                     continue
                 }
-                val added = filtered[i].amount + filtered[j].amount
+                val added = element.amount + filtered[j].amount
                 if (added >= -0.1 && added <= 0.1) {
-                    removed.add(filtered[i])
+                    removed.add(element)
                     removed.add(filtered[j])
                     break
                 }
@@ -305,7 +306,7 @@ internal fun EditTransaction(item: TransactionListView) {
         },
         confirm = { editorState == EditorState.VALID },
         confirmAction = {save(Transaction(item.id, item.account, item.date, description, amount, item.category), split)},
-        states = listOf()) { paddingValues ->
+        states = persistentListOf()) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(5), Modifier.padding(paddingValues)) {
             viewTextItems("Date", "Account", "Description", "Amount", "Category")
             item { ViewText(DayDate.of(item.date).toString())}
@@ -376,7 +377,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
         ViewCommon(
             "Spending Summary",
             bottomBar = {},
-            states = listOf(state.value, transactionCategories.value, accounts.value, accountGroupState.value),
+            states = persistentListOf(state.value, transactionCategories.value, accounts.value, accountGroupState.value),
             actions = {
                 IconButton({ showDialog = true }) { Icon(Icons.Default.Menu, "") }
             }
@@ -394,7 +395,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                     Spacer(modifier = Modifier.size(16.dp))
                     val value = accountGroupState.value.values()
                     DropdownList(
-                        MutableStateFlow(value.map { it.name }),
+                        value.map { it.name }.toImmutableList(),
                         value.map { it.id }.indexOf(accountGroup)
                     ) {
                         accountGroup = value[it].id
@@ -454,7 +455,7 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinI
         ViewCommon(
             "Transaction summary by category",
             bottomBar = {},
-            states = listOf(state.value, transactionCategories.value, accountGroupState.value),
+            states = persistentListOf(state.value, transactionCategories.value, accountGroupState.value),
             actions = {
                 IconButton({ showDialog = true }) { Icon(Icons.Default.Menu, "") }
             }
@@ -470,7 +471,7 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinI
                     Spacer(modifier = Modifier.size(16.dp))
                     val value = accountGroupState.value.values()
                     DropdownList(
-                        MutableStateFlow(value.map { it.name }),
+                        value.map { it.name }.toImmutableList(),
                         value.map { it.id }.indexOf(accountGroup)
                     ) {
                         accountGroup = value[it].id

@@ -17,7 +17,8 @@ import io.github.iandbrown.reconciler.database.Account
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.di.inject
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -47,7 +48,7 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
                 },
                 ButtonSettings("+") { it.navigate(Account(name = "", accountGroup = 0)) })
         },
-        states = listOf(state.value, accountGroupState.value)) { paddingValues ->
+        states = persistentListOf(state.value, accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(
             columns = WeightedIconGridCells(2, 1, 1),
             Modifier.padding(paddingValues)
@@ -97,14 +98,14 @@ internal fun EditAccount(account: Account,
         },
         confirm = { editorState == EditorState.VALID },
         confirmAction = {save(account, viewModel, name, group)},
-        states = listOf(accountGroupState.value)) { paddingValues ->
+        states = persistentListOf(accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) { name = it
                 setEditorState()
             }
             val data = accountGroupState.value.values()
             gridEntry("Group",
-                MutableStateFlow(data.map { it.name }),
+                data.map { it.name }.toImmutableList(),
                 data.map {it.id}.indexOf(group)) {
                 group = data.map {accountGroup ->  accountGroup.id}[it]
                 setEditorState()

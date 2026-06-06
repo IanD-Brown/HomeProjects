@@ -39,8 +39,8 @@ import io.github.iandbrown.reconciler.database.Transaction
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.di.inject
 import io.github.iandbrown.reconciler.di.koinApp
-import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.iandbrown.reconciler.logic.AbstractPDFConverter
+import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.iandbrown.reconciler.logic.Range
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
@@ -50,7 +50,8 @@ import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.readString
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.kotlinx.dataframe.AnyFrame
@@ -138,7 +139,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                 }},
                 ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
         },
-        states = listOf(state.value, accountState.value)) { paddingValues ->
+        states = persistentListOf(state.value, accountState.value)) { paddingValues ->
         var importDefinitionId = 0
 
         LazyVerticalGrid(
@@ -299,7 +300,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
                 }
             }
         },
-        states = listOf(definitionState.value, accountState.value, importDefinitionState.value),
+        states = persistentListOf(definitionState.value, accountState.value, importDefinitionState.value),
     ) { paddingValues ->
         val editingDefinitions = definitionState.value.values()
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }
@@ -309,7 +310,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
                 ViewText("Name")
                 ViewTextField(name) {name = it}
                 ViewText("Type")
-                DropdownList(MutableStateFlow(ImportTypes.entries.map { it.displayName }), type) {
+                DropdownList(ImportTypes.entries.map { it.displayName }.toImmutableList(), type) {
                     type = it
                     setValid()
                 }

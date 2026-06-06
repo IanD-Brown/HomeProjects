@@ -24,7 +24,8 @@ import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.di.inject
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -58,14 +59,14 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
                 },
                 ButtonSettings("+") { TransactionCategory(name = "", filter = false, accountGroup = accountGroup) })
         },
-        states = listOf(state.value, accountGroupState.value)) { paddingValues ->
+        states = persistentListOf(state.value, accountGroupState.value)) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
                 val value = accountGroupState.value.values()
                 DropdownList(
-                    MutableStateFlow(value.map { it.name }),
+                    value.map { it.name }.toImmutableList(),
                     value.map { it.id }.indexOf(accountGroup)
                 ) {
                     accountGroup = value[it].id
@@ -127,7 +128,7 @@ internal fun EditTransactionCategory(
         },
         confirm = { editorState == EditorState.VALID },
         confirmAction = { save(transactionCategory, viewModel, name, filter, isSpending, accountGroup) },
-        states = listOf(accountGroupState.value)) { paddingValues ->
+        states = persistentListOf(accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) {
                 name = it

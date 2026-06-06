@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import io.github.iandbrown.reconciler.database.AccountGroup
 import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.di.inject
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
@@ -49,7 +50,7 @@ internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<
                 }},
                 ButtonSettings("+") { it.navigate(AccountGroup(name = "")) })
         },
-        states = listOf(state.value)) { paddingValues ->
+        states = persistentListOf(state.value)) { paddingValues ->
         LazyVerticalGrid(
             columns = WeightedIconGridCells(3, 1),
             Modifier.padding(paddingValues)
@@ -99,7 +100,7 @@ internal fun EditAccountGroup(accountGroup: AccountGroup,
         },
         confirm = { editorState == EditorState.VALID },
         confirmAction = {save(accountGroup, viewModel, name)},
-        states = listOf()) { paddingValues ->
+        states = persistentListOf()) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), Modifier.padding(paddingValues)) {
             gridEntry("Name", name) { name = it
                 setEditorState()
