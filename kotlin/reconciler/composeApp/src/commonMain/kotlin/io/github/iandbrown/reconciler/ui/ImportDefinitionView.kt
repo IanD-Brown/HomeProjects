@@ -171,7 +171,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                         item { ViewText("  * ${account.name}") }
                         if (item != null) {
                             item { Checkbox(item.active, {}, enabled = false) }
-                            viewTextItems(item.sheetName, item.dateColumn, item.descriptionColumn, item.amountInColumn, item.amountOutColumn)
+                            viewTextItems(values = listOf(item.sheetName, item.dateColumn, item.descriptionColumn, item.amountInColumn, item.amountOutColumn))
                             item(span = { GridItemSpan(3) }) { }
                         } else {
                             item { Checkbox(false, {}, enabled = false) }
@@ -316,7 +316,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
                 }
             }
             LazyVerticalGrid(columns = GridCells.Fixed(8)) {
-                viewTextItems("Account", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column")
+                viewTextItems(values = listOf("Account", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column"))
                 for (account in accounts.values.sortedBy { it.name }) {
                     val def = editingDefinitions[account.id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = account.id)
                     item { ViewText(account.name) }

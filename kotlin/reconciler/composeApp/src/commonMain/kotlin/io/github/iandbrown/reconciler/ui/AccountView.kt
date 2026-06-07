@@ -54,10 +54,10 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
             Modifier.padding(paddingValues)
         ) {
             val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
-            viewTextItems("Name", "Group")
+            viewTextItems(values = listOf("Name", "Group"))
             item(span = { GridItemSpan(2) }) {}
             for (account in state.value.values()) {
-                viewTextItems(account.name, groupLookup[account.accountGroup] ?: "")
+                viewTextItems(values = listOf(account.name, groupLookup[account.accountGroup] ?: ""))
                 item { EditButton { it.navigate(account) } }
                 item { DeleteButton { viewModel.delete(account) } }
             }

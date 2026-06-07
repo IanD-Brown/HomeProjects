@@ -34,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.window.Dialog
@@ -208,16 +209,17 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                 }
                 LazyVerticalGrid(columns = WeightedIconGridCells(2, 1, 1, 6, 1, 1)) {
                    item(span = { GridItemSpan(2) }) {}
-                    viewTextItems("Description", "Amount")
+                    viewTextItems(values = listOf("Description", "Amount"))
                     item(span = { GridItemSpan(3) }) {}
                     for (transaction in filterTransaction(state.value.values(), true, accountGroup)) {
                         viewTextItems(
-                            DayDate.of(transaction.date).toString(),
-                            transaction.accountName,
-                            transaction.description,
-                            transaction.amount.toString(),
-                            transaction.categoryName
+                            values = listOf(
+                                DayDate.of(transaction.date).toString(),
+                                transaction.accountName,
+                                transaction.description)
                         )
+                        formatedNumber("%.2f", transaction.amount)
+                        viewTextItems(values = listOf(transaction.categoryName))
                         item { EditButton { navController -> navController.navigate(transaction) } }
                         item {
                             Icon(
@@ -308,7 +310,7 @@ internal fun EditTransaction(item: TransactionListView) {
         confirmAction = {save(Transaction(item.id, item.account, item.date, description, amount, item.category), split)},
         states = persistentListOf()) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(5), Modifier.padding(paddingValues)) {
-            viewTextItems("Date", "Account", "Description", "Amount", "Category")
+            viewTextItems(values = listOf("Date", "Account", "Description", "Amount", "Category"))
             item { ViewText(DayDate.of(item.date).toString())}
             item { ViewText(item.accountName)}
             item { ViewTextField(description) {
@@ -403,18 +405,21 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                 }
 
                 val data = accounts.value.values()
-                LazyVerticalGrid(columns = GridCells.Fixed(data.size + 2)) {
-                    viewTextItems("Month", "Total")
-                    for (account in data) {
-                        item { ViewText("${account.name} transactions") }
-                    }
+                val weights = (listOf(1, 2) + data.map { 4 }).toIntArray()
+                LazyVerticalGrid(columns = WeightedIconGridCells(0, *weights)) {
+                    viewTextItems(values = listOf("Month"))
+                    viewTextItems(
+                        listOf("Total") + data.map {"${it.name} transactions" },
+                        Modifier.padding(end = 16.dp),
+                        TextAlign.End
+                    )
                     for (month in months) {
-                        item { ViewText(month.toString().substring(3)) }
+                        viewTextItems(values = listOf(month.toString().substring(3)))
                         val transactionsForMonth = byMonth[month.value()]
                         val total = transactionsForMonth?.sumOf { it.amount }
                         formatedNumber("%.2f", total)
                         for (account in data) {
-                            item { ViewText(transactionsForMonth?.filter { it.account == account.id }?.size.toString()) }
+                            formatedNumber("%.0f", transactionsForMonth?.filter { it.account == account.id }?.size?.toDouble())
                         }
                     }
                 }
@@ -481,9 +486,7 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinI
                 LazyVerticalGrid(columns = GridCells.Fixed(viewCategories.size + 2)) {
                     // Second row - headers, blank for month
                     item { ViewText("") }
-                    for (category in viewCategories) {
-                        item { ViewText(category.name) }
-                    }
+                    viewTextItems(viewCategories.map { it.name }, Modifier.padding(end = 16.dp), TextAlign.End)
                     item { ViewText("") }
                     for (month in months) {
                         item { ViewText(month.toString().substring(3)) }
@@ -511,7 +514,7 @@ internal fun toDataFrame(transactions: List<TransactionListView>): DataFrame<Tra
         "Account" from { it.accountName }
         "Description" from { it.description }
         "Category" from { it.categoryName }
-        "Amount" from { it.amount }
+        "Amount" from { String.format(Locale.UK, "%.2f",it.amount) }
     }
 
 

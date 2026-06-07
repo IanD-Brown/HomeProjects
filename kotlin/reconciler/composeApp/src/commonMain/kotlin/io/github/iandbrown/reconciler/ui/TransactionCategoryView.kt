@@ -74,13 +74,14 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
             }
 
             LazyVerticalGrid(columns = WeightedIconGridCells(2, 2, 1, 1)) {
-                viewTextItems("Name", "Filter", "Is Spending")
+                viewTextItems(values = listOf("Name", "Filter", "Is Spending"))
                 item(span = { GridItemSpan(2) }) {}
                 for (transactionCategory in state.value.values().filter { it.accountGroup == accountGroup }) {
                     viewTextItems(
-                        transactionCategory.name,
-                        transactionCategory.filter.toString(),
-                        transactionCategory.isSpending.toString()
+                        values = listOf(
+                            transactionCategory.name,
+                            transactionCategory.filter.toString(),
+                            transactionCategory.isSpending.toString())
                     )
                     item { EditButton { navController -> navController.navigate(transactionCategory) } }
                     item { DeleteButton { viewModel.delete(transactionCategory) } }
@@ -149,7 +150,7 @@ internal fun EditTransactionCategory(
                     .filter { it.id == transactionCategory.accountGroup }
                     .map { it.name }
                     .firstOrNull()
-            viewTextItems("Account Group", accountGroupName ?: "")
+            viewTextItems(values = listOf("Account Group", accountGroupName ?: ""))
         }
     }
 }

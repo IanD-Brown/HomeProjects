@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -53,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -427,12 +429,21 @@ internal fun LazyGridScope.gridEntry(title: String, itemList: ImmutableList<Stri
 }
 
 internal fun LazyGridScope.formatedNumber(format : String, value : Double?) {
-    item { ViewText(String.format(Locale.UK, format, value ?: 0.0)) }
+    item {
+        Text(
+            text = String.format(Locale.UK, format, value ?: 0.0),
+            modifier = Modifier.padding(end = 16.dp),
+            fontSize = fontSize,
+            textAlign = TextAlign.End,
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 1,
+         )
+    }
 }
 
-internal fun LazyGridScope.viewTextItems(vararg values: String) {
-    for (value in values) {
-        item {ViewText(value)}
+internal fun LazyGridScope.viewTextItems(values: List<String>, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
+    items(items = values) {
+        Text(text = it, modifier = modifier, fontSize = fontSize, textAlign = textAlign, overflow = TextOverflow.Ellipsis, maxLines = 1)
     }
 }
 

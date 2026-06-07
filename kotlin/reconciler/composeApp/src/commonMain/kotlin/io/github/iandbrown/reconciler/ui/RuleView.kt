@@ -90,19 +90,19 @@ fun RuleListView(viewModel: RuleViewModel = koinInject(),
                 DropdownList(
                     value.map { it.name }.toImmutableList(),
                     value.map { it.id }.indexOf(accountGroup)
-                ) {
-                    accountGroup = value[it].id
+                ) { clicked ->
+                    accountGroup = value[clicked].id
                     stateValues = state.value.values().filter { it.accountGroup == accountGroup }.sortedBy { it.match }
                 }
             }
             LazyVerticalGrid(columns = WeightedIconGridCells(2, 1, 1, 1, 1, 1)) {
                 item(span = { GridItemSpan(2) }) { ViewText("Match")}
-                viewTextItems("Category")
+                viewTextItems(values = listOf("Category"))
                 item {}
                 item {}
                 for (rule in stateValues) {
                     item(span = { GridItemSpan(4) }) { ViewText(rule.match) }
-                    viewTextItems(categoryLookup[rule.category] ?: "")
+                    viewTextItems(values = listOf(categoryLookup[rule.category] ?: ""))
                     item { EditButton { navController -> navController.navigate(rule) } }
                     item { DeleteButton { viewModel.delete(rule) } }
                 }
@@ -167,7 +167,7 @@ internal fun EditRule(rule: Rule,
                         .filter { it.id == rule.accountGroup }
                         .map { it.name }
                         .firstOrNull()
-                viewTextItems("Account Group", accountGroupName ?: "")
+                viewTextItems(values = listOf("Account Group", accountGroupName ?: ""))
             }
         }
 }
