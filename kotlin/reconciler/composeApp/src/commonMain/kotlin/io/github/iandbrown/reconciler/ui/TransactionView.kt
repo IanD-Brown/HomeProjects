@@ -56,6 +56,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 import java.util.Locale
+import kotlin.math.round
 
 private data class FilterConfig(val minDate: DayDate, val maxDate: DayDate?, val account: Int?, val category: Int?, val matchDistance: Int?)
 
@@ -274,6 +275,10 @@ private fun filterTransaction(state: List<TransactionListView>,
     return filtered
 }
 
+private fun Double.roundTo2Decimals(): Double {
+    return round(this * 100.0) / 100.0
+}
+
 @Composable
 internal fun EditTransaction(item: TransactionListView) {
     var description by remember { mutableStateOf(item.description) }
@@ -284,7 +289,7 @@ internal fun EditTransaction(item: TransactionListView) {
     fun setEditorState() {
         editorState = if (description == item.description && amount == item.amount && split == null) {
             EditorState.CLEAN
-        } else if (description.isEmpty() || (split != null && split!!.description.isEmpty()) || (split != null && amount + split!!.amount != item.amount)) {
+        } else if (description.isEmpty() || (split != null && split!!.description.isEmpty()) || (split != null && (amount + split!!.amount).roundTo2Decimals() != item.amount)) {
             EditorState.DIRTY
         } else {
             EditorState.VALID
@@ -352,7 +357,8 @@ internal fun EditTransaction(item: TransactionListView) {
 private fun save(transaction: Transaction, split: Transaction?, viewModel : TransactionViewModel = inject<TransactionViewModel>().value) {
     viewModel.update(transaction)
     if (split != null) {
-        viewModel.insert(Transaction(account = transaction.account, date = transaction.date, description = split.description, amount = split.amount))
+        val entity = Transaction(account = transaction.account, date = transaction.date, description = split.description, amount = split.amount)
+        viewModel.insert(entity)
     }
 }
 
