@@ -104,7 +104,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                                 val accountValues = accounts.value.values()
                                 DropdownList(
                                     (listOf("") + accountValues.map { it.name }).toImmutableList(),
-                                    if (account == null) 0 else accountValues.map { it.id }.indexOf(account)
+                                    if (account == null) 0 else 1 + accountValues.map { it.id }.indexOf(account)
                                 ) {
                                     account = when (it) {
                                         0 -> null
@@ -124,7 +124,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                                 val transactionCategoryValues = transactionCategories.value.values()
                                 DropdownList(
                                     (listOf("") + transactionCategoryValues.map { it.name }).toImmutableList(),
-                                    if (category == null) 0 else transactionCategoryValues.map { it.id }.indexOf(category)
+                                    if (category == null) 0 else 1 + transactionCategoryValues.map { it.id }.indexOf(category)
                                 ) {
                                     category = when (it) {
                                         0 -> null

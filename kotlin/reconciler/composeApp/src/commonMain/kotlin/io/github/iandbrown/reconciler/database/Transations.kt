@@ -59,7 +59,7 @@ interface TransactionDao : BaseReadDao<Transaction>, BaseWriteDao<Transaction> {
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
 
-    @Query("SELECT EXISTS (SELECT 1 FROM $table WHERE account = :account AND description = :description AND date = :date AND amount = :amount)")
+    @Query("SELECT EXISTS (SELECT 1 FROM $table WHERE account = :account AND description = :description AND date = :date AND ROUND(amount, 2) = ROUND(:amount, 2))")
     suspend fun exists(account: Int, description: String, date:Int, amount: Double): Boolean
 
     @Query("SELECT * FROM $table WHERE account IN (SELECT id from Accounts WHERE accountGroup = :accountGroup)")

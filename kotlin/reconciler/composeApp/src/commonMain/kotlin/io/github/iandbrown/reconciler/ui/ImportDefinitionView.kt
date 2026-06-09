@@ -454,7 +454,8 @@ private suspend fun readHtml(spreadSheetFile: PlatformFile, definition: ImportDe
         .fold(DataFrame.emptyOf<Any?>()) {acc, it -> acc.concat(dataFrameOf("A", "B", "C")(
             DayDate.of(LocalDate.parse(it[dateIndex], dateFormatPattern)),
             description(it[descriptionIndex]).trim(),
-            htmlTextAsDouble(it[amountInIndex]) - htmlTextAsDouble(it[amountOutIndex])))}
+            htmlAmount(it, amountInIndex, amountOutIndex)))
+        }
 }
 
 private fun htmlTextAsDouble(text: String) : Double = when {
@@ -463,19 +464,47 @@ private fun htmlTextAsDouble(text: String) : Double = when {
     else -> text.toDouble()
 }
 
+private fun htmlAmount(data: List<String>, inIndex: Int, outIndex: Int) : Double {
+    val inAmount = htmlTextAsDouble(data[inIndex])
+
+    if (inAmount > 0.0) {
+        return inAmount
+    }
+    val outAmount = htmlTextAsDouble(data[outIndex])
+    if (outAmount > 0) {
+        return -outAmount
+    }
+
+    return 0.0
+}
+
 private suspend fun readExcel(spreadSheetFile: PlatformFile, definition: ImportDefinitionListView) : DataFrame<Any?> {
     val df = DataFrame.readExcel(spreadSheetFile.readBytes().inputStream(), definition.sheetName, columns = columns(definition))
     var result = DataFrame.emptyOf<Any?>()
     df.rows()
         .filter { it[0] is LocalDateTime }
-        .filter { asDouble(it[2]) - asDouble(it[3]) != 0.0 }
+        .filter { excelAmount(it) != 0.0 }
         .forEach {
             result = result.concat(dataFrameOf("A", "B", "C")(
                 DayDate.of(it[0] as LocalDateTime),
                 description(it[1]).trim(),
-                asDouble(it[2]) - asDouble(it[3])))
+                excelAmount(it)))
         }
     return result
+}
+
+private fun excelAmount(row: DataRow<Any?>) : Double {
+    val inAmount = asDouble(row[2])
+
+    if (inAmount > 0.0) {
+        return inAmount
+    }
+    val outAmount = asDouble(row[3])
+    if (outAmount > 0) {
+        return -outAmount
+    }
+
+    return 0.0
 }
 
 private suspend fun performDataFrame(dataFrame: AnyFrame,
