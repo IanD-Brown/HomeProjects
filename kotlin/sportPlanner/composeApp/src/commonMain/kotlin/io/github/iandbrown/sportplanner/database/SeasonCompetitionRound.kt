@@ -46,4 +46,7 @@ interface SeasonCompetitionRoundDao : BaseSeasonCompReadDao<SeasonCompetitionRou
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
+
+    @Query("SELECT * FROM $table")
+    suspend fun getAll() : List<SeasonCompetitionRound>
 }

@@ -2,6 +2,7 @@ package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,6 +19,10 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 
 class CompetitionViewModel(dao: CompetitionDao = inject<CompetitionDao>().value) :
@@ -25,6 +30,8 @@ class CompetitionViewModel(dao: CompetitionDao = inject<CompetitionDao>().value)
 
 
 private val editor = Editors.COMPETITIONS
+private const val NAME = "Name"
+private const val TYPE = "Type"
 
 @Composable
 fun NavigateCompetitions(argument: String?) {
@@ -40,28 +47,45 @@ enum class CompetitionTypes(val display : String) {
     KNOCK_OUT_CUP("Knockout cup")
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun CompetitionView() {
-    val viewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()
+private fun CompetitionView(viewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
+    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Competitions",
-        bottomBar = { BottomBarWithButtonN("+") { editor.addRoute() }}) { paddingValues ->
+        bottomBar = {
+            BottomBarWithButtons(
+                exportButtonSettings(coroutineScope, "competitions") {
+                    toDataFrame(state.value).writeJson(it)
+                },
+                importJsonButtonSettings(viewModel) {
+                    toCompetition(it)
+                },
+                addButtonSettings { it.navigate(editor.addRoute()) }
+            )
+        }) { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
-                item { ViewText("Name") }
-                item { ViewText("Type") }
-                item {}
-                item {}
+                viewTextItems(listOf("Name", "Type"))
+                item(span = { GridItemSpan(2) }) {}
                 for (competition in state.value.sortedBy { it.name.uppercase().trim() }) {
-                    item { ViewText(competition.name) }
-                    item { ViewText(CompetitionTypes.entries[competition.type.toInt()].display) }
-                    item { EditButton {editor.editRoute(competition) } }
-                    item { DeleteButton { viewModel.delete(competition) } }
+                    viewTextItems(listOf(competition.name, CompetitionTypes.entries[competition.type.toInt()].display) )
+                    editButton {editor.editRoute(competition) }
+                    deleteButton { viewModel.delete(competition) }
                 }
             }
         }
 }
+
+internal fun toDataFrame(competitions: List<Competition>): DataFrame<Competition> =
+    competitions.toDataFrame {
+        NAME from { it.name }
+        TYPE from { it.type }
+    }
+
+internal fun toCompetition(row: DataRow<Any?>): Competition =
+    Competition(name = row[NAME] as String, type = (row[TYPE] as Int).toShort())
 
 @Composable
 private fun EditCompetition(editCompetition: Competition?) {

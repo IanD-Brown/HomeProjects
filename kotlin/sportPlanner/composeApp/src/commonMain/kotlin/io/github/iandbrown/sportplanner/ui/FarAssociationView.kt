@@ -3,9 +3,8 @@ package io.github.iandbrown.sportplanner.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,34 +65,29 @@ private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinIn
         editor.displayName,
         bottomBar = {
             BottomBarWithButtons(
-                exportButtonSettings(coroutineScope, "distant-away-games") {
+                exportButtonSettings(coroutineScope, "distantAwayGames") {
                     toDataFrame(state.value).writeJson(it)
                 },
                 importJsonButtonSettings(farAssociationViewModel) {
                     toFarAssociation(it)
                 },
-                ButtonSettings(imageVector = Icons.Default.Add) {
-                    it.navigate(editor.addRoute())
-                }
+                addButtonSettings { it.navigate(editor.addRoute()) }
             )
         }){ paddingValues ->
         LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
-            item { ViewText("Home Association") }
-            item { ViewText("Away Association") }
-            item {}
-            item {}
+            viewTextItems(listOf("Home Association", "Away Association"))
+            item(span = { GridItemSpan(2) }) {}
             for (entity in state.value) {
-                item { ViewText(entity.homeAssociationName) }
-                item { ViewText(entity.awayAssociationName) }
-                item { EditButton {editor.editRoute(entity) } }
-                item { DeleteButton { viewModel.delete(entity) } }
+                viewTextItems(listOf(entity.homeAssociationName, entity.awayAssociationName))
+                editButton {editor.editRoute(entity) }
+                deleteButton { viewModel.delete(entity) }
             }
         }
     }
 }
 
-internal fun toDataFrame(rules: List<FarAssociationView>): DataFrame<FarAssociationView> =
-    rules.toDataFrame {
+internal fun toDataFrame(records: List<FarAssociationView>): DataFrame<FarAssociationView> =
+    records.toDataFrame {
         HOME from { it.homeAssociationName }
         AWAY from { it.awayAssociationName }
     }

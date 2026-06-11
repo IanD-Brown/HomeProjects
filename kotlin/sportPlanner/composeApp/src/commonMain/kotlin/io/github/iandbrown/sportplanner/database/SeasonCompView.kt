@@ -42,4 +42,7 @@ interface SeasonCompViewDao : BaseReadDao<SeasonCompView> {
 
     @Query("DELETE FROM seasons WHERE id = :seasonId")
     suspend fun deleteSeason(seasonId : Short)
+
+    @Query("SELECT * FROM $viewName")
+    suspend fun getAll() : List<SeasonCompView>
 }

@@ -57,4 +57,7 @@ interface SeasonTeamCategoryDao : BaseSeasonCompReadDao<SeasonTeamCategory>, Bas
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
+
+    @Query("SELECT * FROM $table")
+    suspend fun getAll() : List<SeasonTeamCategory>
 }

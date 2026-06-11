@@ -1,30 +1,31 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
 import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 
 class AssociationViewModel : BaseConfigCRUDViewModel<AssociationDao, Association>(inject<AssociationDao>().value)
 
 private val editor = Editors.ASSOCIATIONS
+private const val NAME = "Name"
 
 @Composable
 fun NavigateAssociation(argument: String?) {
@@ -35,37 +36,47 @@ fun NavigateAssociation(argument: String?) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun AssociationEditor() {
-    val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
+private fun AssociationEditor(viewModel: AssociationViewModel = koinInject<AssociationViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
+    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Associations",
         bottomBar = {
-            BottomBarWithButtonN("+") {editor.addRoute()}
-        }){ paddingValues ->
-            LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-                items(
-                    items = state.value.sortedBy { it.name.uppercase().trim() },
-                    key = { association -> association.id }) { association ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(), content = {
-                            Spacer(modifier = Modifier.size(16.dp))
-                            Column(
-                                modifier = Modifier.weight(2F), content = {
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    ViewText(association.name)
-                                })
-                            ItemButtons(editClick = {
-                                editor.editRoute(association)
-                            }, deleteClick = { viewModel.delete(association) })
-                        })
-
-                }
-            })
+            BottomBarWithButtons(
+                exportButtonSettings(coroutineScope, "associations") {
+                    toDataFrame(state.value).writeJson(it)
+                },
+                importJsonButtonSettings(viewModel) {
+                    toAssociation(it)
+                },
+                addButtonSettings { it.navigate(editor.addRoute()) }
+            )
+        }) { paddingValues ->
+        LazyVerticalGrid(
+            columns = TrailingIconGridCells(1, 2),
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            viewTextItems(listOf("Name"))
+            item(span = { GridItemSpan(2) }) {}
+            for (entity in state.value.sortedBy { it.name.uppercase()}) {
+                viewTextItems(listOf(entity.name))
+                editButton { editor.editRoute(entity) }
+                deleteButton { viewModel.delete(entity) }
+            }
         }
+    }
 }
+
+internal fun toDataFrame(rules: List<Association>): DataFrame<Association> =
+    rules.toDataFrame {
+        NAME from { it.name }
+    }
+
+internal fun toAssociation(row: DataRow<Any?>): Association =
+    Association(name = row[NAME] as String)
 
 @Composable
 private fun EditAssociation(association: Association?) {

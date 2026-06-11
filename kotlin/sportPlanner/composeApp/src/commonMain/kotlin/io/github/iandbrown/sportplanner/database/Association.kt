@@ -23,6 +23,9 @@ interface AssociationDao : BaseReadDao<Association>, BaseWriteDao<Association> {
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<Association>>
 
+    @Query("SELECT * FROM $table")
+    suspend fun getAll() : List<Association>
+
     @Query("SELECT id FROM $table WHERE name = :name")
     suspend fun getByName(name: String) : AssociationId?
 

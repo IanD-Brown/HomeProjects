@@ -2,6 +2,7 @@ package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
@@ -61,15 +62,12 @@ private fun SeasonBreakView(param: Season) {
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2),
                 modifier = Modifier.padding(paddingValues),
                 gridState) {
-                item { ViewText("Name") }
-                item { ViewText("Week") }
-                item {}
-                item {}
+                viewTextItems(listOf("Name", "Week"))
+                item(span = { GridItemSpan(2) }) {}
                 for (seasonBreak in state.value.sortedBy { it.week }) {
-                    item("${seasonBreak.id}N") { ViewText(seasonBreak.name) }
-                    item("${seasonBreak.id}W") { ViewText(DayDate(seasonBreak.week).toString()) }
-                    item("${seasonBreak.id}E") { EditButton { editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak)) } }
-                    item("${seasonBreak.id}D") { DeleteButton { viewModel.delete(seasonBreak) } }
+                    viewTextItems(listOf(seasonBreak.name, DayDate(seasonBreak.week).toString()))
+                    editButton { editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak)) }
+                    deleteButton { viewModel.delete(seasonBreak) }
                 }
             }
         })

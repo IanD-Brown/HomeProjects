@@ -15,7 +15,7 @@ private const val table = "TeamCategories"
     indices = [Index(value = ["name"], unique = true)])
 data class TeamCategory (
     @PrimaryKey(autoGenerate = true)
-    val id : Short = 0,
+    val id : TeamCategoryId = 0,
     val name: String,
     val matchDay: Short)
 
@@ -25,8 +25,11 @@ interface TeamCategoryDao : BaseReadDao<TeamCategory>, BaseWriteDao<TeamCategory
     override fun get(): Flow<List<TeamCategory>>
 
     @Query("SELECT * FROM $table")
-    suspend fun getAsList() : List<TeamCategory>
+    suspend fun getAll() : List<TeamCategory>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
+
+    @Query("SELECT id FROM $table WHERE name = :name")
+    suspend fun getByName(name: String) : TeamCategoryId?
 }

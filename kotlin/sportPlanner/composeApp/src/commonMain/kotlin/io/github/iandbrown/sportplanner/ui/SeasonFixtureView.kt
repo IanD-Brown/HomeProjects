@@ -539,7 +539,7 @@ internal suspend fun calcFixtures(
 
     for (fixture in leagueGames.scheduleFixtures(seasonId,
         resolvedSeasonWeeks,
-        teamCategoryDao.getAsList(),
+        teamCategoryDao.getAll(),
         seasonTeamCategoryDao.getBySeasonId(seasonId),
         seasonCompRoundViewDao.getBySeason(seasonId),
         teamsByCategoryAndCompetition,

@@ -106,8 +106,6 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
     val coroutineScope = rememberCoroutineScope()
     var calculating by remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState()
-    val seasonCompetitionViewModel = koinInject<SeasonCompetitionViewModel> { parametersOf(param.seasonId, param.competitionId) }
-    val seasonCompetitionState = seasonCompetitionViewModel.uiState.collectAsState()
 
     if (calculating) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -117,9 +115,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
         ViewCommon(
             "Competition rounds in ${param.seasonName} for ${param.competitionName}",
             bottomBar = {
-                BottomBarWithButtonN("+", seasonCompetitionState.value.isNotEmpty()) {
-                    editor.editRoute(SeasonCompetitionRoundEditorInfo(param))
-                }
+                BottomBarWithButtons(addButtonSettings { it.navigate(editor.editRoute(SeasonCompetitionRoundEditorInfo(param))) })
             },
             content = { paddingValues ->
                 val values = state.value.filter { it.competitionId == param.competitionId }
@@ -129,18 +125,13 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                     Modifier.padding(paddingValues),
                     gridState
                 ) {
-                    item { ViewText("Round") }
-                    item { ViewText("Description") }
-                    item { ViewText("Week") }
-                    item { ViewText("Optional") }
+                    viewTextItems(listOf("Round", "Description", "Week", "Optional"))
                     item { Icon(Blank, "") }
                     item { Icon(Blank, "") }
                     item { Icon(Blank, "") }
                     item { Icon(Blank, "") }
                     for (it in values) {
-                        item { ViewText(it.round.toString()) }
-                        item { ViewText(it.description) }
-                        item { ViewText(DayDate(it.week).toString()) }
+                        viewTextItems(listOf(it.round.toString(), it.description, DayDate(it.week).toString()))
                         item { Checkbox(checked = it.optional, onCheckedChange = null, enabled = false) }
                         item {
                             ClickableIcon(Icons.Filled.GridView, "Show fixtures") {
@@ -163,15 +154,11 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                                 calculating = false
                             }
                         }
-                        item {
-                            EditButton {
-                                editor.editRoute(SeasonCompetitionRoundEditorInfo(param, it))
-                            }
+                        editButton {
+                            editor.editRoute(SeasonCompetitionRoundEditorInfo(param, it))
                         }
-                        item {
-                            DeleteButton(it != values[values.lastIndex]) {
-                                viewModel.delete(it)
-                            }
+                        deleteButton(it != values[values.lastIndex]) {
+                            viewModel.delete(it)
                         }
                     }
                 }
@@ -458,7 +445,7 @@ internal suspend fun calcCupFixtures(
 ) {
     dao.deleteByRound(seasonId, competitionId, round)
 
-    val teamCategories = teamCategoryDao.getAsList()
+    val teamCategories = teamCategoryDao.getAll()
     for (teamCategory in teamCategories) {
         if (round == 1.toShort()) {
             val competitionTeams =

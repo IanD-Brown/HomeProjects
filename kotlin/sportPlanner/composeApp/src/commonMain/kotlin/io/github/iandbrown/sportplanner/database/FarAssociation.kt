@@ -21,9 +21,6 @@ interface FarAssociationDao : BaseReadDao<FarAssociation>, BaseWriteDao<FarAssoc
     @Query("SELECT * FROM $table")
     override fun get(): Flow<List<FarAssociation>>
 
-    @Query("SELECT * FROM $table")
-    suspend fun getAll() : List<FarAssociation>
-
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
 }

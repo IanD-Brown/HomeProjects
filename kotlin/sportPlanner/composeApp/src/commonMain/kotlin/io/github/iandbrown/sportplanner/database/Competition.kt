@@ -17,7 +17,7 @@ private const val table = "Competitions"
 )
 data class Competition(
     @PrimaryKey(autoGenerate = true)
-    val id: Short = 0,
+    val id: CompetitionId = 0,
     val name: String,
     val type: Short
 )
@@ -29,4 +29,10 @@ interface CompetitionDao : BaseReadDao<Competition>, BaseWriteDao<Competition> {
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
+
+    @Query("SELECT * FROM $table")
+    suspend fun getAll() : List<Competition>
+
+    @Query("SELECT id FROM $table WHERE name = :name")
+    suspend fun getByName(name : String) : CompetitionId?
 }

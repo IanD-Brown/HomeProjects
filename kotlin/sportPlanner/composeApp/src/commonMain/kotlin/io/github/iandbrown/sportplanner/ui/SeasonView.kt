@@ -9,8 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Splitscreen
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled._123
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
@@ -18,22 +20,35 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
+import io.github.iandbrown.sportplanner.database.Association
+import io.github.iandbrown.sportplanner.database.AssociationDao
 import io.github.iandbrown.sportplanner.database.Competition
+import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
+import io.github.iandbrown.sportplanner.database.SeasonBreak
+import io.github.iandbrown.sportplanner.database.SeasonBreakDao
 import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.github.iandbrown.sportplanner.database.SeasonCompViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
+import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
+import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.database.SeasonId
+import io.github.iandbrown.sportplanner.database.SeasonTeam
+import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
+import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
+import io.github.iandbrown.sportplanner.database.SeasonTeamDao
+import io.github.iandbrown.sportplanner.database.TeamCategory
+import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
-import kotlin.collections.emptyList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
@@ -41,6 +56,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.JoinType
+import org.jetbrains.kotlinx.dataframe.api.join
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.readJson
+import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
@@ -54,7 +76,7 @@ class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCR
             val seasonId = dao.getSeasonId(name.trim())!!
             for (competition in competitionState.value) {
                 val seasonCompetition = SeasonCompetition(
-                    seasonId = seasonId.toShort(),
+                    seasonId = seasonId,
                     competitionId = competition.id,
                     startDate = startDates[competition.id] ?: 0,
                     endDate = endDates[competition.id] ?: 0
@@ -86,6 +108,23 @@ class SeasonCompViewModel(dao: SeasonCompViewDao = inject<SeasonCompViewDao>().v
 
 private val editor : Editors = Editors.SEASONS
 
+private const val ASSOCIATION_NAME = "AssociationName"
+private const val COMPETITION_NAME = "CompetitionName"
+private const val COUNT = "Count"
+private const val DESCRIPTION = "Description"
+private const val END_DATE = "EndDate"
+private const val GAMES = "Games"
+private const val LOCKED = "Locked"
+private const val OPTIONAL = "Optional"
+private const val ROUND = "Round"
+private const val SEASON_BREAK_NAME = "SeasonBreakName"
+private const val SEASON_NAME = "SeasonName"
+private const val START_DATE = "StartDate"
+private const val TEAM_CATEGORY_NAME = "TeamCategory"
+private const val TYPE = "Type"
+private const val WEEK = "Week"
+
+private enum class DataFrameTypes {SEASON_COMP, BREAK, TEAM, MATCH, ROUND}
 @Serializable
 data class SeasonCompetitionParam(val seasonId : SeasonId, val seasonName : String, val competitionId : CompetitionId, val competitionName : String)
 
@@ -98,64 +137,201 @@ fun NavigateSeason(argument: String?) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonListView() {
-    val seasonCompViewModel = koinInject<SeasonCompViewModel>()
+private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinInject<SeasonCompViewModel>(),
+                           seasonViewModel: SeasonViewModel = koinInject<SeasonViewModel>()) {
     val seasonCompViewState = seasonCompViewModel.uiState.collectAsState()
     val gridState = rememberLazyGridState()
+    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Seasons",
-        bottomBar = { BottomBarWithButtonN("+") {editor.addRoute()} },
-        content = { paddingValues ->
-            var seasonId : Short? = null
-
-            LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues), state = gridState) {
-                for (seasonCompView in seasonCompViewState.value) {
-                    if (seasonCompView.seasonId != seasonId) {
-                        item(key = "${seasonCompView.seasonId}") { ViewText(seasonCompView.seasonName)  }
-                        item(key = "${seasonCompView.seasonId}Blank") { ViewText("") }
-
-                        item(key = "${seasonCompView.seasonId}Breaks") { ClickableIcon(Icons.Default.Splitscreen, "manage season breaks") {
-                            Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))
-                        }}
-                        item(key = "${seasonCompView.seasonId}Edit") { EditButton { editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)) }}
-                        item { DeleteButton { seasonCompViewModel.deleteSeason(seasonCompView.seasonId) }}
-
-                        seasonId = seasonCompView.seasonId
+        bottomBar = {
+            BottomBarWithButtons(
+            exportButtonSettings(coroutineScope, "seasons") {
+                    toDataFrame(seasonCompViewState.value,
+                        inject<SeasonBreakDao>().value.getAll(),
+                        inject<SeasonTeamDao>().value.getAll(),
+                        inject<SeasonTeamCategoryDao>().value.getAll(),
+                        inject<SeasonCompetitionRoundDao>().value.getAll(),
+                        inject<CompetitionDao>().value.getAll(),
+                        inject<AssociationDao>().value.getAll(),
+                        inject<TeamCategoryDao>().value.getAll(),).writeJson(it)
+                },
+                ButtonSettings(imageVector = Icons.Default.Upload) {
+                    coroutineScope.launch {
+                        importFromFile(
+                            "json",
+                            {
+                                val dataFrame = DataFrame.readJson(it)
+                                seasonViewModel.dao.deleteAll()
+                                dataFrame
+                            })
+                        { importRow(it) }
                     }
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}") { ViewText(" * ${seasonCompView.competitionName}") }
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Dates") { val startDate = DayDate(seasonCompView.startDate).toString()
-                        val endDate = DayDate(seasonCompView.endDate).toString()
-                        val join = if (startDate.isNotBlank() || endDate.isNotBlank()) "to" else ""
-                        ViewText("$startDate $join $endDate") }
+                },
+                addButtonSettings { it.navigate(editor.addRoute()) }
+            )
+        })
+    { paddingValues ->
+        var seasonId : Short? = null
+        val surfaceColor = MaterialTheme.colorScheme.onSurface
 
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}BlankIcon") {
-                        Icon(Blank, "")
-                    }
+        LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues), state = gridState) {
+            for (seasonCompView in seasonCompViewState.value) {
+                if (seasonCompView.seasonId != seasonId) {
+                    viewTextItems(listOf(seasonCompView.seasonName,""))
 
-                    if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
-                        item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Rounds") {
-                            ClickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds") {
-                                Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView))
-                            }
-                        }
-                    } else {
-                        item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Teams") {
-                            ClickableIcon(Icons.Default.Accessibility, "manage teams") {
-                                Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView))
-                            }
-                        }
+                    clickableIcon(Icons.Default.Splitscreen, "manage season breaks", surfaceColor) {
+                        Editors.SEASON_BREAK.viewRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName))
                     }
-                    item(key = "${seasonCompView.seasonId}-${seasonCompView.competitionId}Structure") {
-                        ClickableIcon(Icons.Default._123, "manage match structure") {
-                            Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView))
-                        }
+                    editButton { editor.editRoute(Season(seasonCompView.seasonId, seasonCompView.seasonName)) }
+                    deleteButton { seasonCompViewModel.deleteSeason(seasonCompView.seasonId) }
+
+                    seasonId = seasonCompView.seasonId
+                }
+                val startDate = DayDate(seasonCompView.startDate)
+                val endDate = DayDate(seasonCompView.endDate)
+                val join = if (startDate.isValid() || endDate.isValid()) "to" else ""
+                viewTextItems(listOf(" * ${seasonCompView.competitionName}", "$startDate $join $endDate"))
+
+                item {
+                    Icon(Blank, "")
+                }
+
+                if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
+                    clickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds", surfaceColor) {
+                        Editors.SEASON_COMPETITION_ROUND.viewRoute(seasonCompetitionParamOf(seasonCompView))
+                    }
+                } else {
+                    clickableIcon(Icons.Default.Accessibility, "manage teams", surfaceColor) {
+                        Editors.SEASON_TEAM_CATEGORY.viewRoute(seasonCompetitionParamOf(seasonCompView))
                     }
                 }
+                clickableIcon(Icons.Default._123, "manage match structure", surfaceColor) {
+                    Editors.SEASON_TEAMS.viewRoute(seasonCompetitionParamOf(seasonCompView))
+                }
             }
-        })
+        }
+    }
 }
+
+internal fun toDataFrame(
+    seasonCompViews: List<SeasonCompView>, seasonBreaks: List<SeasonBreak>, seasonTeams:
+    List<SeasonTeam>, seasonTeamCategories: List<SeasonTeamCategory>, competitionRounds: List<SeasonCompetitionRound>,
+
+    competitions: List<Competition>, associations: List<Association>, teamCategories: List<TeamCategory>):
+        DataFrame<SeasonCompView> {
+    val seasonCompViewsById = seasonCompViews.associateBy { it.seasonId }
+    val competitionsById = competitions.associateBy { it.id }
+    val associationsById = associations.associateBy { it.id }
+    val teamCategoriesById = teamCategories.associateBy { it.id }
+    return seasonCompViews.toDataFrame {
+            TYPE from { DataFrameTypes.SEASON_COMP.name }
+            SEASON_NAME from { it.seasonName }
+            COMPETITION_NAME from { it.competitionName }
+            START_DATE from { it.startDate }
+            END_DATE from { it.endDate }
+        }.join(seasonBreaks.toDataFrame {
+            TYPE from { DataFrameTypes.BREAK.name }
+            SEASON_NAME from { seasonCompViewsById[it.seasonId]?.seasonName }
+            SEASON_BREAK_NAME from {it.name}
+            WEEK from {it.week}
+        }, JoinType.Full).join(seasonTeams.toDataFrame {
+            TYPE from {DataFrameTypes.TEAM.name}
+            SEASON_NAME from { seasonCompViewsById[it.seasonId]?.seasonName }
+            COMPETITION_NAME from { competitionsById[it.competitionId]?.name }
+            ASSOCIATION_NAME from { associationsById[it.associationId]?.name }
+            TEAM_CATEGORY_NAME from { teamCategoriesById[it.teamCategoryId]?.name }
+            COUNT from {it.count}
+        }, JoinType.Full).join(seasonTeamCategories.toDataFrame {
+            TYPE from {DataFrameTypes.MATCH.name}
+            SEASON_NAME from { seasonCompViewsById[it.seasonId]?.seasonName }
+            COMPETITION_NAME from { competitionsById[it.competitionId]?.name }
+            TEAM_CATEGORY_NAME from { teamCategoriesById[it.teamCategoryId]?.name }
+            GAMES from {it.games}
+            LOCKED from {it.locked}
+        }, JoinType.Full).join(competitionRounds.toDataFrame {
+            TYPE from {DataFrameTypes.ROUND.name}
+            SEASON_NAME from { seasonCompViewsById[it.seasonId]?.seasonName }
+            COMPETITION_NAME from { competitionsById[it.competitionId]?.name }
+            ROUND from {it.round}
+            DESCRIPTION from {it.description}
+            WEEK from {it.week}
+            OPTIONAL from {it.optional}
+        }, JoinType.Full)
+    }
+
+internal suspend fun importRow(row: DataRow<Any?>,
+                               seasonDao: SeasonDao = inject<SeasonDao>().value,
+                               seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value,
+                               seasonBreakDao: SeasonBreakDao = inject<SeasonBreakDao>().value,
+                               seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>().value,
+                               seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>().value,
+                               seasonCompetitionRoundDao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>().value,
+
+                               competitionDao: CompetitionDao = inject<CompetitionDao>().value,
+                               associationDao: AssociationDao = inject<AssociationDao>().value,
+                               teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value) {
+    when (row[TYPE]) {
+        DataFrameTypes.SEASON_COMP.name -> {
+            if (seasonDao.getSeasonId(string(row[SEASON_NAME])) == null) {
+                seasonDao.insert(Season(name = string(row[SEASON_NAME])))
+            }
+            seasonCompetitionDao.insert(SeasonCompetition(seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
+                competitionDao.getByName(string(row[COMPETITION_NAME]))!!,
+                int(row[START_DATE]),
+                int(row[END_DATE])))
+        }
+        DataFrameTypes.BREAK.name -> seasonBreakDao.insert(SeasonBreak(seasonId = seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
+            name = string(row[SEASON_BREAK_NAME]), week = int(row[WEEK])))
+        DataFrameTypes.TEAM.name -> seasonTeamDao.insert(SeasonTeam(seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
+            competitionDao.getByName(string(row[COMPETITION_NAME]))!!,
+            associationDao.getByName(string(row[ASSOCIATION_NAME]))!!,
+            teamCategoryDao.getByName(string(row[TEAM_CATEGORY_NAME]))!!,
+            short(row[COUNT])))
+        DataFrameTypes.MATCH.name -> seasonTeamCategoryDao.insert(SeasonTeamCategory(seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
+            competitionDao.getByName(string(row[COMPETITION_NAME]))!!,
+            teamCategoryDao.getByName(string(row[TEAM_CATEGORY_NAME]))!!,
+            short(row[GAMES]),
+            boolean(row[LOCKED])))
+        DataFrameTypes.ROUND.name -> seasonCompetitionRoundDao.insert(SeasonCompetitionRound(seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
+            competitionDao.getByName(string(row[COMPETITION_NAME]))!!,
+            short(row[ROUND]),
+            string(row[DESCRIPTION]),
+            int(row[WEEK]),
+            boolean(row[OPTIONAL])))
+    }
+}
+
+private fun boolean(cell: Any?) : Boolean =
+    when (cell) {
+        is Boolean -> cell
+        is String -> cell.toBoolean()
+        else -> false
+    }
+
+private fun string(cell: Any?): String =
+    when (cell) {
+        is String -> cell
+        is Double -> cell.toString()
+        is Char -> cell.toString()
+        else -> ""
+    }
+
+private fun int(cell: Any?) : Int =
+    when (cell) {
+        is Int -> cell
+        is String -> if (cell.isNotBlank()) cell.toInt() else 0
+        else -> 0
+    }
+private fun short(cell: Any?) : Short =
+    when (cell) {
+        is Int -> cell.toShort()
+        is String -> if (cell.isNotBlank()) cell.toShort() else 0
+        else -> 0
+    }
 
 private fun seasonCompetitionParamOf(seasonCompView : SeasonCompView) : SeasonCompetitionParam =
     SeasonCompetitionParam(seasonCompView.seasonId, seasonCompView.seasonName, seasonCompView.competitionId, seasonCompView.competitionName)

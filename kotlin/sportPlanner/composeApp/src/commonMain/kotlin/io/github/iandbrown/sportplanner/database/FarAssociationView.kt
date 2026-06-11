@@ -34,4 +34,7 @@ interface FarAssociationViewDao : BaseReadDao<FarAssociationView> {
 
     @Query("DELETE FROM FarAssociations WHERE homeAssociation = :homeAssociationId AND awayAssociation = :awayAssociationId")
     suspend fun delete(homeAssociationId: AssociationId, awayAssociationId: AssociationId)
+
+    @Query("SELECT * FROM $viewName")
+    suspend fun getAll() : List<FarAssociationView>
 }

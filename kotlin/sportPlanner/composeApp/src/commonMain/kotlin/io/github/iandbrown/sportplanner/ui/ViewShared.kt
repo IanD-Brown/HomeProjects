@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -248,14 +249,6 @@ fun SpacedViewText(value : String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ItemButtons(editClick : () -> String, deleteClick : () -> Unit) {
-    Spacer(modifier = Modifier.size(16.dp))
-    EditButton(editClick)
-    Spacer(modifier = Modifier.size(16.dp))
-    DeleteButton(onClick = deleteClick)
-}
-
-@Composable
 fun DropdownList(
     itemList: ImmutableList<String>,
     selectedIndex: Int,
@@ -361,17 +354,18 @@ fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> B
 fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
     DayDate.isMondayIn(IntRange(seasonCompetition.startDate, seasonCompetition.endDate), DayDate(utcMs).value())
 
-@Composable
-fun EditButton(route : () -> String) =
-    ClickableIcon(Icons.Default.Edit, "edit", Color.Green, route)
+internal fun LazyGridScope.editButton(route : () -> String) =
+    clickableIcon(Icons.Default.Edit, "edit", Color.Green, route)
 
-@Composable
-fun DeleteButton(disabled: Boolean = false, onClick : () -> Unit) =
-    if (disabled) {
-        Icon(Icons.Default.Delete, "delete", tint = Color(0x99990000))
-    } else {
-        Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () -> Unit) {
+    item {
+        if (disabled) {
+            Icon(Icons.Default.Delete, "delete", tint = Color(0x99990000))
+        } else {
+            Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+        }
     }
+}
 
 @Composable
 fun ClickableIcon(
@@ -381,6 +375,14 @@ fun ClickableIcon(
     onClick: () -> String
 ) {
     Icon(imageVector, contentDescription, Modifier.clickable(onClick = { appNavController.navigate(onClick())}), tint)
+}
+
+
+internal fun LazyGridScope.clickableIcon(imageVector: ImageVector,
+                                         contentDescription: String?,
+                                         color: Color,
+                                         route : () -> String) {
+    item { ClickableIcon(imageVector, contentDescription, color, route) }
 }
 
 @Composable
@@ -463,18 +465,10 @@ fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Bo
     { ViewText(value) }
 }
 
-@Composable
-fun BottomBarWithButtonN(value : String = OK, enabled: Boolean = true, onClick : () -> String) {
-    Row {
-        ReadonlyViewText("", Modifier.weight(4f))
-        OutlinedTextButton(value, Modifier.weight(1f), enabled){
-            appNavController.navigate(onClick())
-        }
-    }
-}
-
-// data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val onClick : () -> Unit)
 internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val navigateFun : (NavController) -> Unit)
+
+internal fun addButtonSettings(onClick : (NavController) -> Unit) : ButtonSettings =
+    ButtonSettings(imageVector = Icons.Default.Add, navigateFun = onClick)
 
 @Composable
 fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : (NavController) -> Unit) =
@@ -500,12 +494,12 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
 internal fun exportButtonSettings(coroutineScope: CoroutineScope,
                                   suggestName: String,
                                   extension: String = "json",
-                                  transformedDataSupplier: (Appendable) -> Unit) : ButtonSettings =
+                                  transformedDataSupplier: suspend (Appendable) -> Unit) : ButtonSettings =
     ButtonSettings(imageVector = Icons.Default.Download) { coroutineScope.launch {
         exportToFile(suggestName, extension, transformedDataSupplier)
     }}
 
-internal suspend fun exportToFile(suggestName: String, extension: String = "json", transformedDataSupplier: (Appendable) -> Unit) {
+internal suspend fun exportToFile(suggestName: String, extension: String = "json", transformedDataSupplier: suspend (Appendable) -> Unit) {
     val file = FileKit.openFileSaver(suggestedName = suggestName, defaultExtension = extension)
     val sink = file?.sink(append = false)?.buffered()
 

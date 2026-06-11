@@ -24,7 +24,7 @@ interface SeasonDao : BaseReadDao<Season>, BaseWriteDao<Season> {
     override fun get(): Flow<List<Season>>
 
     @Query("SELECT id FROM $table WHERE name = :name")
-    suspend fun getSeasonId(name : String) : Int?
+    suspend fun getSeasonId(name : String) : SeasonId?
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

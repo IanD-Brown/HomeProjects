@@ -2,6 +2,7 @@ package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -9,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.TeamCategory
@@ -16,12 +18,19 @@ import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 
 class TeamCategoryViewModel(dao : TeamCategoryDao = inject<TeamCategoryDao>().value) :
     BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(dao)
 
 private val editor = Editors.TEAM_CATEGORIES
+private const val NAME = "Name"
+private const val MATCH_DAY = "MatchDay"
+
 private enum class Day(val display : String) {
     MON("Mon"),
     TUES("Tues"),
@@ -41,28 +50,45 @@ fun NavigateTeamCategory(argument: String?) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun TeamCategoryEditor() {
-    val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
+private fun TeamCategoryEditor(viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
     val state = viewModel.uiState.collectAsState(emptyList())
+    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         "Team Categories",
-        bottomBar = {BottomBarWithButtonN("+") { editor.addRoute() }}) { paddingValues ->
-            LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
-                item { ViewText("Name") }
-                item { ViewText("Match Day") }
-                item {}
-                item {}
-                for (teamCategory in state.value.sortedBy { it.name.uppercase().trim() }) {
-                    item { ViewText(teamCategory.name) }
-                    item { ViewText(Day.entries[teamCategory.matchDay.toInt()].display) }
-                    item { EditButton {editor.editRoute(teamCategory) } }
-                    item { DeleteButton { viewModel.delete(teamCategory) } }
-                }
+        bottomBar = {
+            BottomBarWithButtons(
+                exportButtonSettings(coroutineScope, "teamCategories") {
+                    toDataFrame(state.value).writeJson(it)
+                },
+                importJsonButtonSettings(viewModel) {
+                    toTeamCategory(it)
+                },
+                addButtonSettings { it.navigate(editor.addRoute()) }
+            )
+        }) { paddingValues ->
+        LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
+            viewTextItems(listOf("Name", "Match Day"))
+            item(span = { GridItemSpan(2) }) {}
+            for (teamCategory in state.value.sortedBy { it.name.uppercase().trim() }) {
+                viewTextItems(listOf(teamCategory.name, Day.entries[teamCategory.matchDay.toInt()].display))
+                editButton {editor.editRoute(teamCategory) }
+                deleteButton { viewModel.delete(teamCategory) }
             }
         }
+    }
 }
+
+internal fun toDataFrame(teamCategories: List<TeamCategory>): DataFrame<TeamCategory> =
+    teamCategories.toDataFrame {
+        NAME from { it.name }
+        MATCH_DAY from {it.matchDay}
+    }
+
+internal fun toTeamCategory(row: DataRow<Any?>): TeamCategory =
+    TeamCategory(name = row[NAME] as String, matchDay = (row[MATCH_DAY] as Int).toShort())
 
 @Composable
 private fun EditTeamCategory(editCategory: TeamCategory?) {
