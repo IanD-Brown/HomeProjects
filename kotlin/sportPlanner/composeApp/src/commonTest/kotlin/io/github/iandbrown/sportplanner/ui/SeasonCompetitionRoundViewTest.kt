@@ -84,7 +84,7 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
             val teams = listOf(SeasonTeam(seasonId, competitionId, 1, teamCategoryId, 2), SeasonTeam(seasonId, competitionId, 2, teamCategoryId, 2))
 
             everySuspend { dao.deleteByRound(seasonId, competitionId, round) } returns Unit
-            everySuspend { teamCategoryDao.getAsList() } returns listOf(teamCategory)
+            everySuspend { teamCategoryDao.getAll() } returns listOf(teamCategory)
             everySuspend { seasonTeamDao.getTeams(seasonId, competitionId, teamCategoryId) } returns teams
             everySuspend { dao.insert(any()) } returns 0L
 
@@ -106,7 +106,7 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
             )
 
             everySuspend { dao.deleteByRound(seasonId, competitionId, round) } returns Unit
-            everySuspend { teamCategoryDao.getAsList() } returns listOf(teamCategory)
+            everySuspend { teamCategoryDao.getAll() } returns listOf(teamCategory)
             everySuspend { dao.get(seasonId, competitionId, teamCategoryId, 1.toShort()) } returns round1Fixtures
             everySuspend { dao.insert(any()) } returns 0L
 
