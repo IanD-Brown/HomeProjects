@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -50,7 +51,7 @@ enum class CompetitionTypes(val display : String) {
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun CompetitionView(viewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -58,18 +59,18 @@ private fun CompetitionView(viewModel: CompetitionViewModel = koinInject<Competi
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "competitions") {
-                    toDataFrame(state.value).writeJson(it)
+                    toDataFrame(state.values()).writeJson(it)
                 },
                 importJsonButtonSettings(viewModel) {
                     toCompetition(it)
                 },
                 addButtonSettings { it.navigate(editor.addRoute()) }
             )
-        }) { paddingValues ->
+        }, states = persistentListOf(state.value)) { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
                 viewTextItems(listOf("Name", "Type"))
                 item(span = { GridItemSpan(2) }) {}
-                for (competition in state.value.sortedBy { it.name.uppercase().trim() }) {
+                for (competition in state.values().sortedBy { it.name.uppercase().trim() }) {
                     viewTextItems(listOf(competition.name, CompetitionTypes.entries[competition.type.toInt()].display) )
                     editButton {editor.editRoute(competition) }
                     deleteButton { viewModel.delete(competition) }
@@ -104,7 +105,7 @@ private fun EditCompetition(editCompetition: Competition?) {
             (name.isNotEmpty() && (editCompetition == null || name != editCompetition.name)) || (editCompetition != null && type != editCompetition.type)
         },
         confirmAction = {save(coroutineScope, editCompetition, name, type)},
-        content = { paddingValues ->
+        states = persistentListOf()) { paddingValues ->
             LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText(value = "Name") }
                 item { ReadonlyViewText(value = "Type") }
@@ -114,7 +115,7 @@ private fun EditCompetition(editCompetition: Competition?) {
                     selectedIndex = type.toInt(),
                 ) { type = it.toShort() } }
             }
-        })
+        }
 }
 
 private fun save(coroutineScope: CoroutineScope, editCompetition: Competition?, name: String, type: Short) {

@@ -3,6 +3,7 @@ package io.github.iandbrown.sportplanner.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -59,13 +61,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import io.github.iandbrown.sportplanner.database.BaseReadDao
+import androidx.room.RoomDatabase
+import androidx.room.TransactionScope
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
+import io.github.iandbrown.sportplanner.database.AppDatabase
+import io.github.iandbrown.sportplanner.database.ConfigReadDao
 import io.github.iandbrown.sportplanner.database.BaseWriteDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
+import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
@@ -85,7 +94,6 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readJson
 import java.io.InputStream
-import kotlin.use
 
 val fontSize = 16.sp
 const val OK = "OK"
@@ -100,13 +108,33 @@ fun ViewCommon(
     bottomBar: @Composable () -> Unit = {},
     confirm: () -> Boolean = { false },
     confirmAction: () -> Unit = {},
+    states: ImmutableList<ViewModelState<*>>,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { CreateTopBar(title, description, confirm, confirmAction) },
-        bottomBar = bottomBar,
-        content = content)
+    val errors = states.filterIsInstance<ViewModelState.Error>()
+    if (errors.isNotEmpty()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+        ) {paddingValues ->
+            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                for (error in errors) {
+                    ViewText(error.message)
+                }
+            }
+        }
+    } else if (states.filter { it !is ViewModelState.Error }.any { it !is ViewModelState.Success }) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
+        }
+    } else {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+            bottomBar = bottomBar,
+            content = content
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -513,8 +541,9 @@ internal suspend fun exportToFile(suggestName: String, extension: String = "json
 }
 
 internal fun<DAO, ENTITY, VIEW_MODEL> importJsonButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
-        where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
-    ButtonSettings(imageVector = Icons.Default.Upload) { viewModel.coroutineScope.launch {
+        where ENTITY : Any, DAO : ConfigReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
+    ButtonSettings(imageVector = Icons.Default.Upload) { viewModel.viewModelScope.launch {
+        tryTransaction({viewModel.handleException(it)}, {
             importFromFile(
                 "json",
                 {
@@ -522,6 +551,7 @@ internal fun<DAO, ENTITY, VIEW_MODEL> importJsonButtonSettings(viewModel: VIEW_M
                     viewModel.dao.deleteAll()
                     dataFrame
                 }, { viewModel.dao.insert(rowHandler(it)) })
+        })
         }
     }
 
@@ -545,5 +575,17 @@ internal suspend fun importFromFile(
 internal fun LazyGridScope.viewTextItems(values: List<String>) {
     items(items = values) {
         ViewText(it)
+    }
+}
+
+internal suspend fun<R> RoomDatabase.inTransaction(block: suspend TransactionScope<R>.() -> R) {
+        useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
+}
+
+internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit, block: suspend () -> Unit, db: AppDatabase = inject<AppDatabase>().value) {
+    try {
+        db.inTransaction { block() }
+    } catch (e: Exception) {
+        exceptionHandler(e)
     }
 }

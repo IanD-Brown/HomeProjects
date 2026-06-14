@@ -50,6 +50,7 @@ import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
 import io.github.iandbrown.sportplanner.logic.SeasonWeeks
 import io.github.iandbrown.sportplanner.logic.SeasonWeeksImpl.Companion.createSeasonWeeks
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -93,10 +94,11 @@ fun NavigateFixtures(argument: String?) {
 @Composable
 private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
                               seasonId: SeasonId,
-                              seasonCompModel : SeasonCompViewModel = koinViewModel(),
+                              seasonCompModel : SeasonCompViewModel =  koinViewModel(),
                               onClick : (CompetitionId) -> Unit) {
     val seasonCompetitionState by seasonCompModel.uiState.collectAsState()
     val seasonCompViews = seasonCompetitionState
+        .values()
         .filter { it.seasonId == seasonId }
         .filter { it.competitionType == CompetitionTypes.LEAGUE.ordinal.toShort() }
     val competitionNameToId = seasonCompViews.associateBy({ it.competitionName }, { it.competitionId })
@@ -119,9 +121,10 @@ private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun FixtureView() {
-    val seasonState by koinInject<SeasonViewModel>().uiState.collectAsState()
+private fun FixtureView(viewModel: SeasonViewModel= koinInject<SeasonViewModel>()) {
+    val seasonState = viewModel.uiState.collectAsState()
     val calculating = remember {mutableStateOf(false)}
     val coroutineScope = rememberCoroutineScope()
 
@@ -130,14 +133,15 @@ private fun FixtureView() {
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
     } else {
-        ViewCommon("Fixtures", content = { paddingValues ->
+        ViewCommon("Fixtures",
+            states = persistentListOf(seasonState.value)) { paddingValues ->
             LazyVerticalGrid(columns = WeightedIconGridCells(4, 1), Modifier.padding(paddingValues)) {
                 item { ViewText("Season") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
-                for (season in seasonState.sortedByDescending { it.name.trim().uppercase() }) {
+                for (season in seasonState.values().sortedByDescending { it.name.trim().uppercase() }) {
                     item { ViewText(season.name) }
                     item { ClickableIcon(Icons.Filled.Info, "Date summary") {
                         "${editor.name}/Date&${Json.encodeToString(season)}"
@@ -158,7 +162,7 @@ private fun FixtureView() {
                     }}
                 }
             }
-        })
+        }
     }
 }
 
@@ -172,23 +176,24 @@ private fun SummaryFixtureView(season: Season,
                                seasonTeamCategoryModel : SeasonTeamCategoryViewModel = koinViewModel { parametersOf(season.id) },
                                farAssociationViewModel: FarAssociationListViewModel = koinViewModel()) {
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val state = seasonFixtureViewModel.uiState.collectAsState(emptyList())
-    val seasonLeagueTeamState by seasonLeagueTeamModel.uiState.collectAsState(emptyList())
-    val seasonTeamCategoryState by seasonTeamCategoryModel.uiState.collectAsState()
-    val farAssociationState by farAssociationViewModel.uiState.collectAsState()
+    val state = seasonFixtureViewModel.uiState.collectAsState()
+    val seasonLeagueTeamState = seasonLeagueTeamModel.uiState.collectAsState()
+    val seasonTeamCategoryState = seasonTeamCategoryModel.uiState.collectAsState()
+    val farAssociationState = farAssociationViewModel.uiState.collectAsState()
     var typeFilter by remember { mutableStateOf<SumType?>(null) }
 
     ViewCommon(
         "Season fixture Summary",
         "Return to seasons screen",
+        states = persistentListOf(state.value, seasonLeagueTeamState.value, seasonTeamCategoryState.value, farAssociationState.value),
         content = {paddingValues ->
             val countsByTeamAndCategory = mutableMapOf<Triple<String, String, SumType>, Int>()
-            val teamCounts = seasonLeagueTeamState.associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
+            val teamCounts = seasonLeagueTeamState.values().associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
             val teamCategories = sortedSetOf<String>()
             val teams = sortedSetOf<String>()
-            val filteredFixtures = state.value.filter { it.competitionId == competitionFilter && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) }
-            val singleGameTeamCategories = seasonTeamCategoryState.filter { it.games == 1.toShort() }.map { it.teamCategoryId }.toSet()
-            val distantAwayFixtures = farAssociationState.groupBy { it.homeAssociationName }
+            val filteredFixtures = state.values().filter { it.competitionId == competitionFilter && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) }
+            val singleGameTeamCategories = seasonTeamCategoryState.values().filter { it.games == 1.toShort() }.map { it.teamCategoryId }.toSet()
+            val distantAwayFixtures = farAssociationState.values().groupBy { it.homeAssociationName }
                 .mapValues { it.value.map {value -> value.awayAssociationName }.toSet() }
 
             for (seasonFixture in filteredFixtures) {
@@ -265,19 +270,19 @@ private fun SummaryFixtureView(season: Season,
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun FixtureTableView(season: Season,
-                             viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) },
                              associationModel : AssociationViewModel = koinViewModel(),
-                             teamCategoryModel : TeamCategoryViewModel = koinViewModel(),
-                             seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel{ parametersOf(season.id) }) {
-    val associationState by associationModel.uiState.collectAsState(emptyList())
-    val teamCategoryState by teamCategoryModel.uiState.collectAsState(emptyList())
-    val state = viewModel.uiState.collectAsState(emptyList())
+                             teamCategoryModel : TeamCategoryViewModel = koinViewModel(), ) {
+    val viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) }
+    val seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel{ parametersOf(season.id) }
+    val associationState = associationModel.uiState.collectAsState()
+    val teamCategoryState = teamCategoryModel.uiState.collectAsState()
+    val state = viewModel.uiState.collectAsState()
     var filterAssociation by remember { mutableStateOf("") }
     var filterTeamCategory by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val withTeamCategory = filterTeamCategory.isBlank()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val seasonLeagueTeamState by seasonLeagueTeamModel.uiState.collectAsState(emptyList())
+    val seasonLeagueTeamState = seasonLeagueTeamModel.uiState.collectAsState()
 
     ViewCommon(
         "Season fixtures",
@@ -285,9 +290,9 @@ private fun FixtureTableView(season: Season,
         {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "seasonFixtures", "csv") { writer ->
-                    val teamCounts = seasonLeagueTeamState.associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
+                    val teamCounts = seasonLeagueTeamState.values().associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
                     var df = DataFrame.emptyOf<Any?>()
-                    getFixtures(state.value, competitionFilter, filterAssociation, filterTeamCategory, teamCategoryState, teamCounts) {
+                    getFixtures(state.values(), competitionFilter, filterAssociation, filterTeamCategory, teamCategoryState.values(), teamCounts) {
                             date, teamCategory, message, home, away ->
                         df = if (withTeamCategory) {
                             df.concat(dataFrameOf("Date", "Team Category", "Message", "Home", "Away")
@@ -301,9 +306,9 @@ private fun FixtureTableView(season: Season,
                 }
             )
         },
-        content = { paddingValues ->
+        states = persistentListOf(associationState.value, teamCategoryState.value, state.value, seasonLeagueTeamState.value)) { paddingValues ->
             val columns = if (withTeamCategory) 5 else 4
-            val teamCounts = seasonLeagueTeamState.associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
+            val teamCounts = seasonLeagueTeamState.values().associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth(), content = {
                     ViewText("Competition", Modifier.align(Alignment.CenterVertically))
@@ -312,8 +317,8 @@ private fun FixtureTableView(season: Season,
                     }
                 })
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    val associationList = listOf("") + associationState.map { it.name }.sorted()
-                    val teamCategoryList = listOf("") + teamCategoryState.map { it.name }.sorted()
+                    val associationList = listOf("") + associationState.values().map { it.name }.sorted()
+                    val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }.sorted()
                     val modifier = Modifier.align(Alignment.CenterVertically).weight(1f)
                     ViewText("Filter Association", modifier)
                     DropdownList(associationList.toImmutableList(), associationList.indexOf(filterAssociation), modifier = modifier) {
@@ -325,7 +330,6 @@ private fun FixtureTableView(season: Season,
                     }
                 }
                 LazyVerticalGrid(columns = GridCells.Fixed(columns)) {
-                    item(span = { GridItemSpan(columns) }) {}
                     item(span = { GridItemSpan(columns) }) {
                         Row(modifier = Modifier.fillMaxWidth(), content = {
                             val modifier = Modifier.weight(1f)
@@ -338,7 +342,7 @@ private fun FixtureTableView(season: Season,
                             SpacedViewText("Away", modifier)
                         })
                     }
-                    getFixtures(state.value, competitionFilter, filterAssociation, filterTeamCategory, teamCategoryState, teamCounts) {
+                    getFixtures(state.values(), competitionFilter, filterAssociation, filterTeamCategory, teamCategoryState.values(), teamCounts) {
                             date, teamCategory, message, home, away ->
                         item { ViewText(date) }
                         if (withTeamCategory) {
@@ -350,24 +354,27 @@ private fun FixtureTableView(season: Season,
                     }
                 }
             }
-        })
+        }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun FixtureDateView(season: Season) {
-    val seasonParameters = parametersOf(season.id)
-    val viewModel : SeasonFixtureViewModel = koinViewModel { seasonParameters }
-    val associationState by koinInject<AssociationViewModel>().uiState.collectAsState(emptyList())
-    val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState(emptyList())
-    val state = viewModel.uiState.collectAsState(emptyList())
+private fun FixtureDateView(season: Season,
+                            viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) },
+                            associationViewModel : AssociationViewModel = koinInject<AssociationViewModel>(),
+                            teamCategoryViewModel : TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
+    val associationState = associationViewModel.uiState.collectAsState()
+    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
+    val state = viewModel.uiState.collectAsState()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState(emptyList())
+    val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState()
 
     ViewCommon(
         "Season fixtures",
-        "Return to seasons screen") { paddingValues ->
-            val columns = associationState.size + 2
-            val teamCounts = seasonLeagueTeamState.associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
+        "Return to seasons screen",
+        states = persistentListOf(associationState.value, teamCategoryState.value)) { paddingValues ->
+            val columns = associationState.values().size + 2
+            val teamCounts = seasonLeagueTeamState.values().associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
             val dateList = mutableListOf<String>()
             val dateTotal = mutableMapOf<String, Short>()
             val dateByAssociation = mutableMapOf<String, MutableMap<String, Short>>()
@@ -379,11 +386,11 @@ private fun FixtureDateView(season: Season) {
                 }
             })
             getFixtures(
-                state.value,
+                state.values(),
                 competitionFilter,
                 "",
                 "",
-                teamCategoryState,
+                teamCategoryState.values(),
                 teamCounts
             ) { date, _, _, home, _ ->
                 if (dateList.isEmpty() || dateList.last() != date) {
@@ -402,14 +409,14 @@ private fun FixtureDateView(season: Season) {
             LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Date") }
                 item { ReadonlyViewText("Match total") }
-                for (association in associationState) {
+                for (association in associationState.values()) {
                     item { ReadonlyViewText("${association.name}(H)") }
                 }
                 for (date in dateList) {
                     if (dateTotal[date]!! > 0) {
                         item { ReadonlyViewText(date) }
                         item { ReadonlyViewText("${dateTotal[date]}") }
-                        for (association in associationState) {
+                        for (association in associationState.values()) {
                             item {
                                 ReadonlyViewText("${dateByAssociation[date]?.get(association.name) ?: 0}")
                             }
@@ -539,7 +546,7 @@ internal suspend fun calcFixtures(
 
     for (fixture in leagueGames.scheduleFixtures(seasonId,
         resolvedSeasonWeeks,
-        teamCategoryDao.getAll(),
+        teamCategoryDao.get(),
         seasonTeamCategoryDao.getBySeasonId(seasonId),
         seasonCompRoundViewDao.getBySeason(seasonId),
         teamsByCategoryAndCompetition,

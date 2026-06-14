@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -24,7 +25,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 
-class TeamCategoryViewModel(dao : TeamCategoryDao = inject<TeamCategoryDao>().value) :
+class  TeamCategoryViewModel(dao : TeamCategoryDao = inject<TeamCategoryDao>().value) :
     BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(dao)
 
 private val editor = Editors.TEAM_CATEGORIES
@@ -53,7 +54,7 @@ fun NavigateTeamCategory(argument: String?) {
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun TeamCategoryEditor(viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -61,18 +62,18 @@ private fun TeamCategoryEditor(viewModel: TeamCategoryViewModel = koinInject<Tea
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "teamCategories") {
-                    toDataFrame(state.value).writeJson(it)
+                    toDataFrame(state.values()).writeJson(it)
                 },
                 importJsonButtonSettings(viewModel) {
                     toTeamCategory(it)
                 },
                 addButtonSettings { it.navigate(editor.addRoute()) }
             )
-        }) { paddingValues ->
+        }, states = persistentListOf(state.value)) { paddingValues ->
         LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
             viewTextItems(listOf("Name", "Match Day"))
             item(span = { GridItemSpan(2) }) {}
-            for (teamCategory in state.value.sortedBy { it.name.uppercase().trim() }) {
+            for (teamCategory in state.values().sortedBy { it.name.uppercase().trim() }) {
                 viewTextItems(listOf(teamCategory.name, Day.entries[teamCategory.matchDay.toInt()].display))
                 editButton {editor.editRoute(teamCategory) }
                 deleteButton { viewModel.delete(teamCategory) }
@@ -108,7 +109,7 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
         },
         confirm = {name.isNotEmpty() && (editCategory == null || name != editCategory.name) || (editCategory != null && matchDay.toShort() != editCategory.matchDay)},
         confirmAction = {save(viewModel, editCategory, name, matchDay)},
-        content = { paddingValues ->
+        states = persistentListOf(viewModel.uiState.collectAsState().value)) { paddingValues ->
             LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText(value = "Name") }
                 item { ReadonlyViewText(value = "Match Day") }
@@ -118,7 +119,7 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
                     selectedIndex = matchDay,
                 ) { matchDay = it } }
             }
-        })
+        }
 }
 
 private fun save(viewModel: TeamCategoryViewModel, editCategory: TeamCategory?, name: String, matchDay: Int) =

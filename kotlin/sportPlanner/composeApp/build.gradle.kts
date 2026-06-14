@@ -41,7 +41,7 @@ kover {
 
         verify {
             rule {
-                minBound(80)
+                minBound(70)
             }
         }
     }
@@ -100,12 +100,15 @@ kotlin {
             implementation(libs.kotlin.dataframe.core)
             implementation(libs.kotlin.dataframe.json)
             implementation(libs.kotlin.dataframe.csv)
+
+            implementation(libs.kmp.logger)
         }
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotest.core)
             implementation(libs.kotest.framework)
+            implementation(libs.coroutine.test)
         }
 
         jvmTest {

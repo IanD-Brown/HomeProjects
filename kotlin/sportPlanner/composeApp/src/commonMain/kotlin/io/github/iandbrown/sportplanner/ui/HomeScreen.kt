@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -15,6 +17,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.AssociationDao
@@ -60,6 +64,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
 @Composable
 fun HomeScreen() {
     val coroutineScope = rememberCoroutineScope()
+    val exceptionState = remember {mutableStateOf<Exception?>(null)}
 
     Scaffold(modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -72,20 +77,44 @@ fun HomeScreen() {
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings(imageVector = Icons.Default.Download) {
-                    coroutineScope.launch { export() }
+                    coroutineScope.launch {
+                        try {
+                            export()
+                            exceptionState.value = null
+                        } catch (exception: Exception) {
+                            logException(javaClass.simpleName, exception, "Export failed:")
+                            exceptionState.value = exception
+                        }
+                    }
                 },
                 ButtonSettings(imageVector = Icons.Default.Upload) {
-                    coroutineScope.launch { import() }
+                    coroutineScope.launch {
+                        tryTransaction({
+                            logException(javaClass.simpleName, it, "Import failed:")
+                            exceptionState.value = it
+                        }, { import() })
+                    }
                 }
             )
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues), content = {
-            items(items = Editors.entries.filter { it.showOnHome }.toTypedArray(), key = { entry -> entry.ordinal }) { editor ->
-                OutlinedTextButton(value = editor.displayName)
-                { appNavController.navigate(editor.viewRoute()) }
+        if (exceptionState.value != null) {
+            AlertDialog(
+                onDismissRequest = { exceptionState.value = null },
+                confirmButton = { Button(onClick = { exceptionState.value = null }) { Text("OK") } },
+                title = { ViewText("Error") },
+                text = { ViewText(exceptionState.value!!.message ?: exceptionState.value!!.javaClass.simpleName) }
+            )
+        } else {
+            LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                items(
+                    items = Editors.entries.filter { it.showOnHome }.toTypedArray(),
+                    key = { entry -> entry.ordinal }) { editor ->
+                    OutlinedTextButton(value = editor.displayName)
+                    { appNavController.navigate(editor.viewRoute()) }
+                }
             }
-        })
+        }
     }
 }
 
@@ -101,11 +130,11 @@ private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDa
                            associationDao: AssociationDao = inject<AssociationDao>().value,
                            farAssociationDao: FarAssociationViewDao = inject<FarAssociationViewDao>().value,
                            seasonCompViewDao: SeasonCompViewDao = inject<SeasonCompViewDao>().value) {
-    val competitions = competitionDao.getAll()
-    val teamCategories = teamCategoryDao.getAll()
-    val associations = associationDao.getAll()
-    val farAssociations = farAssociationDao.getAll()
-    val seasonCompViews = seasonCompViewDao.getAll()
+    val competitions = competitionDao.get()
+    val teamCategories = teamCategoryDao.get()
+    val associations = associationDao.get()
+    val farAssociations = farAssociationDao.get()
+    val seasonCompViews = seasonCompViewDao.get()
     val seasonBreaks = inject<SeasonBreakDao>().value.getAll()
     val seasonTeams = inject<SeasonTeamDao>().value.getAll()
     val seasonTeamCategories = inject<SeasonTeamCategoryDao>().value.getAll()

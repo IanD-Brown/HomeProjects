@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "Associations"
@@ -19,12 +18,9 @@ data class Association(
     val name: String)
 
 @Dao
-interface AssociationDao : BaseReadDao<Association>, BaseWriteDao<Association> {
+interface AssociationDao : ConfigReadDao<Association>, BaseWriteDao<Association> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<Association>>
-
-    @Query("SELECT * FROM $table")
-    suspend fun getAll() : List<Association>
+    override suspend fun get(): List<Association>
 
     @Query("SELECT id FROM $table WHERE name = :name")
     suspend fun getByName(name: String) : AssociationId?

@@ -3,7 +3,6 @@ package io.github.iandbrown.sportplanner.database
 import androidx.room.Dao
 import androidx.room.DatabaseView
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val viewName = "FarAssociationView"
@@ -28,13 +27,10 @@ data class FarAssociationView(
 )
 
 @Dao
-interface FarAssociationViewDao : BaseReadDao<FarAssociationView> {
+interface FarAssociationViewDao : ConfigReadDao<FarAssociationView> {
     @Query("SELECT * FROM $viewName")
-    override fun get(): Flow<List<FarAssociationView>>
+    override suspend fun get(): List<FarAssociationView>
 
     @Query("DELETE FROM FarAssociations WHERE homeAssociation = :homeAssociationId AND awayAssociation = :awayAssociationId")
     suspend fun delete(homeAssociationId: AssociationId, awayAssociationId: AssociationId)
-
-    @Query("SELECT * FROM $viewName")
-    suspend fun getAll() : List<FarAssociationView>
 }

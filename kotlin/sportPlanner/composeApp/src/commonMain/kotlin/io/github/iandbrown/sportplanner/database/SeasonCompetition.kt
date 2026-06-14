@@ -5,9 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
-
 
 private const val table = "SeasonCompetitions"
 
@@ -37,7 +35,7 @@ data class SeasonCompetition(
 @Dao
 interface SeasonCompetitionDao : BaseSeasonCompReadDao<SeasonCompetition>, BaseWriteDao<SeasonCompetition> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
-    override fun get(seasonId : SeasonId, competitionId : CompetitionId): Flow<List<SeasonCompetition>>
+    override suspend fun get(seasonId: SeasonId, competitionId: CompetitionId): List<SeasonCompetition>
 
     @Query("SELECT * FROM $table "+
             "WHERE seasonId = :seasonId AND startDate > 0 AND endDate > startDate " +

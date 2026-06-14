@@ -6,7 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 private const val table = "SeasonFixtures"
 
@@ -38,7 +37,7 @@ data class SeasonFixture(
 @Dao
 interface SeasonFixtureDao : BaseSeasonCompReadDao<SeasonFixture>, BaseWriteDao<SeasonFixture> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
-    override fun get(seasonId: SeasonId, competitionId: CompetitionId): Flow<List<SeasonFixture>>
+    override suspend fun get(seasonId: SeasonId, competitionId: CompetitionId): List<SeasonFixture>
 
     @Query("DELETE FROM $table WHERE seasonId = :seasonId AND teamCategoryId = :teamCategoryId AND competitionId = :competitionId")
     suspend fun deleteBySeasonTeamCategory(seasonId: SeasonId, teamCategoryId: TeamCategoryId, competitionId: CompetitionId)

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
@@ -39,7 +40,7 @@ fun NavigateAssociation(argument: String?) {
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun AssociationEditor(viewModel: AssociationViewModel = koinInject<AssociationViewModel>()) {
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -47,21 +48,22 @@ private fun AssociationEditor(viewModel: AssociationViewModel = koinInject<Assoc
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "associations") {
-                    toDataFrame(state.value).writeJson(it)
+                    toDataFrame(state.values()).writeJson(it)
                 },
                 importJsonButtonSettings(viewModel) {
                     toAssociation(it)
                 },
                 addButtonSettings { it.navigate(editor.addRoute()) }
             )
-        }) { paddingValues ->
+        },
+        states = persistentListOf(state.value)) { paddingValues ->
         LazyVerticalGrid(
             columns = TrailingIconGridCells(1, 2),
             modifier = Modifier.padding(paddingValues)
         ) {
             viewTextItems(listOf("Name"))
             item(span = { GridItemSpan(2) }) {}
-            for (entity in state.value.sortedBy { it.name.uppercase()}) {
+            for (entity in state.values().sortedBy { it.name.uppercase()}) {
                 viewTextItems(listOf(entity.name))
                 editButton { editor.editRoute(entity) }
                 deleteButton { viewModel.delete(entity) }
@@ -83,6 +85,7 @@ private fun EditAssociation(association: Association?) {
     val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
     var name by remember { mutableStateOf(association?.name ?: "") }
     val title = if (association == null) "Add Association" else "Edit Association"
+    val state = viewModel.uiState.collectAsState()
 
     ViewCommon(
         title,
@@ -95,11 +98,11 @@ private fun EditAssociation(association: Association?) {
         },
         confirm = {name.isNotEmpty() && (association == null || name != association.name)},
         confirmAction = {save(association, viewModel, name)},
-        content = { paddingValues ->
+        states = persistentListOf(state.value)) { paddingValues ->
             Row(modifier = Modifier.padding(paddingValues), content = {
                 ViewTextField(value = name, label = "Name :") { name = it }
             })
-        })
+        }
 }
 
 private fun save(association: Association?, viewModel: AssociationViewModel, name: String) {

@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "TeamCategories"
@@ -20,12 +19,9 @@ data class TeamCategory (
     val matchDay: Short)
 
 @Dao
-interface TeamCategoryDao : BaseReadDao<TeamCategory>, BaseWriteDao<TeamCategory> {
+interface TeamCategoryDao : ConfigReadDao<TeamCategory>, BaseWriteDao<TeamCategory> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<TeamCategory>>
-
-    @Query("SELECT * FROM $table")
-    suspend fun getAll() : List<TeamCategory>
+    override suspend fun get(): List<TeamCategory>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

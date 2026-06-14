@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled._123
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -49,10 +48,7 @@ import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -64,17 +60,16 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readJson
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
 
 class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCRUDViewModel<SeasonDao, Season>(dao) {
     fun saveCompetitions(name: String,
-                         competitionState: State<List<Competition>>,
+                         competitions: List<Competition>,
                          startDates: SnapshotStateMap<CompetitionId, Int>,
                          endDates: SnapshotStateMap<CompetitionId, Int>,
                          seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value) {
         viewModelScope.launch {
             val seasonId = dao.getSeasonId(name.trim())!!
-            for (competition in competitionState.value) {
+            for (competition in competitions) {
                 val seasonCompetition = SeasonCompetition(
                     seasonId = seasonId,
                     competitionId = competition.id,
@@ -89,21 +84,14 @@ class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCR
     }
 }
 
+// Used when viewing all seasons (SeasonListView) therefore no seasonId argument
 class SeasonCompViewModel(dao: SeasonCompViewDao = inject<SeasonCompViewDao>().value) :
-    BaseReadViewModel<SeasonCompViewDao, SeasonCompView>(dao) {
+    BaseConfigReadViewModel<SeasonCompViewDao, SeasonCompView>(dao) {
     fun deleteSeason(seasonId : SeasonId) {
         viewModelScope.launch {
             dao.deleteSeason(seasonId)
         }
     }
-
-    fun getBySeason(seasonId : SeasonId) : Flow<List<SeasonCompView>> =
-        flow {emit(dao.getAsList(seasonId))}
-            .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList()
-        )
 }
 
 private val editor : Editors = Editors.SEASONS
@@ -150,17 +138,18 @@ private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinInject
         bottomBar = {
             BottomBarWithButtons(
             exportButtonSettings(coroutineScope, "seasons") {
-                    toDataFrame(seasonCompViewState.value,
+                    toDataFrame(seasonCompViewState.values(),
                         inject<SeasonBreakDao>().value.getAll(),
                         inject<SeasonTeamDao>().value.getAll(),
                         inject<SeasonTeamCategoryDao>().value.getAll(),
                         inject<SeasonCompetitionRoundDao>().value.getAll(),
-                        inject<CompetitionDao>().value.getAll(),
-                        inject<AssociationDao>().value.getAll(),
-                        inject<TeamCategoryDao>().value.getAll(),).writeJson(it)
+                        inject<CompetitionDao>().value.get(),
+                        inject<AssociationDao>().value.get(),
+                        inject<TeamCategoryDao>().value.get(),).writeJson(it)
                 },
                 ButtonSettings(imageVector = Icons.Default.Upload) {
                     coroutineScope.launch {
+                        tryTransaction({seasonViewModel.handleException(it)}, {
                         importFromFile(
                             "json",
                             {
@@ -169,17 +158,18 @@ private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinInject
                                 dataFrame
                             })
                         { importRow(it) }
+                    })
                     }
                 },
                 addButtonSettings { it.navigate(editor.addRoute()) }
             )
-        })
-    { paddingValues ->
+        },
+        states = persistentListOf(seasonCompViewState.value)) { paddingValues ->
         var seasonId : Short? = null
         val surfaceColor = MaterialTheme.colorScheme.onSurface
 
         LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues), state = gridState) {
-            for (seasonCompView in seasonCompViewState.value) {
+            for (seasonCompView in seasonCompViewState.values()) {
                 if (seasonCompView.seasonId != seasonId) {
                     viewTextItems(listOf(seasonCompView.seasonName,""))
 
@@ -336,12 +326,13 @@ private fun short(cell: Any?) : Short =
 private fun seasonCompetitionParamOf(seasonCompView : SeasonCompView) : SeasonCompetitionParam =
     SeasonCompetitionParam(seasonCompView.seasonId, seasonCompView.seasonName, seasonCompView.competitionId, seasonCompView.competitionName)
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonEditor(season : Season? = null) {
-    val viewModel: SeasonViewModel = koinInject()
-    val seasonParameter = parametersOf(season?.id ?: 0)
-    val seasonCompetitionState = koinInject<SeasonCompViewModel> { seasonParameter }.getBySeason(season?.id ?: 0).collectAsState(emptyList())
-    val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState(emptyList())
+private fun SeasonEditor(season : Season? = null,
+                         viewModel: SeasonViewModel = koinInject(),
+                         seasonCompViewModel: SeasonCompViewModel = koinInject<SeasonCompViewModel>()) {
+    val seasonCompetitionState = seasonCompViewModel.uiState.collectAsState()
+    val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
     var name by remember { mutableStateOf(season?.name ?: "") }
     val title = if (season == null) "Add Season" else "Edit Season"
     val startDates = remember { mutableStateMapOf<Short, Int>() }
@@ -355,17 +346,17 @@ private fun SeasonEditor(season : Season? = null) {
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
                 OutlinedTextButton(OK, Modifier.weight(1f), name.isNotBlank()) {
-                    save(season, viewModel, name, competitionState, startDates, endDates)
+                    save(season, viewModel, name, competitionState.values(), startDates, endDates)
                     appNavController.popBackStack()
                 }
             }
         },
         confirm = { dirty },
-        confirmAction = { save(season, viewModel, name, competitionState, startDates, endDates) },
-        content = { paddingValues ->
-            val competitionList = competitionState.value.sortedBy { it.name.trim().uppercase() }
+        confirmAction = { save(season, viewModel, name, competitionState.values(), startDates, endDates) },
+        states = persistentListOf(competitionState.value)) { paddingValues ->
+            val competitionList = competitionState.values().sortedBy { it.name.trim().uppercase() }
             if (season != null) {
-                for (current in seasonCompetitionState.value) {
+                for (current in seasonCompetitionState.values()) {
                     if (current.startDate > 0) {
                         startDates[current.competitionId] = current.startDate
                     }
@@ -378,7 +369,7 @@ private fun SeasonEditor(season : Season? = null) {
                 item { ReadonlyViewText("Name:") }
                 item { ViewTextField(value = name, onValueChange = {
                     name = it
-                    dirty = checkDirty(season, name, seasonCompetitionState, startDates, endDates)
+                    dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                 }) }
                 item { ReadonlyViewText("") }
                 item { ReadonlyViewText("Competition") }
@@ -394,7 +385,7 @@ private fun SeasonEditor(season : Season? = null) {
                                 val dayDate = DayDate(it)
                                 dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: Integer.MAX_VALUE) }) {
                             startDates[competition.id] = it
-                            dirty = checkDirty(season, name, seasonCompetitionState, startDates, endDates)
+                            dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                         }
                     }
                     item {
@@ -404,15 +395,15 @@ private fun SeasonEditor(season : Season? = null) {
                             isSelectable = { val dayDate = DayDate(it)
                                 dayDate.isSunday() && dayDate.value() > (startDates[competition.id] ?: 0) }) {
                             endDates[competition.id] = it
-                            dirty = checkDirty(season, name, seasonCompetitionState, startDates, endDates)
+                            dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                         }
                     }
                 }
             }
-        })
+        }
 }
 
-private fun checkDirty(season: Season?, name: String, seasonCompetitionState: State<List<SeasonCompView>>, startDates: SnapshotStateMap<CompetitionId, Int>, endDates: SnapshotStateMap<CompetitionId, Int>): Boolean =
+private fun checkDirty(season: Season?, name: String, seasonCompetitionState: List<SeasonCompView>, startDates: SnapshotStateMap<CompetitionId, Int>, endDates: SnapshotStateMap<CompetitionId, Int>): Boolean =
     if (season == null) {
         name.isNotEmpty() || startDates.isNotEmpty() || endDates.isNotEmpty()
     } else {
@@ -420,7 +411,7 @@ private fun checkDirty(season: Season?, name: String, seasonCompetitionState: St
             true
         } else {
             var result = false
-            for (current in seasonCompetitionState.value) {
+            for (current in seasonCompetitionState) {
                 if ((startDates[current.competitionId] ?: 0) != current.startDate ||
                     (endDates[current.competitionId] ?: 0) != current.endDate) {
                     result = true
@@ -431,7 +422,7 @@ private fun checkDirty(season: Season?, name: String, seasonCompetitionState: St
         }
     }
 
-private fun save(season : Season?, viewModel: SeasonViewModel, name: String, competitionState: State<List<Competition>>, startDates: SnapshotStateMap<Short, Int>, endDates: SnapshotStateMap<Short, Int>) {
+private fun save(season : Season?, viewModel: SeasonViewModel, name: String, competitionState: List<Competition>, startDates: SnapshotStateMap<Short, Int>, endDates: SnapshotStateMap<Short, Int>) {
     if (season == null) {
         viewModel.insert(Season(name = name.trim()))
     } else {

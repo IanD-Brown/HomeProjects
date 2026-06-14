@@ -4,10 +4,11 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Update
-import kotlinx.coroutines.flow.Flow
 
-interface BaseReadDao<ENTITY> {
-    fun get(): Flow<List<ENTITY>>
+interface ReadDao<ENTITY>
+
+interface ConfigReadDao<ENTITY> : ReadDao<ENTITY> {
+    suspend fun get(): List<ENTITY>
 }
 
 interface BaseWriteDao<ENTITY> {
@@ -23,10 +24,10 @@ interface BaseWriteDao<ENTITY> {
     suspend fun deleteAll()
 }
 
-interface BaseSeasonReadDao<ENTITY> {
-    fun get(seasonId : SeasonId): Flow<List<ENTITY>>
+interface BaseSeasonReadDao<ENTITY> : ReadDao<ENTITY> {
+    suspend fun get(seasonId: SeasonId): List<ENTITY>
 }
 
-interface BaseSeasonCompReadDao<ENTITY> {
-    fun get(seasonId : SeasonId, competitionId : CompetitionId): Flow<List<ENTITY>>
+interface BaseSeasonCompReadDao<ENTITY> : ReadDao<ENTITY> {
+    suspend fun get(seasonId: SeasonId, competitionId: CompetitionId): List<ENTITY>
 }

@@ -19,6 +19,7 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
@@ -55,9 +56,9 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
     val viewModel: SeasonTeamCategoryViewModel = koinInject {seasonParams}
     val state = viewModel.uiState.collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
-    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState(emptyList())
+    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
     val seasonTeamViewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
-    val seasonTeamState = seasonTeamViewModel.uiState.collectAsState(emptyList())
+    val seasonTeamState = seasonTeamViewModel.uiState.collectAsState()
     var isLocked by remember { mutableStateOf(EditorState.LOCKED) }
     var teamCategoryList = listOf<TeamCategory>()
     val gameStructureStates = remember { mutableStateMapOf<TeamCategoryId, Short>() }
@@ -74,8 +75,8 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                 isLocked = isLocked.onClick()
             }
         },
-        content = { paddingValues ->
-            state.value.forEach {
+        states = persistentListOf(state.value, teamCategoryState.value, seasonTeamState.value)) { paddingValues ->
+            state.values().forEach {
                 if (!gameStructureStates.contains(it.teamCategoryId)) {
                     gameStructureStates[it.teamCategoryId] = it.games
                 }
@@ -84,11 +85,11 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                 }
             }
             val teamCounts = mutableMapOf<TeamCategoryId, Int>()
-            for (seasonTeam in seasonTeamState.value) {
+            for (seasonTeam in seasonTeamState.values()) {
                 teamCounts[seasonTeam.teamCategoryId] = teamCounts.getOrDefault(seasonTeam.teamCategoryId, 0) + 1
             }
 
-            teamCategoryList = teamCategoryState.value.sortedBy { it.name.trim().uppercase() }
+            teamCategoryList = teamCategoryState.values().sortedBy { it.name.trim().uppercase() }
             LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Team Category") }
                 item { ReadonlyViewText("Team Count") }
@@ -119,7 +120,7 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                     }
                 }
             }
-        })
+        }
 }
 
 private fun save(

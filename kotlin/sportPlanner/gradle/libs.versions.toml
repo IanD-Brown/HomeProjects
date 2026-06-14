@@ -27,6 +27,7 @@ androidx-startup = "1.2.0"
 kotest-version = "6.1.11"
 kover = "0.9.8"
 mockkery = "3.4.1"
+coroutine-test-version = "1.11.0"
 # filekit
 filekit = "0.14.1"
 # stability library
@@ -35,6 +36,8 @@ stability = "0.9.0"
 immutableCollections = "0.5.0"
 # dataframe
 kotlinx-dataframe = "1.0.0-Beta5"
+# logging
+kmp-logger = "1.4.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -63,6 +66,7 @@ androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = 
 kotest-core = {module = "io.kotest:kotest-assertions-core", version.ref = "kotest-version"}
 kotest-framework = {module = "io.kotest:kotest-framework-engine", version.ref = "kotest-version"}
 kotest-runner-junit5 = {module = "io.kotest:kotest-runner-junit5", version.ref = "kotest-version"}
+coroutine-test = {module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutine-test-version"}
 # file dialogs
 filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
@@ -73,6 +77,9 @@ immutable-collections = { module = "org.jetbrains.kotlinx:kotlinx-collections-im
 kotlin-dataframe-core = { module = "org.jetbrains.kotlinx:dataframe-core", version.ref = "kotlinx-dataframe"}
 kotlin-dataframe-json = { module = "org.jetbrains.kotlinx:dataframe-json", version.ref = "kotlinx-dataframe"}
 kotlin-dataframe-csv = { module = "org.jetbrains.kotlinx:dataframe-csv", version.ref = "kotlinx-dataframe"}
+# logging
+kmp-logger = { module = "io.github.shivathapaa:logger", version.ref = "kmp-logger"}
+kmp-logger-android = { module = "io.github.shivathapaa:logger-android", version.ref = "kmp-logger"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

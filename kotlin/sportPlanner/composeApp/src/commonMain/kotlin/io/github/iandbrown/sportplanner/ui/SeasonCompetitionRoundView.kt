@@ -48,6 +48,7 @@ import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlin.random.Random
 import kotlin.time.measureTime
@@ -102,7 +103,7 @@ fun NavigateSeasonCompetitionRound(argument: String?) {
 @Composable
 private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
     val viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
-    val state = viewModel.uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var calculating by remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState()
@@ -117,8 +118,8 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
             bottomBar = {
                 BottomBarWithButtons(addButtonSettings { it.navigate(editor.editRoute(SeasonCompetitionRoundEditorInfo(param))) })
             },
-            content = { paddingValues ->
-                val values = state.value.filter { it.competitionId == param.competitionId }
+            states = persistentListOf(state.value)) { paddingValues ->
+                val values = state.values().filter { it.competitionId == param.competitionId }
                     .sortedBy { it.round }
                 LazyVerticalGrid(
                     columns = WeightedIconGridCells(4, 1, 2, 2, 2),
@@ -162,7 +163,7 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
                         }
                     }
                 }
-            })
+            }
     }
 }
 
@@ -212,8 +213,9 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
                 }
                 appNavController.popBackStack()
             }
-        }) { paddingValues ->
-        val rounds = getRounds(state.value)
+        },
+        states = persistentListOf(state.value, seasonCompetitionState.value)) { paddingValues ->
+        val rounds = getRounds(state.values())
 
         when (info.competitionRound) {
             is SeasonCompetitionRound -> {
@@ -232,10 +234,7 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
             }
         }
         LazyVerticalGrid(columns = GridCells.Fixed(4), Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Round") }
-            item { ReadonlyViewText("Description") }
-            item { ReadonlyViewText("Week") }
-            item { ReadonlyViewText("Optional") }
+            viewTextItems(listOf("Round", "Description", "Week", "Optional"))
             item {
                 ViewTextField(
                     value = round.value.toString(),
@@ -255,7 +254,7 @@ private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo)
             item {
                 DatePickerView(week.intValue,
                     Modifier,
-                    { utcMs -> isMondayIn(seasonCompetitionState.value.first(), utcMs) }) {
+                    { utcMs -> isMondayIn(seasonCompetitionState.values().first(), utcMs) }) {
                     week.intValue = it
                 }
             }
@@ -270,13 +269,15 @@ internal enum class FixtureResult(var display: String) {
     )
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
+private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo,
+                                 viewModel: SeasonCupFixtureViewModel = koinInject<SeasonCupFixtureViewModel>
+                                 { parametersOf(info.param.seasonId, info.param.competitionId) },
+                                 teamCategoryViewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
     val coroutineScope = rememberCoroutineScope()
-    val seasonCompParameter = parametersOf(info.param.seasonId, info.param.competitionId)
-    val viewModel = koinInject<SeasonCupFixtureViewModel> { seasonCompParameter }
-    val state = viewModel.uiState.collectAsState(emptyList())
-    val teamCategoryState by koinInject<TeamCategoryViewModel>().uiState.collectAsState(emptyList())
+    val state = viewModel.uiState.collectAsState()
+    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
@@ -299,7 +300,7 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
                                 bufferedSink?.writeString("Team Category,")
                             }
                             bufferedSink?.writeString("Home,Away\n")
-                            getFixtures(state.value, info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
+                            getFixtures(state.values(), info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
                                     teamCategoryName, home, away, _, _, _ ->
                                 if (withTeamCategory) {
                                     bufferedSink?.writeString("$teamCategoryName,")
@@ -318,9 +319,10 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
             )
         },
         confirm = { edits.isNotEmpty() },
-        confirmAction = { saveResults(edits, viewModel) }) { paddingValues ->
-        fixturesById = state.value.associateBy { it.id }
-        val teamCategoryList = listOf("") + teamCategoryState.map { it.name }
+        confirmAction = { saveResults(edits, viewModel) },
+        states = persistentListOf(state.value, teamCategoryState.value)) { paddingValues ->
+        fixturesById = state.values().associateBy { it.id }
+        val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }
         val columns = if (withTeamCategory) 4 else 3
 
         LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
@@ -337,7 +339,7 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo) {
             item { ViewText("Home") }
             item { ViewText("Away") }
             item { ViewText("Winner") }
-            getFixtures(state.value, info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
+            getFixtures(state.values(), info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
                 teamCategoryName, home, away, result, fixtureId, blankAwayAssociation ->
                 if (withTeamCategory) {
                     item { ViewText(teamCategoryName) }
@@ -445,7 +447,7 @@ internal suspend fun calcCupFixtures(
 ) {
     dao.deleteByRound(seasonId, competitionId, round)
 
-    val teamCategories = teamCategoryDao.getAll()
+    val teamCategories = teamCategoryDao.get()
     for (teamCategory in teamCategories) {
         if (round == 1.toShort()) {
             val competitionTeams =
@@ -474,9 +476,9 @@ internal suspend fun calcCupFixtures(
                 }
         } else {
             val previousRoundFixtures =
-                dao.get(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
+                dao.getByRound(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
                     .shuffled(Random(System.currentTimeMillis()))
-            for (i in 0..<previousRoundFixtures.size step 2) {
+            for (i in previousRoundFixtures.indices step 2) {
                 val home = previousRoundFixtures[i]
                 val away = previousRoundFixtures[i + 1]
                 dao.insert(

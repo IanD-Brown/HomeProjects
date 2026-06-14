@@ -21,6 +21,7 @@ import io.github.iandbrown.sportplanner.database.FarAssociationDao
 import io.github.iandbrown.sportplanner.database.FarAssociationView
 import io.github.iandbrown.sportplanner.database.FarAssociationViewDao
 import io.github.iandbrown.sportplanner.di.inject
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -32,7 +33,7 @@ import org.koin.compose.koinInject
 
 class FarAssociationViewModel : BaseConfigCRUDViewModel<FarAssociationDao, FarAssociation>(inject<FarAssociationDao>().value)
 
-class FarAssociationListViewModel : BaseReadViewModel<FarAssociationViewDao, FarAssociationView> (inject<FarAssociationViewDao>().value) {
+class FarAssociationListViewModel : BaseConfigReadViewModel<FarAssociationViewDao, FarAssociationView> (inject<FarAssociationViewDao>().value) {
     fun delete(entity : FarAssociationView) {
         viewModelScope.launch {
             dao.delete(entity.homeAssociationId, entity.awayAssociationId)
@@ -66,18 +67,19 @@ private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinIn
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "distantAwayGames") {
-                    toDataFrame(state.value).writeJson(it)
+                    toDataFrame(state.values()).writeJson(it)
                 },
                 importJsonButtonSettings(farAssociationViewModel) {
                     toFarAssociation(it)
                 },
                 addButtonSettings { it.navigate(editor.addRoute()) }
             )
-        }){ paddingValues ->
+        },
+        states = persistentListOf(state.value, farAssociationState.value)){ paddingValues ->
         LazyVerticalGrid(columns = TrailingIconGridCells(2, 2), modifier = Modifier.padding(paddingValues)) {
             viewTextItems(listOf("Home Association", "Away Association"))
             item(span = { GridItemSpan(2) }) {}
-            for (entity in state.value) {
+            for (entity in state.values()) {
                 viewTextItems(listOf(entity.homeAssociationName, entity.awayAssociationName))
                 editButton {editor.editRoute(entity) }
                 deleteButton { viewModel.delete(entity) }
@@ -119,9 +121,10 @@ private fun EditFarAssociation(farAssociation: FarAssociationView?,
             }
         },
         confirm = {homeAssociation > 0 && awayAssociation > 0 && (farAssociation == null || awayAssociation != farAssociation.awayAssociationId)},
-        confirmAction = {save(farAssociation, viewModel, homeAssociation, awayAssociation)}) { paddingValues ->
+        confirmAction = {save(farAssociation, viewModel, homeAssociation, awayAssociation)},
+        states = persistentListOf(state.value, associationState.value)) { paddingValues ->
             Column(modifier = Modifier.padding(paddingValues)) {
-                val sortedAssociations = associationState.value.sortedBy { it.name }
+                val sortedAssociations = associationState.values().sortedBy { it.name }
                 Row {
                     ReadonlyViewText("Home Association")
                     if (farAssociation != null) {
@@ -136,7 +139,7 @@ private fun EditFarAssociation(farAssociation: FarAssociationView?,
                 Row {
                     ReadonlyViewText("Away Association")
                     if (homeAssociation > 0) {
-                        val invalidAwayAssociations = state.value
+                        val invalidAwayAssociations = state.values()
                             .filter { it.homeAssociation == homeAssociation }
                             .filter { it.awayAssociation != awayAssociation }
                             .map { it.awayAssociation }
@@ -163,7 +166,6 @@ private fun save(farAssociation: FarAssociationView?, viewModel: FarAssociationV
             return
         }
         viewModel.delete(FarAssociation(farAssociation.homeAssociationId, farAssociation.awayAssociationId))
-        println("Update ${farAssociation.awayAssociationId} to $awayAssociation")
     }
     viewModel.insert(FarAssociation(homeAssociation, awayAssociation))
 }

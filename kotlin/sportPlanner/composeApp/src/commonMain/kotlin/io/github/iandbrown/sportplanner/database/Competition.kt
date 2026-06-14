@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "Competitions"
@@ -23,15 +22,12 @@ data class Competition(
 )
 
 @Dao
-interface CompetitionDao : BaseReadDao<Competition>, BaseWriteDao<Competition> {
+interface CompetitionDao : ConfigReadDao<Competition>, BaseWriteDao<Competition> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<Competition>>
+    override suspend fun get(): List<Competition>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
-
-    @Query("SELECT * FROM $table")
-    suspend fun getAll() : List<Competition>
 
     @Query("SELECT id FROM $table WHERE name = :name")
     suspend fun getByName(name : String) : CompetitionId?

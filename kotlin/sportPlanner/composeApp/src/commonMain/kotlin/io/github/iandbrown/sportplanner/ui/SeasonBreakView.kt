@@ -11,10 +11,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.AppDatabase
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonBreak
@@ -23,6 +23,7 @@ import io.github.iandbrown.sportplanner.database.SeasonCompView
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -47,10 +48,11 @@ fun NavigateSeasonBreak(argument: String?) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonBreakView(param: Season) {
-    val viewModel : SeasonBreakViewModel = koinViewModel { parametersOf(param.id) }
-    val state = viewModel.uiState.collectAsState(emptyList())
+private fun SeasonBreakView(param: Season,
+                            viewModel: SeasonBreakViewModel = koinViewModel { parametersOf(param.id) }) {
+    val state = viewModel.uiState.collectAsState()
     val gridState = rememberLazyGridState()
 
     ViewCommon(
@@ -58,43 +60,44 @@ private fun SeasonBreakView(param: Season) {
         bottomBar = { BottomBarWithButton("+") {
             appNavController.navigate(editor.editRoute(SeasonBreakEditorInfo(param)))
         }},
-        content = { paddingValues ->
+        states = persistentListOf(state.value)) { paddingValues ->
             LazyVerticalGrid(columns = TrailingIconGridCells(2, 2),
                 modifier = Modifier.padding(paddingValues),
                 gridState) {
                 viewTextItems(listOf("Name", "Week"))
                 item(span = { GridItemSpan(2) }) {}
-                for (seasonBreak in state.value.sortedBy { it.week }) {
+                for (seasonBreak in state.values().sortedBy { it.week }) {
                     viewTextItems(listOf(seasonBreak.name, DayDate(seasonBreak.week).toString()))
                     editButton { editor.editRoute(SeasonBreakEditorInfo(param, seasonBreak)) }
                     deleteButton { viewModel.delete(seasonBreak) }
                 }
             }
-        })
+        }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonBreakEditor(info: SeasonBreakEditorInfo) {
-    val seasonCompetitionState = koinInject<SeasonCompViewModel>().uiState.collectAsState()
+private fun SeasonBreakEditor(info: SeasonBreakEditorInfo,
+                              viewModel: SeasonCompViewModel = koinInject<SeasonCompViewModel>()) {
+    val seasonCompetitionState = viewModel.uiState.collectAsState()
     val title = if (info.seasonBreak == null) "Add Season break" else "Edit Season break"
     var name by remember { mutableStateOf(info.seasonBreak?.name ?: "") }
     var week by remember {mutableIntStateOf(info.seasonBreak?.week ?: 0)}
-    val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
         title,
         description = "Return to season breaks",
         bottomBar = {
             BottomBarWithButton {
-                save(coroutineScope, info, name, week)
+                save(viewModel.viewModelScope, info, name, week)
                 appNavController.popBackStack()
             }
         },
         confirm = { name.isNotEmpty() && (info.seasonBreak == null || name != info.seasonBreak.name) ||
                 (info.seasonBreak != null && week != info.seasonBreak.week) },
-        confirmAction = {save(coroutineScope, info, name, week)},
-        content = { paddingValues ->
-            val range = buildDateRange(seasonCompetitionState.value.filter { it.seasonId == info.param.id })
+        confirmAction = {save(viewModel.viewModelScope, info, name, week)},
+        states = persistentListOf(seasonCompetitionState.value)) { paddingValues ->
+            val range = buildDateRange(seasonCompetitionState.values().filter { it.seasonId == info.param.id })
             LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText("Name") }
                 item { ReadonlyViewText("Week") }
@@ -106,7 +109,7 @@ private fun SeasonBreakEditor(info: SeasonBreakEditorInfo) {
                     week = it
                 } }
             }
-        })
+        }
 }
 
 private fun save(coroutineScope: CoroutineScope, info: SeasonBreakEditorInfo, name: String, week: Int) {

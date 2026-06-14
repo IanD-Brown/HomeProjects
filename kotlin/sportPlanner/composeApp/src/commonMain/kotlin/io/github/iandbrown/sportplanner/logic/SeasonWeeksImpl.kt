@@ -15,7 +15,7 @@ class SeasonWeeksImpl : SeasonWeeks {
             val seasonBreakDao : SeasonBreakDao = getKoin().get()
             return SeasonWeeksImpl(
                 seasonCompViewDao.getAsList(seasonId),
-                seasonBreakDao.getAsList(seasonId)
+                seasonBreakDao.get(seasonId)
             )
         }
     }

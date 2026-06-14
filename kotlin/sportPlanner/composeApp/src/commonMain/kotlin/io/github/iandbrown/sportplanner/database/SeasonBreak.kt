@@ -6,7 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "SeasonBreaks"
@@ -31,10 +30,7 @@ data class SeasonBreak(
 @Dao
 interface SeasonBreakDao : BaseSeasonReadDao<SeasonBreak>, BaseWriteDao<SeasonBreak> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    override fun get(seasonId : SeasonId): Flow<List<SeasonBreak>>
-
-    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
-    suspend fun getAsList(seasonId : SeasonId): List<SeasonBreak>
+    override suspend fun get(seasonId: SeasonId): List<SeasonBreak>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

@@ -3,7 +3,6 @@ package io.github.iandbrown.sportplanner.database
 import androidx.room.Dao
 import androidx.room.DatabaseView
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 private const val viewName = "SeasonLeagueTeamView"
 
@@ -27,5 +26,5 @@ data class SeasonLeagueTeamView(
 @Dao
 interface SeasonLeagueTeamViewDao : BaseSeasonReadDao<SeasonLeagueTeamView> {
     @Query("SELECT * FROM $viewName WHERE seasonId = :seasonId")
-    override fun get(seasonId: SeasonId): Flow<List<SeasonLeagueTeamView>>
+    override suspend fun get(seasonId: SeasonId): List<SeasonLeagueTeamView>
 }
