@@ -10,6 +10,7 @@ import dev.mokkery.mock
 import dev.mokkery.verifyNoMoreCalls
 import dev.mokkery.verifySuspend
 import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.FarAssociationDao
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
@@ -43,6 +44,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
     val seasonTeamCategoryDao = mock<SeasonTeamCategoryDao>()
     val teamCategoryDao = mock<TeamCategoryDao>()
     val seasonCompRoundViewDao = mock<SeasonCompRoundViewDao>()
+    val farAssociationDao = mock<FarAssociationDao>()
     val seasonWeeks = mock<SeasonWeeks>()
 
     given("a season with one active competition and team category") {
@@ -59,6 +61,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
         everySuspend {
             seasonFixtureDao.deleteBySeasonTeamCategory(any(), any(), any())
         } returns Unit
+        everySuspend { farAssociationDao.get() } returns emptyList()
         every { seasonWeeks.competitionWeeks(competitionId) } returns listOf(
             DayDate("01/01/2025").value(),
             DayDate("08/01/2025").value(),
@@ -69,7 +72,15 @@ class SeasonFixtureViewTest : BehaviorSpec({
         When("calcFixtures is called with empty breaks") {
             setSeasonCompTeams(seasonTeamCategoryDao, seasonTeamDao, competitionId, teamCategoryId)
             every { seasonWeeks.breakWeeks() } returns emptyMap()
-            calcFixtures(seasonId, seasonFixtureDao, seasonTeamDao, seasonCompetitionDao, seasonTeamCategoryDao, teamCategoryDao, seasonCompRoundViewDao, seasonWeeks)
+            calcFixtures(seasonId,
+                seasonFixtureDao,
+                seasonTeamDao,
+                seasonCompetitionDao,
+                seasonTeamCategoryDao,
+                teamCategoryDao,
+                seasonCompRoundViewDao,
+                farAssociationDao,
+                seasonWeeks)
 
             then("it should delete existing fixtures for the category") {
                 verifySuspend {
@@ -93,7 +104,16 @@ class SeasonFixtureViewTest : BehaviorSpec({
         When("calcFixtures is called with breaks") {
             setSeasonCompTeams(seasonTeamCategoryDao, seasonTeamDao, competitionId, teamCategoryId)
             every { seasonWeeks.breakWeeks() } returns mapOf(Pair(DayDate("08/01/2025").value(), "MissMe"))
-            calcFixtures(seasonId, seasonFixtureDao, seasonTeamDao, seasonCompetitionDao, seasonTeamCategoryDao, teamCategoryDao, seasonCompRoundViewDao, seasonWeeks)
+            everySuspend { farAssociationDao.get() } returns emptyList()
+            calcFixtures(seasonId,
+                seasonFixtureDao,
+                seasonTeamDao,
+                seasonCompetitionDao,
+                seasonTeamCategoryDao,
+                teamCategoryDao,
+                seasonCompRoundViewDao,
+                farAssociationDao,
+                seasonWeeks)
 
             then("it should delete existing fixtures for the category") {
                 verifySuspend {
@@ -115,10 +135,19 @@ class SeasonFixtureViewTest : BehaviorSpec({
             }
         }
 
-        When("a tean category has no teams in the competition and calcFixtures is called") {
+        When("a team category has no teams in the competition and calcFixtures is called") {
             setSeasonCompTeams(seasonTeamCategoryDao, seasonTeamDao, competitionId, teamCategoryId, secondTeamCategoryId)
             every { seasonWeeks.breakWeeks() } returns emptyMap()
-            calcFixtures(seasonId, seasonFixtureDao, seasonTeamDao, seasonCompetitionDao, seasonTeamCategoryDao, teamCategoryDao, seasonCompRoundViewDao, seasonWeeks)
+            everySuspend { farAssociationDao.get() } returns emptyList()
+            calcFixtures(seasonId,
+                seasonFixtureDao,
+                seasonTeamDao,
+                seasonCompetitionDao,
+                seasonTeamCategoryDao,
+                teamCategoryDao,
+                seasonCompRoundViewDao,
+                farAssociationDao,
+                seasonWeeks)
 
             then("it should delete existing fixtures for the categories") {
                 verifySuspend {

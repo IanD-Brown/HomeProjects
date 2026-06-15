@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.FarAssociationDao
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
@@ -504,11 +505,15 @@ internal suspend fun calcFixtures(
     seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>().value,
     teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value,
     seasonCompRoundViewDao: SeasonCompRoundViewDao = inject<SeasonCompRoundViewDao>().value,
+    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>().value,
     seasonWeeks: SeasonWeeks? = null
 ) {
     val resolvedSeasonWeeks = seasonWeeks ?: createSeasonWeeks(seasonId)
     val leagueGames = SeasonLeagueGames()
     val activeLeagueCompetitions = seasonCompetitionDao.getActiveLeagueCompetitions(seasonId)
+    val farAwayGames = farAssociationDao.get()
+        .groupBy({ it.awayAssociation}, {it.homeAssociation})
+        .mapValues { (_, values) -> values.toSet() }
 
     for (activeLeagueCompetition in activeLeagueCompetitions) {
         for (activeTeamCategory in seasonTeamCategoryDao.getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
@@ -534,7 +539,8 @@ internal suspend fun calcFixtures(
                 activeLeagueCompetition.competitionId,
                 activeTeamCategory.teamCategoryId,
                 activeTeamCategory.games,
-                seasonTeamDao.getTeams(seasonId, activeLeagueCompetition.competitionId, activeTeamCategory.teamCategoryId))
+                seasonTeamDao.getTeams(seasonId, activeLeagueCompetition.competitionId, activeTeamCategory.teamCategoryId),
+                farAwayGames)
         }
     }
 

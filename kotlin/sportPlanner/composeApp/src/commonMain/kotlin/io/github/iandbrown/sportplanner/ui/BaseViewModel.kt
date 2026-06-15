@@ -100,34 +100,22 @@ open class BaseSeasonCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId, dao : D
 abstract class BaseCRUDViewModel<DAO, ENTITY>(dao : DAO, reader: suspend (DAO) -> List<ENTITY>) : BaseReadViewModel<DAO, ENTITY>(dao, reader)
         where DAO : ReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY> {
 
-    fun insert(entity: ENTITY) : Long {
-        var result = 0L
-        viewModelScope.launch {
-            try {
-                result = dao.insert(entity)
-                readAll()
-            } catch (e: Exception) {
-                handleException(e)
-            }
-        }
-        return result
+    fun insert(entity: ENTITY) {
+        runInCoroutine { dao.insert(entity) }
     }
 
     fun update(entity: ENTITY) {
-        viewModelScope.launch {
-            try {
-                dao.update(entity)
-                readAll()
-            } catch (e: Exception) {
-                handleException(e)
-            }
-        }
+       runInCoroutine {  dao.update(entity) }
     }
 
     fun delete(entity: ENTITY) {
+        runInCoroutine({ dao.delete(entity) })
+    }
+
+    private fun runInCoroutine(operation: suspend () -> Unit) {
         viewModelScope.launch {
             try {
-                dao.delete(entity)
+                operation()
                 readAll()
             } catch (e: Exception) {
                 handleException(e)

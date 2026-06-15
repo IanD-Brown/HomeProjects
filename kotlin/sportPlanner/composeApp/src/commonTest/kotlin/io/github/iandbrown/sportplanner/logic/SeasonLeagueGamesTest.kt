@@ -21,7 +21,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
         val seasonLeagueGames = SeasonLeagueGames()
 
         When("a single game structure is prepared") {
-            seasonLeagueGames.prepareGames(1, 1, 1, teams)
+            seasonLeagueGames.prepareGames(1, 1, 1, teams, emptyMap())
             val plannedGames = seasonLeagueGames.getPlannedGames(1)
             val expandedTeams = buildAllTeams(teams)
 
@@ -58,7 +58,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
         }
 
         When("a home and away game structure is prepared") {
-            seasonLeagueGames.prepareGames(1, 1, 2, teams)
+            seasonLeagueGames.prepareGames(1, 1, 2, teams, emptyMap())
             val plannedGames = seasonLeagueGames.getPlannedGames(1)
 
             then("the correct number of games should be created") {
@@ -78,7 +78,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
         }
 
         When("an unsupported game structure") {
-            seasonLeagueGames.prepareGames(1, 1, 0, teams)
+            seasonLeagueGames.prepareGames(1, 1, 0, teams, emptyMap())
             val plannedGames = seasonLeagueGames.getPlannedGames(1)
 
             then("no games should be created") {
@@ -99,7 +99,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             )
             val teamCategories = listOf(TeamCategory(1, "Team category", 1))
 
-            seasonLeagueGames.prepareGames(1, 1, 2, teams)
+            seasonLeagueGames.prepareGames(1, 1, 2, teams, emptyMap())
             val scheduledFixtures = seasonLeagueGames.scheduleFixtures(
                 1,
                 seasonWeeks,
@@ -129,7 +129,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             )
             val teamCategories = listOf(TeamCategory(1, "Team category", 1))
 
-            seasonLeagueGames.prepareGames(1, 1, 2, teams)
+            seasonLeagueGames.prepareGames(1, 1, 2, teams, emptyMap())
             val scheduledFixtures = seasonLeagueGames.scheduleFixtures(
                 1,
                 seasonWeeks,
@@ -142,6 +142,81 @@ class SeasonLeagueGamesTest : BehaviorSpec({
 
             then("a fixture should have the message INCOMPLETE") {
                 scheduledFixtures.filter{it.message == "INCOMPLETE"}.size shouldBe 1
+            }
+        }
+    }
+    given("a number of games to be planned") {
+        val side1 = Side(1, 1, 1)
+        val side2 = Side(1, 2, 1)
+        val side3 = Side(1, 3, 1)
+        val side4 = Side(1, 4, 1)
+        val plannedGames = listOf(
+            PlannedGame(1, home = side1, away = side2),
+            PlannedGame(1, home = side4, away = side3),
+            PlannedGame(1, home = side3, away = side1, distantAwayGame = true)
+        )
+        When("the games to schedule and home game count match") {
+            val gamesToSchedule = mutableMapOf<Side, Int>()
+            val homeGameByAssociation = mutableMapOf<AssociationId, Int>()
+
+            gamesToSchedule[side1] = 0
+            gamesToSchedule[side2] = 4
+            gamesToSchedule[side3] = 0
+            gamesToSchedule[side4] = 0
+            homeGameByAssociation[side1.associationId] = 2
+            homeGameByAssociation[side2.associationId] = 2
+            homeGameByAssociation[side3.associationId] = 2
+            homeGameByAssociation[side4.associationId] = 2
+
+            val orderedGames = getOrderedGames(plannedGames, gamesToSchedule, homeGameByAssociation)
+
+            then("distant away games are earlier") {
+                orderedGames[0] shouldBe plannedGames[0]
+                orderedGames[1] shouldBe plannedGames[2]
+                orderedGames[2] shouldBe plannedGames[1]
+            }
+        }
+        When("the games to schedule are the same") {
+            val gamesToSchedule = mutableMapOf<Side, Int>()
+            val homeGameByAssociation = mutableMapOf<AssociationId, Int>()
+
+            gamesToSchedule[side1] = 0
+            gamesToSchedule[side2] = 4
+            gamesToSchedule[side3] = 0
+            gamesToSchedule[side4] = 0
+            homeGameByAssociation[side1.associationId] = 2
+            homeGameByAssociation[side2.associationId] = 2
+            homeGameByAssociation[side3.associationId] = 2
+            homeGameByAssociation[side4.associationId] = 0
+
+            val orderedGames = getOrderedGames(plannedGames, gamesToSchedule, homeGameByAssociation)
+
+            then("the association having the least home games should be earlier") {
+                orderedGames[0] shouldBe plannedGames[0]
+                orderedGames[1] shouldBe plannedGames[1]
+                orderedGames[2] shouldBe plannedGames[2]
+            }
+        }
+
+        When("the games to schedule are the different") {
+            val gamesToSchedule = mutableMapOf<Side, Int>()
+            val homeGameByAssociation = mutableMapOf<AssociationId, Int>()
+
+            gamesToSchedule[side1] = 2
+            gamesToSchedule[side2] = 1
+            gamesToSchedule[side3] = 3
+            gamesToSchedule[side4] = 4
+            homeGameByAssociation[side1.associationId] = 2
+            homeGameByAssociation[side2.associationId] = 2
+            homeGameByAssociation[side3.associationId] = 2
+            homeGameByAssociation[side4.associationId] = 2
+
+            val orderedGames = getOrderedGames(plannedGames, gamesToSchedule, homeGameByAssociation)
+
+            then("the game with the higher games to schedule should be earlier") {
+                orderedGames[0] shouldBe plannedGames[1]
+                orderedGames[1] shouldBe plannedGames[2]
+                orderedGames[2] shouldBe plannedGames[0]
             }
         }
     }
