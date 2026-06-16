@@ -5,22 +5,26 @@ import androidx.lifecycle.viewModelScope
 import dev.shivathapaa.logger.api.LoggerFactory
 import io.github.iandbrown.reconciler.database.BaseReadDao
 import io.github.iandbrown.reconciler.database.BaseWriteDao
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 
 sealed interface ViewModelState<out ENTITY> {
-    data class Success<ENTITY>(val data: List<ENTITY>) : ViewModelState<ENTITY>
+    data class Success<ENTITY>(val data: ImmutableList<ENTITY>) : ViewModelState<ENTITY>
     data class Error(val message: String, val reset: () -> Unit) : ViewModelState<Nothing>
     object Loading : ViewModelState<Nothing>
     object Uninitialized : ViewModelState<Nothing>
 
-    fun values() : List<ENTITY> =
+    fun values() : ImmutableList<ENTITY> =
         when (this) {
             is Success -> data
-            else -> emptyList()
+            else -> persistentListOf()
         }
 }
 
@@ -36,7 +40,7 @@ open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : 
         viewModelScope.launch {
             _state.update { ViewModelState.Loading }
             try {
-                dao.get().collect {data -> _state.update { ViewModelState.Success(data) } }
+                _state.update { ViewModelState.Success(dao.get().toImmutableList()) }
             } catch (e: Exception) {
                 handleException(e)
             }
@@ -45,6 +49,9 @@ open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : 
 
     fun handleException(exception: Exception) {
         logException(javaClass.simpleName, exception, "operation failed:")
+        if (exception is CancellationException) {
+            throw exception
+        }
         _state.update { ViewModelState.Error(exception.message ?: exception.javaClass.simpleName, ::readAll) }
     }
 }
@@ -55,30 +62,27 @@ fun logException(className: String, exception: Exception, context: String) {
 }
 
 open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseReadViewModel<DAO, ENTITY>(dao)
-        where DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>
-{
-    val coroutineScope = viewModelScope
-
-    fun insert(entity: ENTITY) : Long {
-        var result = 0L
-        coroutineScope.launch {
-            result = dao.insert(entity)
-            readAll()
-        }
-        return result
+        where DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY> {
+    fun insert(entity: ENTITY) {
+        runInCoroutine { dao.insert(entity) }
     }
 
     fun update(entity: ENTITY) {
-        coroutineScope.launch {
-            dao.update(entity)
-            readAll()
-        }
+        runInCoroutine {  dao.update(entity) }
     }
 
     fun delete(entity: ENTITY) {
-        coroutineScope.launch {
-            dao.delete(entity)
-            readAll()
+        runInCoroutine({ dao.delete(entity) })
+    }
+
+    private fun runInCoroutine(operation: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                operation()
+                readAll()
+            } catch (e: Exception) {
+                handleException(e)
+            }
         }
     }
 }

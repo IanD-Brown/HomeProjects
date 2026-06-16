@@ -141,8 +141,12 @@ fun rowContent(rowRanges: List<Range>,
         }
         val mergedRowItems = mergeOverlapping(rowItems)
         if (rowFilter(mergedRowItems.map { it.value }.toSet())) {
-            for (e in mergedRowItems) {
-                logger.debug {"Pair(Range(${e.key.from}F, ${e.key.to}F), \"${e.value}\"),"}
+            try {
+                for (e in mergedRowItems) {
+                    logger.debug { "Pair(Range(${e.key.from}F, ${e.key.to}F), \"${e.value}\")," }
+                }
+            } catch (_: Exception) {
+                // ignore, just a logging failure.
             }
             rowContents.add(mergedRowItems)
         }

@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "AccountImportDefinitions"
@@ -40,7 +39,7 @@ data class AccountImportDefinition(
 @Dao
 interface AccountImportDefinitionDao : BaseReadDao<AccountImportDefinition>, BaseWriteDao<AccountImportDefinition> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<AccountImportDefinition>>
+    override suspend fun get(): List<AccountImportDefinition>
 
     @Query("SELECT * FROM $table")
     suspend fun getDefinitions(): List<AccountImportDefinition>

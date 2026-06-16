@@ -3,7 +3,6 @@ package io.github.iandbrown.reconciler.database
 import androidx.room.Dao
 import androidx.room.DatabaseView
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val viewName = "TransactionListView"
@@ -43,7 +42,7 @@ data class TransactionListView(
 @Dao
 interface TransactionListViewDao : BaseReadDao<TransactionListView> {
     @Query("SELECT * FROM $viewName")
-    override fun get(): Flow<List<TransactionListView>>
+    override suspend fun get(): List<TransactionListView>
 
     @Query("SELECT * FROM $viewName")
     suspend fun getAll() : List<TransactionListView>

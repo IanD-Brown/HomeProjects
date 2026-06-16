@@ -7,7 +7,6 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Transaction
 import io.github.iandbrown.reconciler.di.inject
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "ImportDefinitions"
@@ -25,7 +24,7 @@ data class ImportDefinition(
 @Dao
 interface ImportDefinitionDao : BaseReadDao<ImportDefinition>, BaseWriteDao<ImportDefinition> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<ImportDefinition>>
+    override suspend fun get(): List<ImportDefinition>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

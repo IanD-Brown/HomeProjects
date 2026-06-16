@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -491,13 +492,13 @@ internal fun<DAO, ENTITY, VIEW_MODEL> genericButtonSettings(name: String,
                                                             viewModel: VIEW_MODEL,
                                                             function: suspend (VIEW_MODEL) -> Unit) : ButtonSettings
         where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
-    ButtonSettings(name) { viewModel.coroutineScope.launch {
+    ButtonSettings(name) { viewModel.viewModelScope.launch {
         tryTransaction({viewModel.handleException(it)}, { function(viewModel)}) }
     }
 
 internal fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
         where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
-    ButtonSettings("Import") { viewModel.coroutineScope.launch {
+    ButtonSettings("Import") { viewModel.viewModelScope.launch {
         tryTransaction({viewModel.handleException(it)}, {
             importFromFile(
                 "csv",

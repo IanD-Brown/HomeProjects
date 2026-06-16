@@ -6,7 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "Transactions"
@@ -42,7 +41,7 @@ data class Transaction(
 @Dao
 interface TransactionDao : BaseReadDao<Transaction>, BaseWriteDao<Transaction> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<Transaction>>
+    override suspend fun get(): List<Transaction>
 
     @Query("DELETE FROM $table WHERE account = :account")
     suspend fun deleteAllByAccount(account: Int)

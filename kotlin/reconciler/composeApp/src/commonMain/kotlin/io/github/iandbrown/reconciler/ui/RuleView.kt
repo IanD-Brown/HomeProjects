@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.reconciler.database.AccountGroupDao
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.RuleDao
@@ -174,7 +175,7 @@ internal fun EditRule(rule: Rule,
 
 private fun save(rule: Rule?, viewModel: RuleViewModel, match: String, type: Int, accountGroup: Int,
                  transactionDao: TransactionDao = inject<TransactionDao>().value) {
-    viewModel.coroutineScope.launch {
+    viewModel.viewModelScope.launch {
         if (rule == null || rule.id == 0) {
             viewModel.getDao().insert(Rule(match = match.trim(), category = type, accountGroup = accountGroup))
         } else {

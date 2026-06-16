@@ -27,6 +27,7 @@ kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_11 // Max supported version for Android
         }
+        withHostTest {}
     }
 
     jvm()

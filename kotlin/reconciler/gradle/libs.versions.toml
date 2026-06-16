@@ -7,7 +7,7 @@ androidx-activity = "1.13.0"
 androidx-lifecycle = "2.10.0"
 composeHotReload = "1.1.1"
 composeMultiplatform = "1.11.1"
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 kotlinx-coroutines = "1.11.0"
 # navigation
 navigationCompose = "2.9.2"
@@ -24,16 +24,16 @@ koin-core = "4.2.1"
 androidx-startup = "1.2.0"
 # unit-testing kotest
 kotest-version = "6.1.11"
-filekit = "0.14.1"
+filekit = "0.14.2"
 navigationEvent = "1.1.0"
-stability = "0.8.0"
+stability = "0.9.0"
 kotlinx-dataframe = "1.0.0-Beta5"
 kmp-logger = "1.4.0"
 jsoup = "1.22.2"
 pdfbox = "3.0.7"
 pdfbox-android = "2.0.27.0"
 # immutable collections
-immutableCollections = "0.4.0"
+immutableCollections = "0.5.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

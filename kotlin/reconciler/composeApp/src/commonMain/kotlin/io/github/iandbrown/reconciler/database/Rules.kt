@@ -6,7 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val table = "Rules"
@@ -39,7 +38,7 @@ data class Rule(
 @Dao
 interface RuleDao : BaseReadDao<Rule>, BaseWriteDao<Rule> {
     @Query("SELECT * FROM $table")
-    override fun get(): Flow<List<Rule>>
+    override suspend fun get(): List<Rule>
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

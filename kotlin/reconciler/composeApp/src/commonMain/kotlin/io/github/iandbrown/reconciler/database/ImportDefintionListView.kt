@@ -3,7 +3,6 @@ package io.github.iandbrown.reconciler.database
 import androidx.room.Dao
 import androidx.room.DatabaseView
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 private const val viewName = "ImportDefinitionListView"
@@ -46,7 +45,7 @@ data class ImportDefinitionListView(
 @Dao
 interface ImportDefinitionListViewDao : BaseReadDao<ImportDefinitionListView> {
     @Query("SELECT * FROM $viewName")
-    override fun get(): Flow<List<ImportDefinitionListView>>
+    override suspend fun get(): List<ImportDefinitionListView>
 
     @Query("SELECT * FROM $viewName")
     suspend fun getAll() : List<ImportDefinitionListView>
