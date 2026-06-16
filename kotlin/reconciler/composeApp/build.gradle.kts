@@ -15,8 +15,25 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 
     alias(libs.plugins.kotest.plugin)
+    alias(libs.plugins.kover)
 
     alias(libs.plugins.stability.analyzer)
+}
+
+kover {
+    reports {
+        filters {
+            includes {
+                packages("io.github.iandbrown.reconciler.logic", "io.github.iandbrown.reconciler.utils")
+            }
+        }
+
+        verify {
+            rule {
+                minBound(80)
+            }
+        }
+    }
 }
 
 kotlin {

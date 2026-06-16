@@ -84,11 +84,7 @@ class TextAreaHolder {
     }
 }
 
-data class Range(val from: Float, val to: Float) {
-    override fun toString(): String {
-        return "Range(${from}F, ${to}F)"
-    }
-}
+data class Range(val from: Float, val to: Float)
 
 data class RectArea(val left: Float, val right: Float, val top: Float, val bottom: Float)
 

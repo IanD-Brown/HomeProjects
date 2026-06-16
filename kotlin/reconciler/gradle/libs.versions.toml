@@ -24,6 +24,7 @@ koin-core = "4.2.1"
 androidx-startup = "1.2.0"
 # unit-testing kotest
 kotest-version = "6.1.11"
+kover = "0.9.8"
 filekit = "0.14.2"
 navigationEvent = "1.1.0"
 stability = "0.9.0"
@@ -89,4 +90,5 @@ androidxRoom = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
+kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}
 stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability" }

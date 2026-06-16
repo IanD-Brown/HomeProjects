@@ -56,21 +56,67 @@ class AbstractPDFConverterTest {
     fun testMergeOverlapping() {
         // Note: mergeOverlapping is private in AbstractPDFConverter.kt.
         // We test it indirectly through rowContent.
-        
+
         val sortedItems = listOf(
             RectArea(10f, 50f, 10f, 20f) to "Part 1",
             RectArea(40f, 80f, 10f, 20f) to " and Part 2",
             RectArea(100f, 150f, 10f, 20f) to "Separate"
         )
         val rowRanges = listOf(Range(10f, 20f))
-        
+
         val result = rowContent(rowRanges, sortedItems) { true }
         assertEquals(1, result.size)
         val row = result[0]
-        
+
         // Should have 2 entries after merge: "Part 1 and Part 2" and "Separate"
         assertEquals(2, row.size)
         assertTrue(row.values.contains("Part 1 and Part 2"))
         assertTrue(row.values.contains("Separate"))
+    }
+
+    @Test
+    fun testTextAreaHolderStringAt() {
+        val holder = TextAreaHolder()
+        holder.stringAt("Hello", sequenceOf(RectArea(10f, 20f, 10f, 20f)))
+        assertEquals("Hello", holder.currentText)
+        holder.stringAt(" ", sequenceOf(RectArea(20f, 30f, 10f, 20f)))
+        assertEquals("Hello ", holder.currentText)
+        holder.stringAt(null, sequenceOf(RectArea(30f, 40f, 10f, 20f)))
+        assertEquals(null, holder.currentText)
+        holder.stringAt("World", sequenceOf(RectArea(30f, 40f, 10f, 20f)))
+        assertEquals("World", holder.currentText)
+    }
+
+    @Test
+    fun testCalcRowsWithLaterRowBelow() {
+        val items = mapOf(
+            RectArea(10f, 50f, 10f, 19f) to "Date",
+            RectArea(60f, 100f, 10f, 22f) to "Description",
+            RectArea(10f, 50f, 30f, 40f) to "2023-01-01",
+            RectArea(60f, 100f, 30f, 40f) to "Lunch"
+        )
+
+        val sortedItems = getSortedItems(items)
+
+        assertEquals("Date", sortedItems[0].second)
+        assertEquals("Description", sortedItems[1].second)
+        assertEquals("2023-01-01", sortedItems[2].second)
+        assertEquals("Lunch", sortedItems[3].second)
+
+        val rows = calcRows(sortedItems)
+        assertEquals(2, rows.size)
+        assertEquals(Range(10f, 22f), rows[0])
+        assertEquals(Range(30f, 40f), rows[1])
+    }
+
+    @Test
+    fun testCalcRowsWithInvalidTop() {
+        val items = mapOf(
+            RectArea(10f, 50f, Float.MAX_VALUE, 1f) to "XXX"
+        )
+
+        val rows = calcRows(getSortedItems(items))
+
+        assertTrue { rows.isEmpty() }
     }
 }
