@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.FarAssociationDao
+import io.github.iandbrown.sportplanner.database.FarAssociationView
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
@@ -39,8 +40,10 @@ import io.github.iandbrown.sportplanner.database.SeasonFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonFixtureView
 import io.github.iandbrown.sportplanner.database.SeasonFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
+import io.github.iandbrown.sportplanner.database.SeasonLeagueTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.SeasonLeagueTeamView
 import io.github.iandbrown.sportplanner.database.SeasonLeagueTeamViewDao
+import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
@@ -74,6 +77,10 @@ class SeasonFixtureViewModel(seasonId: SeasonId,
 class SeasonLeagueTeamViewModel(seasonId: SeasonId,
                                 dao : SeasonLeagueTeamViewDao = inject<SeasonLeagueTeamViewDao>().value) :
     BaseSeasonReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(seasonId, dao)
+
+class SeasonLeagueTeamCategoryViewModel(seasonId: SeasonId,
+                                dao : SeasonLeagueTeamCategoryDao = inject<SeasonLeagueTeamCategoryDao>().value) :
+    BaseSeasonReadViewModel<SeasonLeagueTeamCategoryDao, SeasonTeamCategory>(seasonId, dao)
 
 private val editor = Editors.SEASON_FIXTURES
 
@@ -167,14 +174,14 @@ private fun FixtureView(viewModel: SeasonViewModel= koinInject<SeasonViewModel>(
     }
 }
 
-private enum class SumType(val displayName: String) {HOME_TEAM("Home"), AWAY_TEAM("Away"), DISTANT("Distant")}
+internal enum class SumType(val displayName: String) {HOME_TEAM("Home"), AWAY_TEAM("Away"), DISTANT("Distant")}
 
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun SummaryFixtureView(season: Season,
                                seasonFixtureViewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) },
                                seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel { parametersOf(season.id) },
-                               seasonTeamCategoryModel : SeasonTeamCategoryViewModel = koinViewModel { parametersOf(season.id) },
+                               seasonTeamCategoryModel : SeasonLeagueTeamCategoryViewModel = koinViewModel { parametersOf(season.id) },
                                farAssociationViewModel: FarAssociationListViewModel = koinViewModel()) {
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
     val state = seasonFixtureViewModel.uiState.collectAsState()
@@ -188,30 +195,12 @@ private fun SummaryFixtureView(season: Season,
         "Return to seasons screen",
         states = persistentListOf(state.value, seasonLeagueTeamState.value, seasonTeamCategoryState.value, farAssociationState.value),
         content = {paddingValues ->
-            val countsByTeamAndCategory = mutableMapOf<Triple<String, String, SumType>, Int>()
-            val teamCounts = seasonLeagueTeamState.values().associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
-            val teamCategories = sortedSetOf<String>()
-            val teams = sortedSetOf<String>()
-            val filteredFixtures = state.values().filter { it.competitionId == competitionFilter && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) }
-            val singleGameTeamCategories = seasonTeamCategoryState.values().filter { it.games == 1.toShort() }.map { it.teamCategoryId }.toSet()
-            val distantAwayFixtures = farAssociationState.values().groupBy { it.homeAssociationName }
-                .mapValues { it.value.map {value -> value.awayAssociationName }.toSet() }
-
-            for (seasonFixture in filteredFixtures) {
-                teamCategories += seasonFixture.teamCategoryName
-                val homeTeamName = teamName(seasonFixture, true, teamCounts)
-                val awayTeamName = teamName(seasonFixture, false, teamCounts)
-                teams += homeTeamName
-                teams += awayTeamName
-
-                countsByTeamAndCategory.merge(Triple(homeTeamName, seasonFixture.teamCategoryName, SumType.HOME_TEAM), 1, Int::plus)
-                countsByTeamAndCategory.merge(Triple(awayTeamName, seasonFixture.teamCategoryName, SumType.AWAY_TEAM), 1, Int::plus)
-                if (singleGameTeamCategories.contains(seasonFixture.teamCategoryId)) {
-                    if (distantAwayFixtures[seasonFixture.homeAssociation]?.contains(seasonFixture.awayAssociation) == true) {
-                        countsByTeamAndCategory.merge(Triple(awayTeamName, seasonFixture.teamCategoryName, SumType.DISTANT), 1, Int::plus)
-                    }
-                }
-            }
+            val fixtureSummaryDetails = FixtureSummaryDetails(seasonLeagueTeamState.values(),
+                state
+                    .values()
+                    .filter { it.competitionId == competitionFilter && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) },
+                seasonTeamCategoryState.values(),
+                farAssociationState.values())
 
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
@@ -229,43 +218,78 @@ private fun SummaryFixtureView(season: Season,
                     }
                 })
                 val columns = when (typeFilter) {
-                    null -> teamCategories.size + 2
-                    else -> teamCategories.size + 1
+                    null -> fixtureSummaryDetails.teamCategories.size + 2
+                    else -> fixtureSummaryDetails.teamCategories.size + 1
                 }
                 LazyVerticalGrid(columns = DoubleFirstGridCells(columns)) {
                     viewTextItems(listOf(""))
                     if (typeFilter == null) {
                         viewTextItems(listOf(""))
                     }
-                    viewTextItems(teamCategories.toImmutableList())
-                    for (team in teams) {
+                    viewTextItems(fixtureSummaryDetails.teamCategories.toImmutableList())
+                    for (team in fixtureSummaryDetails.teams) {
                         fun sumValue(teamCategory: String, sumType: SumType) : String {
-                            return countsByTeamAndCategory[Triple(team, teamCategory, sumType)]?.toString() ?: "0"
+                            return fixtureSummaryDetails.countsByTeamAndCategory[Triple(team, teamCategory, sumType)]?.toString() ?: "0"
                         }
                         when (typeFilter) {
                             null -> {
                                 viewTextItems(listOf(team, "HOME") +
-                                        teamCategories.map { sumValue(it, SumType.HOME_TEAM) })
+                                        fixtureSummaryDetails.teamCategories.map { sumValue(it, SumType.HOME_TEAM) })
                                 viewTextItems(listOf("", "AWAY") +
-                                        teamCategories.map { sumValue(it, SumType.AWAY_TEAM) })
+                                        fixtureSummaryDetails.teamCategories.map { sumValue(it, SumType.AWAY_TEAM) })
                                 viewTextItems(listOf("", "DISTANT") +
-                                        teamCategories.map { sumValue(it, SumType.DISTANT) })
+                                        fixtureSummaryDetails.teamCategories.map { sumValue(it, SumType.DISTANT) })
                             }
                             SumType.DISTANT -> {
                                 viewTextItems(listOf(team) +
-                                        teamCategories.map {
+                                        fixtureSummaryDetails.teamCategories.map {
                                             "${sumValue(it, SumType.DISTANT)} (${sumValue(it, SumType.AWAY_TEAM)})"
                                         })
                             }
                             else -> {
                                 viewTextItems(listOf(team) +
-                                        teamCategories.map { sumValue(it, typeFilter!!) })
+                                        fixtureSummaryDetails.teamCategories.map { sumValue(it, typeFilter!!) })
                             }
                         }
                     }
                 }
             }
         })
+}
+
+internal class FixtureSummaryDetails {
+    val countsByTeamAndCategory = mutableMapOf<Triple<String, String, SumType>, Int>()
+    val teamCategories = sortedSetOf<String>()
+    val teams = sortedSetOf<String>()
+
+    constructor(seasonLeagueTeams: List<SeasonLeagueTeamView>,
+                filteredFixtures: List<SeasonFixtureView>,
+                seasonTeamCategories: List<SeasonTeamCategory>,
+                farAssociations: List<FarAssociationView>) {
+        val teamCounts = seasonLeagueTeams.associateBy(
+            { Triple(it.teamCategoryId, it.associationName, it.competitionId) },
+            { it.count })
+        val singleGameTeamCategories = seasonTeamCategories.filter { it.games == 1.toShort() }
+                .map { it.teamCategoryId }.toSet()
+        val distantAwayFixtures = farAssociations.groupBy { it.homeAssociationName }
+            .mapValues { it.value.map { value -> value.awayAssociationName }.toSet() }
+
+        for (seasonFixture in filteredFixtures) {
+            teamCategories += seasonFixture.teamCategoryName
+            val homeTeamName = teamName(seasonFixture, true, teamCounts)
+            val awayTeamName = teamName(seasonFixture, false, teamCounts)
+            teams += homeTeamName
+            teams += awayTeamName
+
+            countsByTeamAndCategory.merge(Triple(homeTeamName, seasonFixture.teamCategoryName, SumType.HOME_TEAM), 1, Int::plus)
+            countsByTeamAndCategory.merge(Triple(awayTeamName, seasonFixture.teamCategoryName, SumType.AWAY_TEAM), 1, Int::plus)
+            if (singleGameTeamCategories.contains(seasonFixture.teamCategoryId)) {
+                if (distantAwayFixtures[seasonFixture.homeAssociation]?.contains(seasonFixture.awayAssociation) == true) {
+                    countsByTeamAndCategory.merge(Triple(awayTeamName, seasonFixture.teamCategoryName, SumType.DISTANT), 1, Int::plus)
+                }
+            }
+        }
+    }
 }
 
 @Suppress("ParamsComparedByRef")

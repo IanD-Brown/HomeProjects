@@ -11,12 +11,14 @@ import dev.mokkery.verifyNoMoreCalls
 import dev.mokkery.verifySuspend
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.FarAssociationDao
+import io.github.iandbrown.sportplanner.database.FarAssociationView
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonFixture
 import io.github.iandbrown.sportplanner.database.SeasonFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonFixtureView
+import io.github.iandbrown.sportplanner.database.SeasonLeagueTeamView
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
@@ -280,6 +282,47 @@ class SeasonFixtureViewTest : BehaviorSpec({
                 results.size shouldBe 2
                 results[0][1] shouldBe "U12"
                 results[1][2] shouldBe "Break 12"
+            }
+        }
+    }
+
+    given("FixtureSummaryDetails tests") {
+        val seasonLeagueTeams = listOf(
+            SeasonLeagueTeamView(seasonId, teamCategoryId, "Assoc A", competitionId, 1),
+            SeasonLeagueTeamView(seasonId, teamCategoryId, "Assoc B", competitionId, 1),
+            SeasonLeagueTeamView(seasonId, secondTeamCategoryId, "Assoc A", competitionId, 1),
+            SeasonLeagueTeamView(seasonId, secondTeamCategoryId, "Assoc B", competitionId, 1)
+        )
+        val seasonTeamCategories = listOf(
+            SeasonTeamCategory(seasonId, competitionId, teamCategoryId, 1, false),
+            SeasonTeamCategory(seasonId, competitionId, secondTeamCategoryId, 2, false)
+        )
+        val farAssociations = listOf(
+            FarAssociationView(1, "Assoc A", 2, "Assoc B")
+        )
+        val fixtures = listOf(
+            SeasonFixtureView(1, seasonId, competitionId, teamCategoryId, "U10", 0, "", "Assoc A", 1, "Assoc B", 1),
+            SeasonFixtureView(2, seasonId, competitionId, secondTeamCategoryId, "U12", 0, "", "Assoc A", 1, "Assoc B", 1)
+        )
+
+        When("FixtureSummaryDetails is created") {
+            val details = FixtureSummaryDetails(seasonLeagueTeams, fixtures, seasonTeamCategories, farAssociations)
+
+            then("it should have correct teams and categories") {
+                details.teams shouldBe sortedSetOf("Assoc A", "Assoc B")
+                details.teamCategories shouldBe sortedSetOf("U10", "U12")
+            }
+
+            then("it should have correct HOME and AWAY counts") {
+                details.countsByTeamAndCategory[Triple("Assoc A", "U10", SumType.HOME_TEAM)] shouldBe 1
+                details.countsByTeamAndCategory[Triple("Assoc B", "U10", SumType.AWAY_TEAM)] shouldBe 1
+                details.countsByTeamAndCategory[Triple("Assoc A", "U12", SumType.HOME_TEAM)] shouldBe 1
+                details.countsByTeamAndCategory[Triple("Assoc B", "U12", SumType.AWAY_TEAM)] shouldBe 1
+            }
+
+            then("it should have correct DISTANT counts") {
+                details.countsByTeamAndCategory[Triple("Assoc B", "U10", SumType.DISTANT)] shouldBe 1
+                details.countsByTeamAndCategory[Triple("Assoc B", "U12", SumType.DISTANT)] shouldBe null
             }
         }
     }

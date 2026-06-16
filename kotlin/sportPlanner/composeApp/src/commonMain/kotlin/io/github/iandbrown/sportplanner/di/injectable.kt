@@ -12,6 +12,7 @@ import io.github.iandbrown.sportplanner.ui.SeasonCompetitionRoundViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCupFixtureViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonFixtureViewModel
+import io.github.iandbrown.sportplanner.ui.SeasonLeagueTeamCategoryViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonLeagueTeamViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonTeamCategoryViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonTeamViewModel
@@ -28,21 +29,22 @@ import org.koin.mp.KoinPlatform.getKoin
 inline fun <reified T : Any> inject() = lazy { getKoin().get<T>() }
 
 private val injectableModules = module {
+    viewModel { SeasonBreakViewModel(it.get()) }
+    viewModel { SeasonCompetitionRoundViewModel(it.get(), it.get()) }
+    viewModel { SeasonCompetitionViewModel(it.get(), it.get()) }
+    viewModel { SeasonCupFixtureViewModel(it.get(), it.get()) }
+    viewModel { SeasonFixtureViewModel(it.get()) }
+    viewModel { SeasonLeagueTeamCategoryViewModel(it.get()) }
+    viewModel { SeasonLeagueTeamViewModel(it.get()) }
+    viewModel { SeasonTeamCategoryViewModel(it.get(), it.get()) }
+    viewModel { SeasonTeamViewModel(it.get(), it.get()) }
     viewModelOf(::AssociationViewModel)
-    viewModelOf(::FarAssociationViewModel)
-    viewModelOf(::FarAssociationListViewModel)
     viewModelOf(::CompetitionViewModel)
-    viewModel {parameters -> SeasonBreakViewModel(parameters.get()) }
-    viewModel { p -> SeasonCompetitionRoundViewModel(p.get(), p.get()) }
-    viewModel {p -> SeasonCompetitionViewModel(p.get(), p.get()) }
+    viewModelOf(::FarAssociationListViewModel)
+    viewModelOf(::FarAssociationViewModel)
     viewModelOf(::SeasonCompViewModel)
-    viewModel {p -> SeasonCupFixtureViewModel(p.get(), p.get()) }
-    viewModel {p -> SeasonFixtureViewModel(p.get()) }
-    viewModel {p -> SeasonTeamCategoryViewModel(p.get(), p.get()) }
-    viewModel {p -> SeasonTeamViewModel(p.get(), p.get()) }
     viewModelOf(::SeasonViewModel)
     viewModelOf(::TeamCategoryViewModel)
-    viewModel {p -> SeasonLeagueTeamViewModel(p.get()) }
 
     // Provide DAOs
     single { get<AppDatabase>().getAssociationDao() }
@@ -50,19 +52,20 @@ private val injectableModules = module {
     single { get<AppDatabase>().getFarAssociationDao() }
     single { get<AppDatabase>().getFarAssociationViewDao() }
     single { get<AppDatabase>().getSeasonBreakDao() }
+    single { get<AppDatabase>().getSeasonCompRoundViewDao() }
     single { get<AppDatabase>().getSeasonCompViewDao() }
     single { get<AppDatabase>().getSeasonCompetitionDao() }
     single { get<AppDatabase>().getSeasonCompetitionRoundDao() }
-    single { get<AppDatabase>().getSeasonCompRoundViewDao() }
     single { get<AppDatabase>().getSeasonCupFixtureDao() }
     single { get<AppDatabase>().getSeasonCupFixtureViewDao() }
     single { get<AppDatabase>().getSeasonDao() }
     single { get<AppDatabase>().getSeasonFixtureDao() }
     single { get<AppDatabase>().getSeasonFixtureViewDao() }
+    single { get<AppDatabase>().getSeasonLeagueTeamCategoryDao() }
+    single { get<AppDatabase>().getSeasonLeagueTeamViewDao() }
     single { get<AppDatabase>().getSeasonTeamCategoryDao() }
     single { get<AppDatabase>().getSeasonTeamDao() }
     single { get<AppDatabase>().getTeamCategoryDao() }
-    single { get<AppDatabase>().getSeasonLeagueTeamViewDao() }
 }
 
 fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,

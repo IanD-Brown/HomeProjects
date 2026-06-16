@@ -60,3 +60,9 @@ interface SeasonTeamCategoryDao : BaseSeasonCompReadDao<SeasonTeamCategory>, Bas
     @Query("SELECT * FROM $table")
     suspend fun getAll() : List<SeasonTeamCategory>
 }
+
+@Dao
+interface SeasonLeagueTeamCategoryDao : BaseSeasonReadDao<SeasonTeamCategory> {
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    override suspend fun get(seasonId: SeasonId): List<SeasonTeamCategory>
+}

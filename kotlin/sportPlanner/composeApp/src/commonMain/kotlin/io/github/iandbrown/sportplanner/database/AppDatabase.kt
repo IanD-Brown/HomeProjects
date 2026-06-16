@@ -40,8 +40,8 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getFarAssociationDao() : FarAssociationDao
     abstract fun getFarAssociationViewDao() : FarAssociationViewDao
     abstract fun getSeasonBreakDao() : SeasonBreakDao
-    abstract fun getSeasonCompViewDao() : SeasonCompViewDao
     abstract fun getSeasonCompRoundViewDao() : SeasonCompRoundViewDao
+    abstract fun getSeasonCompViewDao() : SeasonCompViewDao
     abstract fun getSeasonCompetitionDao() : SeasonCompetitionDao
     abstract fun getSeasonCompetitionRoundDao() : SeasonCompetitionRoundDao
     abstract fun getSeasonCupFixtureDao() : SeasonCupFixtureDao
@@ -49,6 +49,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonFixtureDao() : SeasonFixtureDao
     abstract fun getSeasonFixtureViewDao() : SeasonFixtureViewDao
+    abstract fun getSeasonLeagueTeamCategoryDao() : SeasonLeagueTeamCategoryDao
     abstract fun getSeasonLeagueTeamViewDao() : SeasonLeagueTeamViewDao
     abstract fun getSeasonTeamCategoryDao() : SeasonTeamCategoryDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao
