@@ -54,8 +54,8 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
             BottomBarWithButtons(
                 importCsvButtonSettings(viewModel) { toTransactionCategory(it) },
                 exportButtonSettings(coroutineScope, "transactionCategories") { writer ->
-                    val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
-                    toDataFrame(state.value.values(), groupLookup).writeCsv(writer)
+                    val groupLookup = accountGroupState.values().associateBy ({ it.id }, {it.name} )
+                    toDataFrame(state.values(), groupLookup).writeCsv(writer)
                 },
                 ButtonSettings("+") { TransactionCategory(name = "", filter = false, accountGroup = accountGroup) })
         },
@@ -64,7 +64,7 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
-                val value = accountGroupState.value.values()
+                val value = accountGroupState.values()
                 DropdownList(
                     value.map { it.name }.toImmutableList(),
                     value.map { it.id }.indexOf(accountGroup)
@@ -76,7 +76,7 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
             LazyVerticalGrid(columns = WeightedIconGridCells(2, 2, 1, 1)) {
                 viewTextItems(values = listOf("Name", "Filter", "Is Spending"))
                 item(span = { GridItemSpan(2) }) {}
-                for (transactionCategory in state.value.values().filter { it.accountGroup == accountGroup }) {
+                for (transactionCategory in state.values().filter { it.accountGroup == accountGroup }) {
                     viewTextItems(
                         values = listOf(
                             transactionCategory.name,
@@ -146,7 +146,7 @@ internal fun EditTransactionCategory(
                 setEditorState()
             }
             val accountGroupName =
-                accountGroupState.value.values()
+                accountGroupState.values()
                     .filter { it.id == transactionCategory.accountGroup }
                     .map { it.name }
                     .firstOrNull()

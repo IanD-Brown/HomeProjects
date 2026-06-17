@@ -1,5 +1,6 @@
 package io.github.iandbrown.reconciler.ui
 
+import androidx.compose.runtime.State
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.shivathapaa.logger.api.LoggerFactory
@@ -8,12 +9,12 @@ import io.github.iandbrown.reconciler.database.BaseWriteDao
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CancellationException
 
 sealed interface ViewModelState<out ENTITY> {
     data class Success<ENTITY>(val data: ImmutableList<ENTITY>) : ViewModelState<ENTITY>
@@ -26,6 +27,13 @@ sealed interface ViewModelState<out ENTITY> {
             is Success -> data
             else -> persistentListOf()
         }
+}
+
+internal fun<ENTITY> State<ViewModelState<ENTITY>>.values() : ImmutableList<ENTITY> {
+    return when (val value = this.value) {
+        is ViewModelState.Success -> value.data
+        else -> persistentListOf()
+    }
 }
 
 open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : ViewModel() {
@@ -72,7 +80,7 @@ open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseReadViewModel<D
     }
 
     fun delete(entity: ENTITY) {
-        runInCoroutine({ dao.delete(entity) })
+        runInCoroutine { dao.delete(entity) }
     }
 
     private fun runInCoroutine(operation: suspend () -> Unit) {

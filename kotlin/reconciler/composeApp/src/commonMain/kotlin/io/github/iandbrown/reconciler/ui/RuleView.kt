@@ -62,7 +62,7 @@ fun RuleListView(viewModel: RuleViewModel = koinInject(),
                 genericButtonSettings("Reapply", viewModel) {
                     val transactionDao = inject<TransactionDao>().value
                     val transactions = transactionDao.getByAccountGroup(accountGroup)
-                    val ruleCategoryMap = state.value.values().associateBy({ it.match.toRegex() }, { it.category })
+                    val ruleCategoryMap = state.values().associateBy({ it.match.toRegex() }, { it.category })
                     transactions.forEach {
                         val category = getCategory(ruleCategoryMap, it.description)
 
@@ -73,27 +73,27 @@ fun RuleListView(viewModel: RuleViewModel = koinInject(),
                 },
                 importCsvButtonSettings(viewModel) { toRule(it) },
                 exportButtonSettings(coroutineScope,"rules") { output ->
-                    val value = categoryState.value.values()
+                    val value = categoryState.values()
                     val categoryLookup = value.associateBy({ it.id }, { it.name })
-                    val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
+                    val groupLookup = accountGroupState.values().associateBy ({ it.id }, {it.name} )
 
-                    toDataFrame(state.value.values(), categoryLookup, groupLookup).writeCsv(output)
+                    toDataFrame(state.values(), categoryLookup, groupLookup).writeCsv(output)
                 },
                 ButtonSettings("+") { it.navigate(Rule(match = "", category = 0, accountGroup = accountGroup)) })
         },
         states = persistentListOf(state.value, categoryState.value, accountGroupState.value)) { paddingValues ->
-        val categoryLookup = categoryState.value.values().associateBy( { it.id }, {it.name} )
+        val categoryLookup = categoryState.values().associateBy( { it.id }, {it.name} )
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
-                val value = accountGroupState.value.values()
+                val value = accountGroupState.values()
                 DropdownList(
                     value.map { it.name }.toImmutableList(),
                     value.map { it.id }.indexOf(accountGroup)
                 ) { clicked ->
                     accountGroup = value[clicked].id
-                    stateValues = state.value.values().filter { it.accountGroup == accountGroup }.sortedBy { it.match }
+                    stateValues = state.values().filter { it.accountGroup == accountGroup }.sortedBy { it.match }
                 }
             }
             LazyVerticalGrid(columns = WeightedIconGridCells(2, 1, 1, 1, 1, 1)) {
@@ -154,7 +154,7 @@ internal fun EditRule(rule: Rule,
                     match = it
                     setEditorState()
                 }
-                val value = categoryState.value.values()
+                val value = categoryState.values().sortedBy { it.name }
                 gridEntry(
                     "Category",
                     value.map { it.name }.toImmutableList(),
@@ -164,7 +164,7 @@ internal fun EditRule(rule: Rule,
                     setEditorState()
                 }
                 val accountGroupName =
-                    accountGroupState.value.values()
+                    accountGroupState.values()
                         .filter { it.id == rule.accountGroup }
                         .map { it.name }
                         .firstOrNull()

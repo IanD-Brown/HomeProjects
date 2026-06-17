@@ -46,7 +46,7 @@ internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<
                     importCsvFile(inject<AccountGroupDao>().value) { toAccountGroup(it) }
                 } },
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("accountGroups") { toDataFrame(state.value.values()).writeCsv(it) }
+                    exportToFile("accountGroups") { toDataFrame(state.values()).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(AccountGroup(name = "")) })
         },
@@ -57,7 +57,7 @@ internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<
         ) {
             item { ViewText("Name") }
             item(span = { GridItemSpan(3) }) {}
-            for (accountGroup in state.value.values()) {
+            for (accountGroup in state.values()) {
                 item { ViewText(accountGroup.name) }
                 item { Icon(Icons.Default.Upload, "export",
                     Modifier.clickable(onClick = { coroutineScope.launch { export(accountGroup.id)}}), Color.Green)

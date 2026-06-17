@@ -41,6 +41,7 @@ import androidx.compose.ui.window.Dialog
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
+import io.github.iandbrown.reconciler.database.TransactionCategory
 import io.github.iandbrown.reconciler.database.TransactionCategoryDao
 import io.github.iandbrown.reconciler.database.TransactionDao
 import io.github.iandbrown.reconciler.database.TransactionListView
@@ -68,6 +69,7 @@ class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionL
 class TransactionViewModel(dao: TransactionDao = inject<TransactionDao>().value) :
     BaseConfigCRUDViewModel<TransactionDao, Transaction>(dao)
 
+@Suppress("ParamsComparedByRef")
 @Composable
 private fun FilterConfigEditor(fullFilter: Boolean,
                                onDismiss: () -> Unit,
@@ -102,7 +104,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                         ViewText("Account")
                         when (accounts.value) {
                             is ViewModelState.Success -> {
-                                val accountValues = accounts.value.values()
+                                val accountValues = accounts.values()
                                 DropdownList(
                                     (listOf("") + accountValues.map { it.name }).toImmutableList(),
                                     if (account == null) 0 else 1 + accountValues.map { it.id }.indexOf(account)
@@ -122,7 +124,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                         ViewText("Transaction category")
                         when (transactionCategories.value) {
                             is ViewModelState.Success -> {
-                                val transactionCategoryValues = transactionCategories.value.values()
+                                val transactionCategoryValues = transactionCategories.values().sortedBy { it.name }
                                 DropdownList(
                                     (listOf("") + transactionCategoryValues.map { it.name }).toImmutableList(),
                                     if (category == null) 0 else 1 + transactionCategoryValues.map { it.id }.indexOf(category)
@@ -184,7 +186,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
             bottomBar = {
                 BottomBarWithButtons(
                     exportButtonSettings(coroutineScope, "transactions") { output ->
-                        toDataFrame(filterTransaction(state.value.values(), true, accountGroup))
+                        toDataFrame(filterTransaction(state.values(), true, accountGroup, transactionCategories.values()))
                             .writeCsv(output)
                     }
                 )
@@ -198,7 +200,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ViewText("Account Group")
                     Spacer(modifier = Modifier.size(16.dp))
-                    val value = accountGroupState.value.values()
+                    val value = accountGroupState.values()
                     DropdownList(
                         value.map { it.name }.toImmutableList(),
                         value.map { it.id }.indexOf(accountGroup)
@@ -212,7 +214,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                    item(span = { GridItemSpan(2) }) {}
                     viewTextItems(values = listOf("Description", "Amount"))
                     item(span = { GridItemSpan(3) }) {}
-                    for (transaction in filterTransaction(state.value.values(), true, accountGroup)) {
+                    for (transaction in filterTransaction(state.values(), true, accountGroup, transactionCategories.values())) {
                         viewTextItems(
                             values = listOf(
                                 DayDate.of(transaction.date).toString(),
@@ -240,10 +242,14 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
 
 private fun filterTransaction(state: List<TransactionListView>,
                               fullFilter: Boolean,
-                              accountGroup: Int): List<TransactionListView> {
+                              accountGroup: Int,
+                              transactionCategories: List<TransactionCategory>): List<TransactionListView> {
+    val removeCategories = transactionCategories.filter { it.filter }.map { it.id }.toSet()
+
     val filtered = state
         .asSequence()
         .filter { it.accountGroup == accountGroup }
+        .filter { !removeCategories.contains(it.category) }
         .filter { it.date >= baseFilterConfig.minDate.value()  && (baseFilterConfig.maxDate == null || it.date <= baseFilterConfig.maxDate!!.value())}
         .filter { !fullFilter || baseFilterConfig.account == null || it.account == baseFilterConfig.account }
         .filter { !fullFilter || baseFilterConfig.category == null || it.category == baseFilterConfig.category }
@@ -314,7 +320,7 @@ internal fun EditTransaction(item: TransactionListView) {
         confirm = { editorState == EditorState.VALID },
         confirmAction = {save(Transaction(item.id, item.account, item.date, description, amount, item.category), split)},
         states = persistentListOf()) { paddingValues ->
-        LazyVerticalGrid(columns = GridCells.Fixed(5), Modifier.padding(paddingValues)) {
+        LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 1, 4, 1, 1), Modifier.padding(paddingValues)) {
             viewTextItems(values = listOf("Date", "Account", "Description", "Amount", "Category"))
             item { ViewText(DayDate.of(item.date).toString())}
             item { ViewText(item.accountName)}
@@ -327,8 +333,10 @@ internal fun EditTransaction(item: TransactionListView) {
                 val filtered = newValue.filter { it.isDigit() || it == '.' }
                 // Ensure only one decimal point exists
                 if (filtered.count { it == '.' } <= 1) {
-                    amount = newValue.toDouble()
-                    setEditorState()
+                    try {
+                        amount = newValue.toDouble()
+                        setEditorState()
+                    } catch (_: NumberFormatException) {}
                 }
             })}
             item { ViewText(item.categoryName) }
@@ -391,8 +399,8 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
             }
         ) { paddingValues ->
             val includeCategories =
-                transactionCategories.value.values().filter { it.isSpending }.map { it.id }.toSet()
-            val displayTransactions = filterTransaction(state.value.values(), false, accountGroup)
+                transactionCategories.values().filter { it.isSpending }.map { it.id }.toSet()
+            val displayTransactions = filterTransaction(state.values(), false, accountGroup, transactionCategories.values())
                 .filter { it.category in includeCategories }
             val byMonth = displayTransactions.groupBy { DayDate.of(it.date).startOfMonth().value() }
             val months = getMonths(displayTransactions, filterConfig.minDate)
@@ -401,7 +409,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ViewText("Account Group")
                     Spacer(modifier = Modifier.size(16.dp))
-                    val value = accountGroupState.value.values()
+                    val value = accountGroupState.values()
                     DropdownList(
                         value.map { it.name }.toImmutableList(),
                         value.map { it.id }.indexOf(accountGroup)
@@ -410,7 +418,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                     }
                 }
 
-                val data = accounts.value.values()
+                val data = accounts.values()
                 val weights = (listOf(1, 2) + data.map { 4 }).toIntArray()
                 LazyVerticalGrid(columns = WeightedIconGridCells(0, *weights)) {
                     viewTextItems(values = listOf("Month"))
@@ -471,16 +479,16 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinI
                 IconButton({ showDialog = true }) { Icon(Icons.Default.Menu, "") }
             }
         ) { paddingValues ->
-            val displayTransactions = filterTransaction(state.value.values(), false, accountGroup)
+            val displayTransactions = filterTransaction(state.values(), false, accountGroup, transactionCategories.values())
             val summaryByCategory = displayTransactions.groupBy { it.category }
             val months = getMonths(displayTransactions, filterConfig.minDate)
-            val viewCategories = transactionCategories.value.values().filter { !it.filter }
+            val viewCategories = transactionCategories.values().filter { !it.filter }
 
             Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ViewText("Account Group")
                     Spacer(modifier = Modifier.size(16.dp))
-                    val value = accountGroupState.value.values()
+                    val value = accountGroupState.values()
                     DropdownList(
                         value.map { it.name }.toImmutableList(),
                         value.map { it.id }.indexOf(accountGroup)

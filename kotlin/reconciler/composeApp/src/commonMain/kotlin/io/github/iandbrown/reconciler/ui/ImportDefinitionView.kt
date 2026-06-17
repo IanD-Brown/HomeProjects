@@ -135,7 +135,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
             BottomBarWithButtons(
                 ButtonSettings("Import") { coroutineScope.launch { viewModel.monitorImport() }},
                 ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("importDefinitions") { toDataFrame(state.value.values()).writeCsv(it) }
+                    exportToFile("importDefinitions") { toDataFrame(state.values()).writeCsv(it) }
                 }},
                 ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
         },
@@ -146,9 +146,9 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
             columns = WeightedIconGridCells(3, 5, 1, 5, 1, 1, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            val accountValues = state.value.values().associateBy { Pair(it.importDefinitionId, it.accountId) }
-            val orderedAccounts = accountState.value.values().sortedBy { it.name }
-            for (item in state.value.values()) {
+            val accountValues = state.values().associateBy { Pair(it.importDefinitionId, it.accountId) }
+            val orderedAccounts = accountState.values().sortedBy { it.name }
+            for (item in state.values()) {
                 if (item.importDefinitionId != importDefinitionId) {
                     importDefinitionId = item.importDefinitionId
                     item(span = { GridItemSpan(2) }) { ViewText(item.name) }
@@ -158,7 +158,7 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                             Icons.Default.PlayArrow,
                             "run",
                             Modifier.clickable(onClick = {
-                                coroutineScope.launch { viewModel.performImport(state.value.values()
+                                coroutineScope.launch { viewModel.performImport(state.values()
                                     .filter { it.importDefinitionId == item.importDefinitionId && it.active }) }
                             }),
                             Color.Green
@@ -197,7 +197,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     val title = if (importDefinitionListView.importDefinitionId == 0) "Add Import Definition" else "Edit Import Definition"
     var name by remember { mutableStateOf(importDefinitionListView.name) }
     var type by remember { mutableIntStateOf(importDefinitionListView.type) }
-    val accounts = accountState.value.values().associateBy { it.id }.toMutableMap()
+    val accounts = accountState.values().associateBy { it.id }.toMutableMap()
     val activeEdits = remember { mutableStateMapOf<Int, Boolean>() }
     val clearEdits = remember { mutableStateMapOf<Int, Boolean>() }
     val sheetNameEdits = remember { mutableStateMapOf<Int, String>() }
@@ -210,7 +210,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     val importDefinitionState = importDefinitionViewModel.uiState.collectAsState()
 
     fun toImportDefinitions(importDefinitionId: Int): List<AccountImportDefinition> {
-        val editingDefinitions = definitionState.value.values()
+        val editingDefinitions = definitionState.values()
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }.associateBy { it.accountId }
 
         return accounts.values.map {
@@ -302,7 +302,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
         },
         states = persistentListOf(definitionState.value, accountState.value, importDefinitionState.value),
     ) { paddingValues ->
-        val editingDefinitions = definitionState.value.values()
+        val editingDefinitions = definitionState.values()
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }
             .associateBy { it.accountId }
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {

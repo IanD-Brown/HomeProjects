@@ -43,8 +43,8 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
             BottomBarWithButtons(
                 importCsvButtonSettings(viewModel) { toAccount(it) },
                 exportButtonSettings(coroutineScope, "accounts") { writer ->
-                    val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
-                    toDataFrame(state.value.values(), groupLookup).writeCsv(writer)
+                    val groupLookup = accountGroupState.values().associateBy ({ it.id }, {it.name} )
+                    toDataFrame(state.values(), groupLookup).writeCsv(writer)
                 },
                 ButtonSettings("+") { it.navigate(Account(name = "", accountGroup = 0)) })
         },
@@ -53,10 +53,10 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
             columns = WeightedIconGridCells(2, 1, 1),
             Modifier.padding(paddingValues)
         ) {
-            val groupLookup = accountGroupState.value.values().associateBy ({ it.id }, {it.name} )
+            val groupLookup = accountGroupState.values().associateBy ({ it.id }, {it.name} )
             viewTextItems(values = listOf("Name", "Group"))
             item(span = { GridItemSpan(2) }) {}
-            for (account in state.value.values()) {
+            for (account in state.values()) {
                 viewTextItems(values = listOf(account.name, groupLookup[account.accountGroup] ?: ""))
                 item { EditButton { it.navigate(account) } }
                 item { DeleteButton { viewModel.delete(account) } }
@@ -103,7 +103,7 @@ internal fun EditAccount(account: Account,
             gridEntry("Name", name) { name = it
                 setEditorState()
             }
-            val data = accountGroupState.value.values()
+            val data = accountGroupState.values()
             gridEntry("Group",
                 data.map { it.name }.toImmutableList(),
                 data.map {it.id}.indexOf(group)) {
