@@ -52,12 +52,12 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
         "Transaction Categories",
         bottomBar = {
             BottomBarWithButtons(
-                importCsvButtonSettings(viewModel) { toTransactionCategory(it) },
                 exportButtonSettings(coroutineScope, "transactionCategories") { writer ->
                     val groupLookup = accountGroupState.values().associateBy ({ it.id }, {it.name} )
                     toDataFrame(state.values(), groupLookup).writeCsv(writer)
                 },
-                ButtonSettings("+") { TransactionCategory(name = "", filter = false, accountGroup = accountGroup) })
+                importCsvButtonSettings(viewModel) { toTransactionCategory(it) },
+                addButtonSettings { TransactionCategory(name = "", filter = false, accountGroup = accountGroup) })
         },
         states = persistentListOf(state.value, accountGroupState.value)) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {

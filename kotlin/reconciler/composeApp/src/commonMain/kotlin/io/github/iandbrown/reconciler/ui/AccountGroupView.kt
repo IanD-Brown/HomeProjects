@@ -42,13 +42,13 @@ internal fun AccountGroupListView(viewModel: AccountGroupViewModel = koinInject<
         "Account Groups",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch {
-                    importCsvFile(inject<AccountGroupDao>().value) { toAccountGroup(it) }
+                exportButtonSettings(coroutineScope, "accountGroups") {
+                    toDataFrame(state.values()).writeCsv(it)
+                },
+                ButtonSettings(imageVector = Icons.Default.Upload) { coroutineScope.launch {
+                    importCsvFile({viewModel.handleException(it)}, inject<AccountGroupDao>().value) { toAccountGroup(it) }
                 } },
-                ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("accountGroups") { toDataFrame(state.values()).writeCsv(it) }
-                }},
-                ButtonSettings("+") { it.navigate(AccountGroup(name = "")) })
+                addButtonSettings { it.navigate(AccountGroup(name = "")) })
         },
         states = persistentListOf(state.value)) { paddingValues ->
         LazyVerticalGrid(

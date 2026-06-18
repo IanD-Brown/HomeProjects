@@ -71,7 +71,6 @@ fun RuleListView(viewModel: RuleViewModel = koinInject(),
                         }
                     }
                 },
-                importCsvButtonSettings(viewModel) { toRule(it) },
                 exportButtonSettings(coroutineScope,"rules") { output ->
                     val value = categoryState.values()
                     val categoryLookup = value.associateBy({ it.id }, { it.name })
@@ -79,7 +78,8 @@ fun RuleListView(viewModel: RuleViewModel = koinInject(),
 
                     toDataFrame(state.values(), categoryLookup, groupLookup).writeCsv(output)
                 },
-                ButtonSettings("+") { it.navigate(Rule(match = "", category = 0, accountGroup = accountGroup)) })
+                importCsvButtonSettings(viewModel) { toRule(it) },
+                addButtonSettings { it.navigate(Rule(match = "", category = 0, accountGroup = accountGroup)) })
         },
         states = persistentListOf(state.value, categoryState.value, accountGroupState.value)) { paddingValues ->
         val categoryLookup = categoryState.values().associateBy( { it.id }, {it.name} )

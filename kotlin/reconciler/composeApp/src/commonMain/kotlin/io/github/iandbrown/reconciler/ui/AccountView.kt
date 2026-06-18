@@ -41,12 +41,12 @@ internal fun AccountListView(viewModel: AccountViewModel = koinInject<AccountVie
         "Accounts",
         bottomBar = {
             BottomBarWithButtons(
-                importCsvButtonSettings(viewModel) { toAccount(it) },
                 exportButtonSettings(coroutineScope, "accounts") { writer ->
                     val groupLookup = accountGroupState.values().associateBy ({ it.id }, {it.name} )
                     toDataFrame(state.values(), groupLookup).writeCsv(writer)
                 },
-                ButtonSettings("+") { it.navigate(Account(name = "", accountGroup = 0)) })
+                importCsvButtonSettings(viewModel) { toAccount(it) },
+                addButtonSettings { it.navigate(Account(name = "", accountGroup = 0)) })
         },
         states = persistentListOf(state.value, accountGroupState.value)) { paddingValues ->
         LazyVerticalGrid(

@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -133,11 +134,13 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
         "Import Definitions",
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings("Import") { coroutineScope.launch { viewModel.monitorImport() }},
-                ButtonSettings("Export") { coroutineScope.launch {
-                    exportToFile("importDefinitions") { toDataFrame(state.values()).writeCsv(it) }
-                }},
-                ButtonSettings("+") { it.navigate(ImportDefinitionListView()) })
+                exportButtonSettings(coroutineScope, "importDefinitions") {
+                    toDataFrame(state.values()).writeCsv(it)
+                },
+                ButtonSettings(imageVector = Icons.Default.Upload) {
+                    coroutineScope.launch { viewModel.monitorImport() }
+                },
+                addButtonSettings { it.navigate(ImportDefinitionListView()) })
         },
         states = persistentListOf(state.value, accountState.value)) { paddingValues ->
         var importDefinitionId = 0

@@ -17,11 +17,14 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
@@ -53,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -397,18 +401,27 @@ internal fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, en
     { ViewText(value) }
 }
 
-internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val navigateFun : (NavController) -> Unit)
+internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val navigateFun : (NavController) -> Unit)
+
+internal fun addButtonSettings(onClick : (NavController) -> Unit) : ButtonSettings =
+    ButtonSettings(imageVector = Icons.Default.Add, navigateFun = onClick)
 
 @Composable
-internal fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, navigateFun : (NavController) -> Unit) =
-    BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun))
+internal fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : (NavController) -> Unit) =
+    BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun = onClick))
 
 @Composable
 internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
         for (buttonSetting in buttonSettings) {
-            OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
-                buttonSetting.navigateFun(appNavController)
+            if (buttonSetting.imageVector == null) {
+                OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
+                    buttonSetting.navigateFun(appNavController)
+                }
+            } else {
+                IconButton(onClick = { buttonSetting.navigateFun(appNavController) }) {
+                    Icon(buttonSetting.imageVector, contentDescription = null)
+                }
             }
         }
     }
@@ -478,15 +491,17 @@ internal suspend fun importFromFile(
     }
 }
 
-internal suspend fun <DAO, ENTITY> importCsvFile(dao: DAO, rowHandler: (DataRow<Any?>) -> ENTITY)
+internal suspend fun <DAO, ENTITY> importCsvFile(exceptionHandler: (Exception) -> Unit, dao: DAO, rowHandler: (DataRow<Any?>) -> ENTITY)
         where ENTITY : Any, DAO : BaseWriteDao<ENTITY> =
-    importFromFile(
-        "csv",
-        {
-            val dataFrame = DataFrame.readCsv(it)
-            dao.deleteAll()
-            dataFrame
-        }, { dao.insert(rowHandler(it)) })
+    tryTransaction(exceptionHandler, {
+        importFromFile(
+            "csv",
+            {
+                val dataFrame = DataFrame.readCsv(it)
+                dao.deleteAll()
+                dataFrame
+            }, { dao.insert(rowHandler(it)) })
+    })
 
 internal fun<DAO, ENTITY, VIEW_MODEL> genericButtonSettings(name: String,
                                                             viewModel: VIEW_MODEL,
@@ -498,7 +513,7 @@ internal fun<DAO, ENTITY, VIEW_MODEL> genericButtonSettings(name: String,
 
 internal fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
         where ENTITY : Any, DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
-    ButtonSettings("Import") { viewModel.viewModelScope.launch {
+    ButtonSettings(imageVector = Icons.Default.Upload) { viewModel.viewModelScope.launch {
         tryTransaction({viewModel.handleException(it)}, {
             importFromFile(
                 "csv",
@@ -514,7 +529,7 @@ internal fun<DAO, ENTITY, VIEW_MODEL> importCsvButtonSettings(viewModel: VIEW_MO
 internal fun exportButtonSettings(coroutineScope: CoroutineScope,
                          suggestName: String,
                          transformedDataSupplier: (Appendable) -> Unit) : ButtonSettings =
-    ButtonSettings("Export") { coroutineScope.launch {
+    ButtonSettings(imageVector = Icons.Default.Download) { coroutineScope.launch {
         exportToFile(suggestName, transformedDataSupplier = transformedDataSupplier)
     }}
 

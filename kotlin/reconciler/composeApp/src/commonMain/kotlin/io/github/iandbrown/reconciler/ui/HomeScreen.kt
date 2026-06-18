@@ -58,33 +58,36 @@ fun HomeScreen() {
     val coroutineScope = rememberCoroutineScope()
     val exceptionState = remember {mutableStateOf<Exception?>(null)}
 
-    Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-        TopAppBar(title = { Text("Account reconcile") }, actions = {
-            IconButton(onClick = {coroutineScope.launch {
-                try {
-                    export()
-                    exceptionState.value = null
-                } catch (exception: Exception) {
-                    logException(javaClass.simpleName, exception, "Export failed:")
-                    exceptionState.value = exception
+    Scaffold(modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(title = { Text("Account reconcile") }, actions = {
+                IconButton(onClick = AppState.switchThemeCallback) {
+                    Icon(imageVector = Icons.Default.SettingsBrightness, contentDescription = null)
+                }            })
+        },
+        bottomBar = {
+            BottomBarWithButtons(
+                ButtonSettings(imageVector = Icons.Default.Download) {
+                    coroutineScope.launch {
+                        try {
+                            export()
+                            exceptionState.value = null
+                        } catch (exception: Exception) {
+                            logException(javaClass.simpleName, exception, "Export failed:")
+                            exceptionState.value = exception
+                        }
+                    }
+                },
+                ButtonSettings(imageVector = Icons.Default.Upload) {
+                    coroutineScope.launch {
+                        tryTransaction({
+                            logException(javaClass.simpleName, it, "Import failed:")
+                            exceptionState.value = it
+                        }, { import() })
+                    }
                 }
-            }}) {
-                Icon(Icons.Default.Upload, contentDescription = null)
-            }
-            IconButton(onClick = {coroutineScope.launch {
-                exceptionState.value = null
-                tryTransaction({
-                    logException(javaClass.simpleName, it, "Import failed:")
-                    exceptionState.value = it
-                }, {import()})
-            }}) {
-                Icon(Icons.Default.Download, contentDescription = null)
-            }
-            IconButton(onClick = AppState.switchThemeCallback) {
-                Icon(imageVector = Icons.Default.SettingsBrightness, contentDescription = null)
-            }
-        })
-    }, content = { paddingValues ->
+            )
+        }) { paddingValues ->
         if (exceptionState.value != null) {
             AlertDialog(
                 onDismissRequest = { exceptionState.value = null },
@@ -102,7 +105,7 @@ fun HomeScreen() {
                 }
             })
         }
-    })
+    }
 }
 
 private const val ACCOUNT = "Account"
