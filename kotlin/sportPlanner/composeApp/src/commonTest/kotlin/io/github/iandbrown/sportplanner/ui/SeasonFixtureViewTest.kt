@@ -60,6 +60,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
         everySuspend { teamCategoryDao.get() } returns teamCategories
         everySuspend { seasonCompRoundViewDao.getBySeason(seasonId) } returns emptyList()
         everySuspend { seasonFixtureDao.insert(any()) } returns 0L
+        everySuspend { seasonFixtureDao.get(any(), any()) } returns emptyList()
         everySuspend {
             seasonFixtureDao.deleteBySeasonTeamCategory(any(), any(), any())
         } returns Unit
@@ -99,6 +100,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
                         }
                     }
                 }
+                verifySuspend { seasonFixtureDao.get(seasonId, competitionId) }
                 verifyNoMoreCalls(seasonFixtureDao)
             }
         }
@@ -133,6 +135,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
                         }
                     }
                 }
+                verifySuspend { seasonFixtureDao.get(seasonId, competitionId) }
                 verifyNoMoreCalls(seasonFixtureDao)
             }
         }
@@ -168,6 +171,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
                         }
                     }
                 }
+                verifySuspend { seasonFixtureDao.get(seasonId, competitionId) }
                 verifyNoMoreCalls(seasonFixtureDao)
             }
         }

@@ -45,19 +45,23 @@ private class FixtureScheduler(
     val teamCategoryIdToMatchDay: Map<TeamCategoryId, Short> = allTeamCategories.associateBy({ it.id }, {it.matchDay} )
     val gamePreference: GamePreference = mutableMapOf()
     val gamesToSchedule: MutableMap<Side, Int> = mutableMapOf()
+    val associations = mutableSetOf<AssociationId>()
 
     init {
         plannedGamesByTeamCategoryId.forEach { (teamCategoryId, plannedGames) ->
             plannedGames.forEach { plannedGame ->
-                val homeTeam = Side(teamCategoryId, plannedGame.home.associationId, plannedGame.home.teamNumber)
-                gamesToSchedule[homeTeam] = gamesToSchedule.getOrPut(homeTeam) { 0 } + 1
-                val awayTeam = Side(teamCategoryId, plannedGame.away.associationId, plannedGame.away.teamNumber)
-                gamesToSchedule[awayTeam] = gamesToSchedule.getOrPut(awayTeam) { 0 } + 1
+                gamesToSchedule.merge(plannedGame.home, 1, Int::plus)
+                gamesToSchedule.merge(plannedGame.away, 1, Int::plus)
+                associations.add(plannedGame.home.associationId)
+                associations.add(plannedGame.away.associationId)
             }
         }
     }
 
-    fun scheduleFixtures(seasonId: SeasonId) : List<SeasonFixture> {
+    fun scheduleFixtures(
+        seasonId: SeasonId,
+        currentHomeFixtureCount: Map<Pair<Int, AssociationId>, Int>
+    ) : List<SeasonFixture> {
         val fixtures = mutableListOf<SeasonFixture>()
         val seasonCompRoundsByWeek = seasonCompetitionRounds.groupBy { it.week }
         for (competitionId in seasonWeeks.competitions().filter { activeLeagueCompetitions.contains(it) }) {
@@ -68,11 +72,11 @@ private class FixtureScheduler(
                 .groupBy {teamCategoryIdToMatchDay[it.teamCategoryId]!!}
 
             for (week in seasonWeeks.competitionWeeks(competitionId)!!) {
-                WeekScheduler(seasonCompRoundsByWeek[week] ?: emptyList(), teamCategoriesByMatchDay)
-                    .plannedGames
-                    .entries
-                    .forEach {(_, games) ->
-                        games.forEach { game -> fixtures.add(fixtureOf(seasonId, competitionId, week, game)) }}
+                WeekScheduler(seasonCompRoundsByWeek[week] ?: emptyList(), teamCategoriesByMatchDay,
+                    existingHomeFixtures = { day -> currentHomeFixtureCount
+                        .filter { it.key.first == DayDate(week).addDays(day.toInt()).value() && associations.contains(it.key.second) }
+                        .mapKeys { it.key.second } })
+                    .processGames { fixtures.add(fixtureOf(seasonId, competitionId, week, it)) }
             }
         }
 
@@ -99,14 +103,19 @@ private class FixtureScheduler(
         return fixtures
     }
 
-    private inner class WeekScheduler(val compRoundsForWeekAndSeason: List<SeasonCompRoundView>, teamCategoriesByMatchDay: Map<Short,List<SeasonTeamCategory>>) {
+    private inner class WeekScheduler(
+        val compRoundsForWeekAndSeason: List<SeasonCompRoundView>,
+        teamCategoriesByMatchDay: Map<Short, List<SeasonTeamCategory>>,
+        existingHomeFixtures: (Short) -> Map<AssociationId, Int>
+    ) {
         val plannedGames = mutableMapOf<TeamCategoryId, MutableList<PlannedGame>>()
 
         init {
-            for (teamCategories in teamCategoriesByMatchDay.values) {
+            for (entry in teamCategoriesByMatchDay) {
+                val teamCategories = entry.value
                 val playingTeamsByTeamCategory = mutableMapOf<TeamCategoryId, MutableList<Side>>()
                 val doneTeamCategories = mutableSetOf<TeamCategoryId>()
-                val homeGameByAssociation = mutableMapOf<AssociationId, Int>()
+                val homeGameByAssociation = existingHomeFixtures(entry.key).toMutableMap()
 
                 for (force in listOf(false, true)) {
                     for (teamCategory in teamCategories) {
@@ -133,6 +142,10 @@ private class FixtureScheduler(
             }
         }
 
+        fun processGames(handler: (PlannedGame) -> Unit) {
+            plannedGames.values.forEach { gameList -> gameList.forEach { handler(it) } }
+        }
+
         private fun scheduleGames(orderedGames: List<PlannedGame>, teamCategory: SeasonTeamCategory, playingTeams: MutableList<Side>, force: Boolean, homeGameByAssociation: MutableMap<AssociationId, Int>) {
             for (plannedGame in orderedGames) {
                 val homeSide = sideOf(teamCategory.teamCategoryId, plannedGame, Location.HOME)
@@ -140,10 +153,10 @@ private class FixtureScheduler(
 
                 if (!playingTeams.contains(homeSide) && !playingTeams.contains(awaySide) && isGamePreference(plannedGame, force)) {
                     playingTeams.add(homeSide)
-                    gamesToSchedule[homeSide] = gamesToSchedule.getOrPut(homeSide) { 0 } - 1
-                    homeGameByAssociation[plannedGame.home.associationId] = homeGameByAssociation.getOrPut(plannedGame.home.associationId) { 0 } + 1
+                    gamesToSchedule.merge(homeSide, 1, Int::minus)
+                    homeGameByAssociation.merge(plannedGame.home.associationId, 1, Int::plus)
                     playingTeams.add(awaySide)
-                    gamesToSchedule[awaySide] = gamesToSchedule.getOrPut(awaySide) { 0 } - 1
+                    gamesToSchedule.merge(awaySide, 1, Int::minus)
 
                     plannedGame.message = compRoundsForWeekAndSeason.firstOrNull { it.teamCategoryId == teamCategory.teamCategoryId }?.description
                     plannedGames.computeIfAbsent(teamCategory.teamCategoryId) { mutableListOf() }.add(plannedGame)
@@ -226,7 +239,8 @@ class SeasonLeagueGames {
         seasonTeamCategories: List<SeasonTeamCategory>,
         seasonCompetitionRounds: List<SeasonCompRoundView>,
         teamsByCategoryAndCompetition: Map<Pair<TeamCategoryId, CompetitionId>, Int>,
-        activeLeagueCompetitions: Set<CompetitionId>
+        activeLeagueCompetitions: Set<CompetitionId>,
+        currentHomeFixtureCount: Map<Pair<Int, AssociationId>, Int>
     ) : List<SeasonFixture> =
         FixtureScheduler(seasonWeeks,
             allTeamCategories,
@@ -234,7 +248,7 @@ class SeasonLeagueGames {
             seasonCompetitionRounds,
             plannedGamesByTeamCategoryId,
             teamsByCategoryAndCompetition,
-            activeLeagueCompetitions).scheduleFixtures(seasonId)
+            activeLeagueCompetitions).scheduleFixtures(seasonId, currentHomeFixtureCount)
 
     private fun buildSides(teams: List<SeasonTeam>): List<Side> {
         return teams.flatMap { seasonTeam ->

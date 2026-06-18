@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.FarAssociationDao
@@ -512,7 +513,7 @@ internal fun teamName(fixture: SeasonFixtureView, home : Boolean, teamCountMap :
     }
 }
 
-fun teamName(association : String, number : Short) : String {
+internal fun teamName(association : String, number : Short) : String {
     val postfix = when (number) {
         0.toShort() -> ""
         1.toShort() -> " A"
@@ -538,6 +539,8 @@ internal suspend fun calcFixtures(
     val farAwayGames = farAssociationDao.get()
         .groupBy({ it.awayAssociation}, {it.homeAssociation})
         .mapValues { (_, values) -> values.toSet() }
+    val currentHomeFixtureCount = mutableMapOf<Pair<Int,AssociationId>, Int>()
+    val matchDayAdjust = teamCategoryDao.get().associateBy({it.id}, { it.matchDay })
 
     for (activeLeagueCompetition in activeLeagueCompetitions) {
         for (activeTeamCategory in seasonTeamCategoryDao.getActiveTeamCategories(seasonId, activeLeagueCompetition.competitionId)) {
@@ -566,11 +569,15 @@ internal suspend fun calcFixtures(
                 seasonTeamDao.getTeams(seasonId, activeLeagueCompetition.competitionId, activeTeamCategory.teamCategoryId),
                 farAwayGames)
         }
+        seasonFixtureDao.get(seasonId, activeLeagueCompetition.competitionId)
+            .groupBy { Pair(DayDate(it.date).addDays(matchDayAdjust[it.teamCategoryId]?.toInt() ?: 0).value(), it.homeAssociationId) }
+            .mapValues { (id, list) -> currentHomeFixtureCount.merge(id, list.size, Int::plus) }
     }
 
     val teamsByCategoryAndCompetition = mutableMapOf<Pair<TeamCategoryId, CompetitionId>, Int>()
     for (seasonTeam in seasonTeamDao.getBySeason(seasonId)) {
         val key = Pair(seasonTeam.teamCategoryId, seasonTeam.competitionId)
+        teamsByCategoryAndCompetition.merge(key, 0, Int::plus)
         teamsByCategoryAndCompetition[key] = teamsByCategoryAndCompetition.getOrPut(key) { 0 } + seasonTeam.count
     }
 
@@ -580,7 +587,8 @@ internal suspend fun calcFixtures(
         seasonTeamCategoryDao.getBySeasonId(seasonId),
         seasonCompRoundViewDao.getBySeason(seasonId),
         teamsByCategoryAndCompetition,
-        activeLeagueCompetitions.map {it.competitionId}.toSet())) {
+        activeLeagueCompetitions.map {it.competitionId}.toSet(),
+        currentHomeFixtureCount)) {
         seasonFixtureDao.insert(fixture)
     }
 }

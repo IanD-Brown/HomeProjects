@@ -107,7 +107,8 @@ class SeasonLeagueGamesTest : BehaviorSpec({
                 seasonTeamCategories,
                 competitionRounds,
                 mapOf(Pair(Pair(1, 1), 3)),
-                setOf(1.toShort())
+                setOf(1.toShort()),
+                emptyMap()
             )
 
             then("the correct number of fixtures should be created") {
@@ -137,7 +138,8 @@ class SeasonLeagueGamesTest : BehaviorSpec({
                 seasonTeamCategories,
                 emptyList(),
                 mapOf(Pair(Pair(1, 1), 3)),
-                setOf(1.toShort())
+                setOf(1.toShort()),
+                emptyMap()
             )
 
             then("a fixture should have the message INCOMPLETE") {
