@@ -10,9 +10,9 @@ import dev.shivathapaa.logger.api.LogLevel
 import dev.shivathapaa.logger.api.LoggerFactory
 import dev.shivathapaa.logger.core.LoggerConfig
 import dev.shivathapaa.logger.sink.DefaultLogSink
-import io.github.iandbrown.home_energy.database.builder
-import io.github.iandbrown.home_energy.di.startKoinCommon
+import io.github.iandbrown.home_energy.di.initKoin
 import io.github.iandbrown.home_energy.utils.LogFormatter
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.getOrNull
 
 class MainActivity : ComponentActivity() {
@@ -25,7 +25,9 @@ class MainActivity : ComponentActivity() {
                     .minLevel(LogLevel.DEBUG)
                     .addSink(DefaultLogSink(LogFormatter()))
                     .build())
-            startKoinCommon(builder())
+            initKoin {
+                androidContext(this@MainActivity)
+            }
         }
 
         setContent {

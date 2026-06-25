@@ -16,7 +16,6 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
 import io.github.iandbrown.home_energy.database.Meter
 import io.github.iandbrown.home_energy.database.MeterDao
-import io.github.iandbrown.home_energy.di.inject
 import kotlinx.collections.immutable.persistentListOf
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -49,7 +48,7 @@ fun MeterActivity() {
     )
 }
 
-internal class MeterViewModel : CRUDViewModel<MeterDao, Meter>(dao = inject<MeterDao>())
+internal class MeterViewModel(dao: MeterDao) : CRUDViewModel<MeterDao, Meter>(dao = dao)
 
 @Suppress("ParamsComparedByRef")
 @Composable

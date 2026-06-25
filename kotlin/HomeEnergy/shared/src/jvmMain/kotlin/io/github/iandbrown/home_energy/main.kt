@@ -7,11 +7,9 @@ import dev.shivathapaa.logger.api.LoggerFactory
 import dev.shivathapaa.logger.core.LogEvent
 import dev.shivathapaa.logger.core.LoggerConfig
 import dev.shivathapaa.logger.formatters.LogEventFormatter
-import dev.shivathapaa.logger.sink.DefaultLogSink
 import dev.shivathapaa.logger.sink.LogSink
-import io.github.iandbrown.home_energy.database.builder
-import io.github.iandbrown.home_energy.database.getAppDataFolder
-import io.github.iandbrown.home_energy.di.startKoinCommon
+import io.github.iandbrown.home_energy.di.getAppDataFolder
+import io.github.iandbrown.home_energy.di.initKoin
 import io.github.iandbrown.home_energy.utils.LogFormatter
 import java.io.File
 
@@ -21,12 +19,11 @@ fun main() {
     LoggerFactory.install(
         LoggerConfig.Builder()
             .minLevel(LogLevel.DEBUG)
-            .addSink(DefaultLogSink(formatter))
-            .addSink(FileSink("${getAppDataFolder()}/SportLog.txt", formatter))
+            .addSink(FileSink("${getAppDataFolder()}/HomeEnergyLog.txt", formatter))
             .build()
     )
     application {
-        startKoinCommon(builder())
+        initKoin()
         Window(onCloseRequest = ::exitApplication, title = "Home energy") {
             App()
         }
