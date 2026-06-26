@@ -21,17 +21,15 @@ room = "2.8.4"
 ksp = "2.3.6"
 sqliteBundled = "2.6.2"
 # koin
-koin-core = "4.2.1"
+koin-core = "4.2.2"
 androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
-kotest-version = "6.1.11"
+kotest-version = "6.2.1"
 kover = "0.9.8"
 mockkery = "3.4.1"
 coroutine-test-version = "1.11.0"
 # filekit
 filekit = "0.14.2"
-# stability library
-stability = "0.9.0"
 # immutable collections
 immutableCollections = "0.5.0"
 # dataframe
@@ -93,5 +91,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
 kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}
-stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability" }
 mockkery = { id = "dev.mokkery", version.ref = "mockkery" }

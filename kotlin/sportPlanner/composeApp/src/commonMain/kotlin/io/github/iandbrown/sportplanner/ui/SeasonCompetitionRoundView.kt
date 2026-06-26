@@ -457,7 +457,7 @@ internal suspend fun calcCupFixtures(
                             Pair(seasonTeam.associationId, teamNumber.toShort())
                         }
                     }.shuffled(Random(System.currentTimeMillis()))
-            val games = roundUpToNextPowerOfTwo(competitionTeams.size) / 2
+            val games = roundDownToNextPowerOfTwo(competitionTeams.size) / 2
 
             planFixtures(games, competitionTeams)
                 .forEach {
@@ -531,13 +531,13 @@ fun planFixtures(
     return result
 }
 
-fun roundUpToNextPowerOfTwo(x: Int): Int {
-    if (x <= 0) return 1
-    var n = x - 1
+internal fun roundDownToNextPowerOfTwo(x: Int): Int {
+    if (x <= 0) return 0
+    var n = x
     n = n or (n shr 1)
     n = n or (n shr 2)
     n = n or (n shr 4)
     n = n or (n shr 8)
     n = n or (n shr 16)
-    return n + 1
+    return n xor (n shr 1)
 }

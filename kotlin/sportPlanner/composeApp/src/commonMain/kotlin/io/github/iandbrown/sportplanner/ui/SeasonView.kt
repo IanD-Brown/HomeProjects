@@ -91,6 +91,7 @@ class SeasonCompViewModel(dao: SeasonCompViewDao = inject<SeasonCompViewDao>().v
         viewModelScope.launch {
             dao.deleteSeason(seasonId)
         }
+        readAll()
     }
 }
 

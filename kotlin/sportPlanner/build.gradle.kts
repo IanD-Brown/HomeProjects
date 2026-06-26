@@ -8,5 +8,4 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.ksp) apply false
-    alias(libs.plugins.stability.analyzer) apply false
 }
