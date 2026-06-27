@@ -30,7 +30,7 @@ class HomeScreenTest : ShouldSpec({
         should("only show specific editors on home screen") {
             val visibleEditors = Editors.entries.filter { it.showOnHome }
             visibleEditors.map { it.name } shouldBe listOf(
-                "SEASON_FIXTURES",
+                "SEASON_LEAGUE_FIXTURES",
                 "SEASONS",
                 "COMPETITIONS",
                 "TEAM_CATEGORIES",

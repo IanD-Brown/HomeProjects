@@ -20,32 +20,53 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
     val competitionId = 2.toShort()
     val teamCategoryId = 3.toShort()
 
-    context("roundDownToNextPowerOfTwo") {
-        should("return 0 for 0") {
-            roundDownToNextPowerOfTwo(0) shouldBe 0
+    context("Calculate game count") {
+        should("calculate correct game count for 3 teams") {
+            // One team has a bye, the other two play
+            calculateGameCount(4) shouldBe 2
+        }
+        should("calculate correct game count for 4 teams") {
+            calculateGameCount(4) shouldBe 2
+        }
+        should("calculate correct game count for 5 teams") {
+            // Difficult case, three teams have a bye, remaining two play
+            calculateGameCount(5) shouldBe 4
+        }
+        should("calculate correct game count for 16 teams") {
+            calculateGameCount(16) shouldBe 8
+        }
+        should("calculate correct game count for 17 teams") {
+            // Again difficult case, fifteen teams have a byte, remaining two play...
+            calculateGameCount(17) shouldBe 16
+        }
+    }
+
+    context("roundUpToNextPowerOfTwo") {
+        should("return 1 for 0") {
+            roundUpToNextPowerOfTwo(0) shouldBe 1
         }
 
-        should("return 0 for negative values") {
-            roundDownToNextPowerOfTwo(-1) shouldBe 0
-            roundDownToNextPowerOfTwo(-10) shouldBe 0
+        should("return 1 for negative values") {
+            roundUpToNextPowerOfTwo(-1) shouldBe 1
+            roundUpToNextPowerOfTwo(-10) shouldBe 1
         }
 
         should("return same value if it's already a power of two") {
             var input = 1
             while (input < 1 shl 10) {
-                roundDownToNextPowerOfTwo(input) shouldBe input
+                roundUpToNextPowerOfTwo(input) shouldBe input
                 input *= 2
             }
         }
 
-        should("return previous power of two for non-power values") {
-            roundDownToNextPowerOfTwo(3) shouldBe 2
-            roundDownToNextPowerOfTwo(5) shouldBe 4
-            roundDownToNextPowerOfTwo(7) shouldBe 4
-            roundDownToNextPowerOfTwo(9) shouldBe 8
-            roundDownToNextPowerOfTwo(15) shouldBe 8
-            roundDownToNextPowerOfTwo(17) shouldBe 16
-            roundDownToNextPowerOfTwo(1000) shouldBe 512
+        should("return next power of two for non-power values") {
+            roundUpToNextPowerOfTwo(3) shouldBe 4
+            roundUpToNextPowerOfTwo(5) shouldBe 8
+            roundUpToNextPowerOfTwo(7) shouldBe 8
+            roundUpToNextPowerOfTwo(9) shouldBe 16
+            roundUpToNextPowerOfTwo(15) shouldBe 16
+            roundUpToNextPowerOfTwo(17) shouldBe 32
+            roundUpToNextPowerOfTwo(1000) shouldBe 1024
         }
     }
 

@@ -83,10 +83,10 @@ class SeasonLeagueTeamCategoryViewModel(seasonId: SeasonId,
                                 dao : SeasonLeagueTeamCategoryDao = inject<SeasonLeagueTeamCategoryDao>().value) :
     BaseSeasonReadViewModel<SeasonLeagueTeamCategoryDao, SeasonTeamCategory>(seasonId, dao)
 
-private val editor = Editors.SEASON_FIXTURES
+private val editor = Editors.SEASON_LEAGUE_FIXTURES
 
 @Composable
-fun NavigateFixtures(argument: String?) {
+fun NavigateLeagueFixtures(argument: String?) {
     when {
         argument == null -> {}
         argument.startsWith("Summary") -> {
@@ -103,6 +103,7 @@ fun NavigateFixtures(argument: String?) {
 @Composable
 private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
                               seasonId: SeasonId,
+                              modifier: Modifier,
                               seasonCompModel : SeasonCompViewModel =  koinViewModel(),
                               onClick : (CompetitionId) -> Unit) {
     val seasonCompetitionState by seasonCompModel.uiState.collectAsState()
@@ -121,6 +122,7 @@ private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
     DropdownList(
         competitionNames,
         if (selectedIndex >= 0) selectedIndex else 0,
+        modifier,
         isLocked = { competitionNames.size == 1 }
     ) {
         val filterCompetition = competitionNameToId[competitionNames[it]]!!
@@ -206,12 +208,12 @@ private fun SummaryFixtureView(season: Season,
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
                     ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                    CompetitionFilter(competitionFilter, season.id) {
+                    CompetitionFilter(competitionFilter, season.id, Modifier.align(Alignment.CenterVertically)) {
                         competitionFilter = it
                     }
                     SpacedViewText("Summary Type")
                     val t = listOf("") + SumType.entries.map { it.displayName }
-                    DropdownList(t.toImmutableList(), 0) {
+                    DropdownList(t.toImmutableList(), 0, Modifier.align(Alignment.CenterVertically)) {
                         typeFilter = when(it) {
                             0 -> null
                             else -> SumType.entries[it - 1]
@@ -338,7 +340,7 @@ private fun FixtureTableView(season: Season,
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth(), content = {
                     ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                    CompetitionFilter(competitionFilter, season.id) {
+                    CompetitionFilter(competitionFilter, season.id, Modifier.align(Alignment.CenterVertically)) {
                         competitionFilter = it
                     }
                 })
@@ -346,13 +348,13 @@ private fun FixtureTableView(season: Season,
                     val associationList = listOf("") + associationState.values().map { it.name }.sorted()
                     val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }.sorted()
                     val modifier = Modifier.align(Alignment.CenterVertically).weight(1f)
-                    ViewText("Filter Association", modifier)
-                    DropdownList(associationList.toImmutableList(), associationList.indexOf(filterAssociation), modifier = modifier) {
-                        filterAssociation = associationList[it]
-                    }
-                    ViewText("Filter Team Category", modifier)
+                    ReadonlyViewText("Filter Team Category", modifier)
                     DropdownList(teamCategoryList.toImmutableList(), teamCategoryList.indexOf(filterTeamCategory), modifier = modifier) {
                         filterTeamCategory = teamCategoryList[it]
+                    }
+                    ReadonlyViewText("Filter Association", modifier)
+                    DropdownList(associationList.toImmutableList(), associationList.indexOf(filterAssociation), modifier = modifier) {
+                        filterAssociation = associationList[it]
                     }
                 }
                 LazyVerticalGrid(columns = GridCells.Fixed(columns)) {
@@ -407,7 +409,7 @@ private fun FixtureDateView(season: Season,
         Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
             Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
                 ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                CompetitionFilter(competitionFilter, season.id) {
+                CompetitionFilter(competitionFilter, season.id, Modifier.align(Alignment.CenterVertically)) {
                     competitionFilter = it
                 }
             })
