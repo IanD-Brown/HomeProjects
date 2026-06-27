@@ -86,19 +86,15 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
             }
             val teamCounts = mutableMapOf<TeamCategoryId, Int>()
             for (seasonTeam in seasonTeamState.values()) {
-                teamCounts[seasonTeam.teamCategoryId] = teamCounts.getOrDefault(seasonTeam.teamCategoryId, 0) + 1
+                teamCounts.merge(seasonTeam.teamCategoryId, seasonTeam.count.toInt()) { a, b -> a + b }
             }
 
             teamCategoryList = teamCategoryState.values().sortedBy { it.name.trim().uppercase() }
             LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.padding(paddingValues)) {
-                item { ReadonlyViewText("Team Category") }
-                item { ReadonlyViewText("Team Count") }
-                item { ReadonlyViewText("Match Structure")}
-                item { ReadonlyViewText("Locked")}
+                viewTextItems(listOf("Team Category", "Team Count", "Match Structure", "Locked"))
                 val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
                 for (teamCategory in teamCategoryList) {
-                    item { ReadonlyViewText(teamCategory.name) }
-                    item { ReadonlyViewText(teamCounts[teamCategory.id]?.toString() ?: "0") }
+                    viewTextItems(listOf(teamCategory.name, teamCounts[teamCategory.id]?.toString() ?: "0"))
                     item {
                         DropdownList(
                             matchStructureNamesList.toImmutableList(),
