@@ -335,7 +335,7 @@ private fun FixtureTableView(season: Season,
             )
         },
         states = persistentListOf(associationState.value, teamCategoryState.value, state.value, seasonLeagueTeamState.value)) { paddingValues ->
-            val columns = if (withTeamCategory) 5 else 4
+            val columns = if (withTeamCategory) WeightedIconGridCells(0, 1, 1, 3, 2, 2) else WeightedIconGridCells(0, 1, 3, 2, 2)
             val teamCounts = seasonLeagueTeamState.values().associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth(), content = {
@@ -357,8 +357,8 @@ private fun FixtureTableView(season: Season,
                         filterAssociation = associationList[it]
                     }
                 }
-                LazyVerticalGrid(columns = GridCells.Fixed(columns)) {
-                    item(span = { GridItemSpan(columns) }) {
+                LazyVerticalGrid(columns = columns) {
+                    item(span = { GridItemSpan(columns.columnCount) }) {
                         Row(modifier = Modifier.fillMaxWidth(), content = {
                             val modifier = Modifier.weight(1f)
                             SpacedViewText("Date", modifier)
@@ -376,9 +376,7 @@ private fun FixtureTableView(season: Season,
                         if (withTeamCategory) {
                             item { ViewText(teamCategory) }
                         }
-                        item { ViewText(message) }
-                        item { ViewText(home) }
-                        item { ViewText(away) }
+                        viewTextItems(listOf(message, home, away))
                     }
                 }
             }
@@ -587,7 +585,7 @@ internal suspend fun calcFixtures(
         resolvedSeasonWeeks,
         teamCategoryDao.get(),
         seasonTeamCategoryDao.getBySeasonId(seasonId),
-        seasonCompRoundViewDao.getBySeason(seasonId),
+        seasonCompRoundViewDao.get(seasonId),
         teamsByCategoryAndCompetition,
         activeLeagueCompetitions.map {it.competitionId}.toSet(),
         currentHomeFixtureCount)) {

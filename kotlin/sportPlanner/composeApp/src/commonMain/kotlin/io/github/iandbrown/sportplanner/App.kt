@@ -11,6 +11,7 @@ import io.github.iandbrown.sportplanner.ui.Editors
 import io.github.iandbrown.sportplanner.ui.NavigateAssociation
 import io.github.iandbrown.sportplanner.ui.HomeScreen
 import io.github.iandbrown.sportplanner.ui.NavigateCompetitions
+import io.github.iandbrown.sportplanner.ui.NavigateCupFixtures
 import io.github.iandbrown.sportplanner.ui.NavigateFarAssociation
 import io.github.iandbrown.sportplanner.ui.NavigateLeagueFixtures
 import io.github.iandbrown.sportplanner.ui.NavigateSeason
@@ -75,6 +76,10 @@ fun App(fileKitDialogSettings: FileKitDialogSettings) {
 
             composable(getRoute(Editors.TEAM_CATEGORIES)) {
                 NavigateTeamCategory(getArgument(it))
+            }
+
+            composable(getRoute(Editors.SEASON_CUP_FIXTURES)) {
+                NavigateCupFixtures(getArgument(it))
             }
         }
     }

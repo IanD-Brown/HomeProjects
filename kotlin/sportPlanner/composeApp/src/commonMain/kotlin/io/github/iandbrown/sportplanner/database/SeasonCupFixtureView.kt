@@ -41,9 +41,18 @@ data class SeasonCupFixtureView(
 )
 
 @Dao
-interface SeasonCupFixtureViewDao : BaseSeasonCompReadDao<SeasonCupFixtureView> {
+interface SeasonCupCompFixtureViewDao : BaseSeasonCompReadDao<SeasonCupFixtureView> {
     @Query("SELECT * FROM $viewName WHERE seasonId = :seasonId AND competitionId = :competitionId")
     override suspend fun get(seasonId: SeasonId, competitionId: CompetitionId): List<SeasonCupFixtureView>
+
+    @Query("UPDATE SeasonCupFixtures SET result = :result WHERE id = :id")
+    suspend fun setResult(id: Long, result: Short)
+}
+
+@Dao
+interface SeasonCupFixtureViewDao : BaseSeasonReadDao<SeasonCupFixtureView> {
+    @Query("SELECT * FROM $viewName WHERE seasonId = :seasonId AND result = 0")
+    override suspend fun get(seasonId: SeasonId): List<SeasonCupFixtureView>
 
     @Query("UPDATE SeasonCupFixtures SET result = :result WHERE id = :id")
     suspend fun setResult(id: Long, result: Short)

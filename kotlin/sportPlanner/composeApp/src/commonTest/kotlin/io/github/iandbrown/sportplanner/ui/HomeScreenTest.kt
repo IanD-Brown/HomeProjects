@@ -31,6 +31,7 @@ class HomeScreenTest : ShouldSpec({
             val visibleEditors = Editors.entries.filter { it.showOnHome }
             visibleEditors.map { it.name } shouldBe listOf(
                 "SEASON_LEAGUE_FIXTURES",
+                "SEASON_CUP_FIXTURES",
                 "SEASONS",
                 "COMPETITIONS",
                 "TEAM_CATEGORIES",

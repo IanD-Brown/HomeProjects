@@ -33,6 +33,8 @@ data class PlannedGame(
     override fun toString(): String = "($home vs $away)"
 }
 
+internal const val INCOMPLETE = "INCOMPLETE"
+
 private class FixtureScheduler(
     val seasonWeeks: SeasonWeeks,
     allTeamCategories: List<TeamCategory>,
@@ -90,7 +92,7 @@ private class FixtureScheduler(
                     competitionId = plannedGameEntry.value[0].competitionId,
                     teamCategoryId = plannedGameEntry.key,
                     date = seasonWeeks.competitionWeeks(plannedGameEntry.value[0].competitionId)?.get(0) ?: 0,
-                    message = "INCOMPLETE",
+                    message = INCOMPLETE,
                     homeAssociationId = 0,
                     homeTeamNumber = 0,
                     awayAssociationId = 0,
@@ -158,7 +160,7 @@ private class FixtureScheduler(
                     playingTeams.add(awaySide)
                     gamesToSchedule.merge(awaySide, 1, Int::minus)
 
-                    plannedGame.message = compRoundsForWeekAndSeason.firstOrNull { it.teamCategoryId == teamCategory.teamCategoryId }?.description
+                    plannedGame.message = getMessage(teamCategory)
                     plannedGames.computeIfAbsent(teamCategory.teamCategoryId) { mutableListOf() }.add(plannedGame)
 
                     plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.remove(plannedGame)
@@ -166,10 +168,24 @@ private class FixtureScheduler(
             }
         }
 
+        private fun getMessage(teamCategory: SeasonTeamCategory): String? {
+            val compRoundView = compRoundsForWeekAndSeason.firstOrNull { it.teamCategoryId == teamCategory.teamCategoryId }
+            if (compRoundView != null)
+                println(compRoundView)
+            return getMessage(compRoundView)
+        }
+
+        private fun getMessage(compRoundView: SeasonCompRoundView?): String? =
+            if (compRoundView != null && compRoundView.description.isNotEmpty()) {
+                "${compRoundView.competitionName} ${compRoundView.description}"
+            } else {
+                null
+            }
+
         private fun scheduleBreak(teamCategory: SeasonTeamCategory) : Boolean {
-            val rounds = compRoundsForWeekAndSeason.filter { it.teamCategoryId == teamCategory.teamCategoryId }
-            val roundMessage = rounds.firstOrNull()?.description
-            val optional = rounds.firstOrNull()?.optional ?: false
+            val compRoundView = compRoundsForWeekAndSeason.filter { it.teamCategoryId == teamCategory.teamCategoryId }.firstOrNull()
+            val roundMessage = getMessage(compRoundView)
+            val optional = compRoundView?.optional ?: false
 
             if (roundMessage != null && !optional) {
                 plannedGames.computeIfAbsent(teamCategory.teamCategoryId) {mutableListOf()}

@@ -38,7 +38,7 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixture
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureView
-import io.github.iandbrown.sportplanner.database.SeasonCupFixtureViewDao
+import io.github.iandbrown.sportplanner.database.SeasonCupCompFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
@@ -65,10 +65,10 @@ class SeasonCompetitionRoundViewModel(seasonId: SeasonId,
                                       dao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>().value) :
     BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(seasonId, competitionId, dao)
 
-class SeasonCupFixtureViewModel(seasonId: SeasonId,
-                                competitionId: CompetitionId,
-                                dao: SeasonCupFixtureViewDao = inject<SeasonCupFixtureViewDao>().value) :
-    BaseSeasonCompReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(seasonId, competitionId, dao) {
+class SeasonCompCupFixtureViewModel(seasonId: SeasonId,
+                                    competitionId: CompetitionId,
+                                    dao: SeasonCupCompFixtureViewDao = inject<SeasonCupCompFixtureViewDao>().value) :
+    BaseSeasonCompReadViewModel<SeasonCupCompFixtureViewDao, SeasonCupFixtureView>(seasonId, competitionId, dao) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
 
@@ -272,7 +272,7 @@ internal enum class FixtureResult(var display: String) {
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo,
-                                 viewModel: SeasonCupFixtureViewModel = koinInject<SeasonCupFixtureViewModel>
+                                 viewModel: SeasonCompCupFixtureViewModel = koinInject<SeasonCompCupFixtureViewModel>
                                  { parametersOf(info.param.seasonId, info.param.competitionId) },
                                  teamCategoryViewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
     val coroutineScope = rememberCoroutineScope()
@@ -336,16 +336,13 @@ private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo,
             if (withTeamCategory) {
                 item { ViewText("Team Category") }
             }
-            item { ViewText("Home") }
-            item { ViewText("Away") }
-            item { ViewText("Winner") }
+            viewTextItems(listOf("Home", "Away", "Winner"))
             getFixtures(state.values(), info.competitionRound?.round!!, filterTeamCategory.value, fixturesById) {
                 teamCategoryName, home, away, result, fixtureId, blankAwayAssociation ->
                 if (withTeamCategory) {
                     item { ViewText(teamCategoryName) }
                 }
-                item { ViewText(home) }
-                item { ViewText(away) }
+                viewTextItems(listOf(home, away))
                 item {
                     DropdownList(
                         itemList = FixtureResult.entries.map { it.display }.toImmutableList(),
@@ -420,7 +417,7 @@ internal fun teamDescription(
     return teamName(associationName, teamNumber)
 }
 
-private fun saveResults(edits: SnapshotStateMap<Long, Short>, viewModel: SeasonCupFixtureViewModel) {
+private fun saveResults(edits: SnapshotStateMap<Long, Short>, viewModel: SeasonCompCupFixtureViewModel) {
     edits.forEach { (key, result) ->
         viewModel.setResult(key, result)
     }
@@ -461,6 +458,7 @@ internal suspend fun calcCupFixtures(
 
             planFixtures(games, competitionTeams)
                 .forEach {
+                    val result = if (it.awayAssociation == 0.toShort()) 1.toShort() else 1.toShort()
                     dao.insert(
                         SeasonCupFixture(
                             seasonId = seasonId,
@@ -470,7 +468,8 @@ internal suspend fun calcCupFixtures(
                             homeAssociationId = it.homeAssociation,
                             homeTeamNumber = it.homeTeamNumber,
                             awayAssociationId = it.awayAssociation,
-                            awayTeamNumber = it.awayTeamNumber
+                            awayTeamNumber = it.awayTeamNumber,
+                            result = result
                         )
                     )
                 }

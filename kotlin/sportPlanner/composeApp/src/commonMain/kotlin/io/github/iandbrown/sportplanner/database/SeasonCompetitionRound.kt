@@ -37,7 +37,6 @@ data class SeasonCompetitionRound(
     val optional : Boolean
 )
 
-
 @Dao
 interface SeasonCompetitionRoundDao : BaseSeasonCompReadDao<SeasonCompetitionRound>, BaseWriteDao<SeasonCompetitionRound> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
@@ -48,4 +47,14 @@ interface SeasonCompetitionRoundDao : BaseSeasonCompReadDao<SeasonCompetitionRou
 
     @Query("SELECT * FROM $table")
     suspend fun getAll() : List<SeasonCompetitionRound>
+
+    @Query("SELECT * FROM $table scr WHERE seasonId = :seasonId " +
+            "AND NOT EXISTS (SELECT * FROM SeasonCupFixtures scf WHERE scf.seasonId = scr.seasonId AND scf.competitionId = scr.competitionId AND scf.round = scr.round AND scf.result <> 0)")
+    suspend fun getUnstartedRounds(seasonId: SeasonId) : List<SeasonCompetitionRound>
+}
+
+@Dao
+interface SeasonRoundDao : BaseSeasonReadDao<SeasonCompetitionRound> {
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    override suspend fun get(seasonId : SeasonId): List<SeasonCompetitionRound>
 }

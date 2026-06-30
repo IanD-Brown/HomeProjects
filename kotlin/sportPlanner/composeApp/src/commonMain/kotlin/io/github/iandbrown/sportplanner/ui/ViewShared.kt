@@ -424,8 +424,8 @@ fun ClickableIconOld(
 }
 
 class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridCells {
+    val columnCount = iconCount + weights.size
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
-        val columnCount = iconCount + weights.size
         val totalSpacing = spacing * (columnCount - 1)
         val iconSize = (IconSize + 16.dp).roundToPx()
         val remainingSpace = availableSize - totalSpacing - iconSize * iconCount

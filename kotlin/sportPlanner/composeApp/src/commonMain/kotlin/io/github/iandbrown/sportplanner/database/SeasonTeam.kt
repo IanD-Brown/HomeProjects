@@ -48,7 +48,6 @@ data class SeasonTeam(
     val count: Short
 )
 
-// Needs tp be season based rather than season and competition
 @Dao
 interface SeasonTeamDao : BaseSeasonCompReadDao<SeasonTeam>, BaseWriteDao<SeasonTeam> {
     @Query("SELECT * FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")

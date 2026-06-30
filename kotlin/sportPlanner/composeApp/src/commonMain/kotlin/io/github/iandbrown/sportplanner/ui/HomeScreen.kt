@@ -48,6 +48,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SEASON_TEAMS("Season Teams", false),
     SEASON_TEAM_CATEGORY("", false),
     SEASON_LEAGUE_FIXTURES("League Fixtures"),
+    SEASON_CUP_FIXTURES("Cup Fixtures"),
     SEASONS("Seasons"),
     COMPETITIONS("Competitions"),
     TEAM_CATEGORIES("Team Categories"),

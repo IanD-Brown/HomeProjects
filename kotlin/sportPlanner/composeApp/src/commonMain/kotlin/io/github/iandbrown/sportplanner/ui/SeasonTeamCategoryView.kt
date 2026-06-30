@@ -19,10 +19,11 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
 import io.github.iandbrown.sportplanner.di.inject
+import io.github.iandbrown.sportplanner.logic.INCOMPLETE
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 class SeasonTeamCategoryViewModel(seasonId : SeasonId,
@@ -50,15 +51,18 @@ private enum class EditorState(val display: String) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
-    val seasonParams = parametersOf(param.seasonId, param.competitionId)
-    val viewModel: SeasonTeamCategoryViewModel = koinInject {seasonParams}
+private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam,
+                                     viewModel: SeasonTeamCategoryViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) },
+                                     teamCategoryViewModel: TeamCategoryViewModel = koinViewModel(),
+                                     seasonTeamViewModel: SeasonTeamViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) },
+                                     seasonFixtureViewModel: SeasonFixtureViewModel = koinViewModel { parametersOf(param.seasonId) }
+) {
     val state = viewModel.uiState.collectAsState()
-    val teamCategoryViewModel: TeamCategoryViewModel = koinInject()
     val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
-    val seasonTeamViewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
     val seasonTeamState = seasonTeamViewModel.uiState.collectAsState()
+    val seasonFixtureState = seasonFixtureViewModel.uiState.collectAsState()
     var isLocked by remember { mutableStateOf(EditorState.LOCKED) }
     var teamCategoryList = listOf<TeamCategory>()
     val gameStructureStates = remember { mutableStateMapOf<TeamCategoryId, Short>() }
@@ -75,7 +79,7 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                 isLocked = isLocked.onClick()
             }
         },
-        states = persistentListOf(state.value, teamCategoryState.value, seasonTeamState.value)) { paddingValues ->
+        states = persistentListOf(state.value, teamCategoryState.value, seasonTeamState.value, seasonFixtureState.value)) { paddingValues ->
             state.values().forEach {
                 if (!gameStructureStates.contains(it.teamCategoryId)) {
                     gameStructureStates[it.teamCategoryId] = it.games
@@ -90,8 +94,8 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
             }
 
             teamCategoryList = teamCategoryState.values().sortedBy { it.name.trim().uppercase() }
-            LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.padding(paddingValues)) {
-                viewTextItems(listOf("Team Category", "Team Count", "Match Structure", "Locked"))
+            LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.padding(paddingValues)) {
+                viewTextItems(listOf("Team Category", "Team Count", "Match Structure", "Locked", "Incomplete"))
                 val matchStructureNamesList = MatchStructures.entries.map { it.display }.toList()
                 for (teamCategory in teamCategoryList) {
                     viewTextItems(listOf(teamCategory.name, teamCounts[teamCategory.id]?.toString() ?: "0"))
@@ -113,6 +117,12 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam) {
                                 isLocked = EditorState.DIRTY
                             }
                         )
+                    }
+                    item {
+                        Checkbox(checked = seasonFixtureState.values()
+                            .filter { it.teamCategoryId == teamCategory.id }
+                            .any { INCOMPLETE.equals(it.message) },
+                            enabled = false, onCheckedChange = {})
                     }
                 }
             }

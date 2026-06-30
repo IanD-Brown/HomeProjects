@@ -4,7 +4,7 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-private const val version = 10
+private const val version = 11
 private const val majorVersion = 3
 
 @Database(entities = [
@@ -25,6 +25,7 @@ private const val majorVersion = 3
         SeasonCompRoundView::class,
         SeasonCompView::class,
         SeasonCupFixtureView::class,
+        SeasonCupSummaryView::class,
         SeasonFixtureView::class,
         SeasonLeagueTeamView::class],
     version = version,
@@ -32,7 +33,8 @@ private const val majorVersion = 3
         AutoMigration(from = 6, to = 7),
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 8, to = 9),
-        AutoMigration(from = 9, to = 10)
+        AutoMigration(from = 9, to = 10),
+        AutoMigration(from = 10, to = 11)
     ])
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAssociationDao() : AssociationDao
@@ -40,17 +42,20 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun getFarAssociationDao() : FarAssociationDao
     abstract fun getFarAssociationViewDao() : FarAssociationViewDao
     abstract fun getSeasonBreakDao() : SeasonBreakDao
+    abstract fun getSeasonCompCupFixtureViewDao() : SeasonCupCompFixtureViewDao
     abstract fun getSeasonCompRoundViewDao() : SeasonCompRoundViewDao
     abstract fun getSeasonCompViewDao() : SeasonCompViewDao
     abstract fun getSeasonCompetitionDao() : SeasonCompetitionDao
     abstract fun getSeasonCompetitionRoundDao() : SeasonCompetitionRoundDao
     abstract fun getSeasonCupFixtureDao() : SeasonCupFixtureDao
     abstract fun getSeasonCupFixtureViewDao() : SeasonCupFixtureViewDao
+    abstract fun getSeasonCupSummaryViewDao() : SeasonCupSummaryViewDao
     abstract fun getSeasonDao() : SeasonDao
     abstract fun getSeasonFixtureDao() : SeasonFixtureDao
     abstract fun getSeasonFixtureViewDao() : SeasonFixtureViewDao
     abstract fun getSeasonLeagueTeamCategoryDao() : SeasonLeagueTeamCategoryDao
     abstract fun getSeasonLeagueTeamViewDao() : SeasonLeagueTeamViewDao
+    abstract fun getSeasonRoundDao() : SeasonRoundDao
     abstract fun getSeasonTeamCategoryDao() : SeasonTeamCategoryDao
     abstract fun getSeasonTeamDao() : SeasonTeamDao
     abstract fun getTeamCategoryDao() : TeamCategoryDao

@@ -58,7 +58,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
             seasonFixtureDao.deleteBySeasonTeamCategory(seasonId, teamCategoryId, competitionId)
         } returns Unit
         everySuspend { teamCategoryDao.get() } returns teamCategories
-        everySuspend { seasonCompRoundViewDao.getBySeason(seasonId) } returns emptyList()
+        everySuspend { seasonCompRoundViewDao.get(seasonId) } returns emptyList()
         everySuspend { seasonFixtureDao.insert(any()) } returns 0L
         everySuspend { seasonFixtureDao.get(any(), any()) } returns emptyList()
         everySuspend {
