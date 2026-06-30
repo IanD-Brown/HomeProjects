@@ -35,10 +35,10 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
+import io.github.iandbrown.sportplanner.database.SeasonCupCompFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixture
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureView
-import io.github.iandbrown.sportplanner.database.SeasonCupCompFixtureViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
@@ -50,15 +50,16 @@ import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.sink
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlin.random.Random
-import kotlin.time.measureTime
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
 import kotlinx.io.writeString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.random.Random
+import kotlin.time.measureTime
 
 class SeasonCompetitionRoundViewModel(seasonId: SeasonId,
                                       competitionId: CompetitionId,
@@ -103,7 +104,7 @@ fun NavigateSeasonCompetitionRound(argument: String?) {
 @Composable
 private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
     val viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
-    val state = viewModel.uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var calculating by remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState()
@@ -167,12 +168,13 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
     }
 }
 
+@Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo) {
-    val viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(info.param.seasonId, info.param.competitionId) }
-    val state = viewModel.uiState.collectAsState()
-    val seasonCompetitionViewModel = koinInject<SeasonCompetitionViewModel> { parametersOf(info.param.seasonId, info.param.competitionId) }
-    val seasonCompetitionState = seasonCompetitionViewModel.uiState.collectAsState()
+private fun SeasonCompetitionRoundEditor(info: SeasonCompetitionRoundEditorInfo,
+                                         viewModel: SeasonCompetitionRoundViewModel = koinViewModel(parameters = {parametersOf(info.param.seasonId, info.param.competitionId)}),
+                                         seasonCompetitionViewModel: SeasonCompetitionViewModel = koinViewModel(parameters = { parametersOf(info.param.seasonId, info.param.competitionId) })) {
+    val state = viewModel.getState().collectAsState()
+    val seasonCompetitionState = seasonCompetitionViewModel.getState().collectAsState()
     val description = remember { mutableStateOf("") }
     val week = remember { mutableIntStateOf(0) }
     val optional = remember { mutableStateOf(false) }
@@ -272,12 +274,12 @@ internal enum class FixtureResult(var display: String) {
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun SeasonCupFixtureView(info: SeasonCompetitionRoundEditorInfo,
-                                 viewModel: SeasonCompCupFixtureViewModel = koinInject<SeasonCompCupFixtureViewModel>
+                                 viewModel: SeasonCompCupFixtureViewModel = koinViewModel()
                                  { parametersOf(info.param.seasonId, info.param.competitionId) },
-                                 teamCategoryViewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
+                                 teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
-    val state = viewModel.uiState.collectAsState()
-    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
+    val teamCategoryState = teamCategoryViewModel.getState().collectAsState()
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""

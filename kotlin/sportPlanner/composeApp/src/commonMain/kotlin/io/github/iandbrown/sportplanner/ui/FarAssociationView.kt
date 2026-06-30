@@ -30,6 +30,7 @@ import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 class FarAssociationViewModel : BaseConfigCRUDViewModel<FarAssociationDao, FarAssociation>(inject<FarAssociationDao>().value)
 
@@ -56,10 +57,10 @@ fun NavigateFarAssociation(argument: String?) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinInject<FarAssociationListViewModel>(),
-                                 farAssociationViewModel: FarAssociationViewModel= koinInject<FarAssociationViewModel>()) {
-    val state = viewModel.uiState.collectAsState()
-    val farAssociationState = farAssociationViewModel.uiState.collectAsState()
+private fun FarAssociationEditor(viewModel: FarAssociationListViewModel = koinViewModel(),
+                                 farAssociationViewModel: FarAssociationViewModel= koinViewModel()) {
+    val state = viewModel.getState().collectAsState()
+    val farAssociationState = farAssociationViewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -105,8 +106,8 @@ internal suspend fun toFarAssociation(row: DataRow<Any?>,
 private fun EditFarAssociation(farAssociation: FarAssociationView?,
                                viewModel: FarAssociationViewModel = koinInject(),
                                associationModel : AssociationViewModel = koinInject()) {
-    val state = viewModel.uiState.collectAsState()
-    val associationState = associationModel.uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
+    val associationState = associationModel.getState().collectAsState()
     var homeAssociation by remember { mutableStateOf(farAssociation?.homeAssociationId ?: 0) }
     var awayAssociation by remember { mutableStateOf(farAssociation?.awayAssociationId ?: 0) }
     val title = if (farAssociation == null) "Add Distant Away Game" else "Edit Distant Away Game"

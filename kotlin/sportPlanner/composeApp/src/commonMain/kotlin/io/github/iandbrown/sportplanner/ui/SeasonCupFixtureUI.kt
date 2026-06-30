@@ -39,7 +39,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.time.measureTime
@@ -61,8 +60,8 @@ internal fun NavigateCupFixtures(argument: String?) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun CupFixtureView(viewModel: SeasonViewModel= koinInject<SeasonViewModel>()) {
-    val seasonState = viewModel.uiState.collectAsState()
+private fun CupFixtureView(viewModel: SeasonViewModel= koinViewModel()) {
+    val seasonState = viewModel.getState().collectAsState()
     val calculating = remember {mutableStateOf(false)}
     val coroutineScope = rememberCoroutineScope()
 
@@ -118,9 +117,9 @@ private fun SummaryCupFixtureView(season: Season,
                                   seasonCupSummaryViewModel: SeasonCupSummaryViewModel = koinViewModel {parametersOf(season.id)},
                                   seasonRoundViewModel: SeasonRoundViewModel = koinViewModel {parametersOf(season.id)},
                                   competitionViewModel: CompetitionViewModel = koinViewModel()) {
-    val seasonTeamState = seasonCupSummaryViewModel.uiState.collectAsState()
-    val seasonRoundState = seasonRoundViewModel.uiState.collectAsState()
-    val competitionState = competitionViewModel.uiState.collectAsState()
+    val seasonTeamState = seasonCupSummaryViewModel.getState().collectAsState()
+    val seasonRoundState = seasonRoundViewModel.getState().collectAsState()
+    val competitionState = competitionViewModel.getState().collectAsState()
 
     ViewCommon("Season Cup summary ${season.name}",
         states = persistentListOf(seasonTeamState.value, seasonRoundState.value, competitionState.value)) { paddingValues ->
@@ -182,10 +181,10 @@ internal class SeasonCupFixtureViewModel(seasonId : SeasonId,
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun CupFixtureTableView(season: Season,
-                                viewModel: SeasonCupFixtureViewModel = koinInject<SeasonCupFixtureViewModel> { parametersOf(season.id) },
-                                competitionViewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()) {
-    val state = viewModel.uiState.collectAsState()
-    val competitionState = competitionViewModel.uiState.collectAsState()
+                                viewModel: SeasonCupFixtureViewModel = koinViewModel { parametersOf(season.id) },
+                                competitionViewModel: CompetitionViewModel = koinViewModel()) {
+    val state = viewModel.getState().collectAsState()
+    val competitionState = competitionViewModel.getState().collectAsState()
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""

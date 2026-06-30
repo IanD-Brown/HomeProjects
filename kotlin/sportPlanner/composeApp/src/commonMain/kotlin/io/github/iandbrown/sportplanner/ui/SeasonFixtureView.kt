@@ -63,7 +63,6 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.concat
 import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.time.measureTime
@@ -106,7 +105,7 @@ private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
                               modifier: Modifier,
                               seasonCompModel : SeasonCompViewModel =  koinViewModel(),
                               onClick : (CompetitionId) -> Unit) {
-    val seasonCompetitionState by seasonCompModel.uiState.collectAsState()
+    val seasonCompetitionState by seasonCompModel.getState().collectAsState()
     val seasonCompViews = seasonCompetitionState
         .values()
         .filter { it.seasonId == seasonId }
@@ -134,8 +133,8 @@ private fun CompetitionFilter(selectedCompetitionId: CompetitionId,
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun FixtureView(viewModel: SeasonViewModel= koinInject<SeasonViewModel>()) {
-    val seasonState = viewModel.uiState.collectAsState()
+private fun FixtureView(viewModel: SeasonViewModel= koinViewModel()) {
+    val seasonState = viewModel.getState().collectAsState()
     val calculating = remember {mutableStateOf(false)}
     val coroutineScope = rememberCoroutineScope()
 
@@ -187,10 +186,10 @@ private fun SummaryFixtureView(season: Season,
                                seasonTeamCategoryModel : SeasonLeagueTeamCategoryViewModel = koinViewModel { parametersOf(season.id) },
                                farAssociationViewModel: FarAssociationListViewModel = koinViewModel()) {
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val state = seasonFixtureViewModel.uiState.collectAsState()
-    val seasonLeagueTeamState = seasonLeagueTeamModel.uiState.collectAsState()
-    val seasonTeamCategoryState = seasonTeamCategoryModel.uiState.collectAsState()
-    val farAssociationState = farAssociationViewModel.uiState.collectAsState()
+    val state = seasonFixtureViewModel.getState().collectAsState()
+    val seasonLeagueTeamState = seasonLeagueTeamModel.getState().collectAsState()
+    val seasonTeamCategoryState = seasonTeamCategoryModel.getState().collectAsState()
+    val farAssociationState = farAssociationViewModel.getState().collectAsState()
     var typeFilter by remember { mutableStateOf<SumType?>(null) }
 
     ViewCommon(
@@ -302,15 +301,15 @@ private fun FixtureTableView(season: Season,
                              teamCategoryModel : TeamCategoryViewModel = koinViewModel(), ) {
     val viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) }
     val seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel{ parametersOf(season.id) }
-    val associationState = associationModel.uiState.collectAsState()
-    val teamCategoryState = teamCategoryModel.uiState.collectAsState()
-    val state = viewModel.uiState.collectAsState()
+    val associationState = associationModel.getState().collectAsState()
+    val teamCategoryState = teamCategoryModel.getState().collectAsState()
+    val state = viewModel.getState().collectAsState()
     var filterAssociation by remember { mutableStateOf("") }
     var filterTeamCategory by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val withTeamCategory = filterTeamCategory.isBlank()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val seasonLeagueTeamState = seasonLeagueTeamModel.uiState.collectAsState()
+    val seasonLeagueTeamState = seasonLeagueTeamModel.getState().collectAsState()
 
     ViewCommon(
         "Season fixtures",
@@ -387,13 +386,14 @@ private fun FixtureTableView(season: Season,
 @Composable
 private fun FixtureDateView(season: Season,
                             viewModel : SeasonFixtureViewModel = koinViewModel { parametersOf(season.id) },
-                            associationViewModel : AssociationViewModel = koinInject<AssociationViewModel>(),
-                            teamCategoryViewModel : TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
-    val associationState = associationViewModel.uiState.collectAsState()
-    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
-    val state = viewModel.uiState.collectAsState()
+                            associationViewModel : AssociationViewModel = koinViewModel(),
+                            teamCategoryViewModel : TeamCategoryViewModel = koinViewModel(),
+                            seasonLeagueTeamModel : SeasonLeagueTeamViewModel = koinViewModel { parametersOf(season.id) }) {
+    val associationState = associationViewModel.getState().collectAsState()
+    val teamCategoryState = teamCategoryViewModel.getState().collectAsState()
+    val state = viewModel.getState().collectAsState()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    val seasonLeagueTeamState by koinInject<SeasonLeagueTeamViewModel> { parametersOf(season.id) }.uiState.collectAsState()
+    val seasonLeagueTeamState by seasonLeagueTeamModel.getState().collectAsState()
 
     ViewCommon(
         "Season fixtures",

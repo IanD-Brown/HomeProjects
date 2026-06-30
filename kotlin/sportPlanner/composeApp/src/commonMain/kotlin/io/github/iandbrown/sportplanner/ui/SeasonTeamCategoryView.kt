@@ -59,10 +59,10 @@ private fun SeasonTeamCategoryEditor(param: SeasonCompetitionParam,
                                      seasonTeamViewModel: SeasonTeamViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) },
                                      seasonFixtureViewModel: SeasonFixtureViewModel = koinViewModel { parametersOf(param.seasonId) }
 ) {
-    val state = viewModel.uiState.collectAsState()
-    val teamCategoryState = teamCategoryViewModel.uiState.collectAsState()
-    val seasonTeamState = seasonTeamViewModel.uiState.collectAsState()
-    val seasonFixtureState = seasonFixtureViewModel.uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
+    val teamCategoryState = teamCategoryViewModel.getState().collectAsState()
+    val seasonTeamState = seasonTeamViewModel.getState().collectAsState()
+    val seasonFixtureState = seasonFixtureViewModel.getState().collectAsState()
     var isLocked by remember { mutableStateOf(EditorState.LOCKED) }
     var teamCategoryList = listOf<TeamCategory>()
     val gameStructureStates = remember { mutableStateMapOf<TeamCategoryId, Short>() }

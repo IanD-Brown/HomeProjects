@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
@@ -60,6 +59,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readJson
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCRUDViewModel<SeasonDao, Season>(dao) {
     fun saveCompetitions(name: String,
@@ -89,9 +89,13 @@ class SeasonCompViewModel(dao: SeasonCompViewDao = inject<SeasonCompViewDao>().v
     BaseConfigReadViewModel<SeasonCompViewDao, SeasonCompView>(dao) {
     fun deleteSeason(seasonId : SeasonId) {
         viewModelScope.launch {
-            dao.deleteSeason(seasonId)
+            try {
+                dao.deleteSeason(seasonId)
+                readAll()
+            } catch (e: Exception) {
+                handleException(e)
+            }
         }
-        readAll()
     }
 }
 
@@ -128,10 +132,9 @@ fun NavigateSeason(argument: String?) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinInject<SeasonCompViewModel>(),
-                           seasonViewModel: SeasonViewModel = koinInject<SeasonViewModel>()) {
-    val seasonCompViewState = seasonCompViewModel.uiState.collectAsState()
-    val gridState = rememberLazyGridState()
+private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinViewModel(),
+                           seasonViewModel: SeasonViewModel = koinViewModel()) {
+    val seasonCompViewState = seasonCompViewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -160,6 +163,7 @@ private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinInject
                             })
                         { importRow(it) }
                     })
+                        seasonCompViewModel.readAll()
                     }
                 },
                 addButtonSettings { it.navigate(editor.addRoute()) }
@@ -169,7 +173,7 @@ private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinInject
         var seasonId : Short? = null
         val surfaceColor = MaterialTheme.colorScheme.onSurface
 
-        LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues), state = gridState) {
+        LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues)) {
             for (seasonCompView in seasonCompViewState.values()) {
                 if (seasonCompView.seasonId != seasonId) {
                     viewTextItems(listOf(seasonCompView.seasonName,""))
@@ -331,9 +335,10 @@ private fun seasonCompetitionParamOf(seasonCompView : SeasonCompView) : SeasonCo
 @Composable
 private fun SeasonEditor(season : Season? = null,
                          viewModel: SeasonViewModel = koinInject(),
-                         seasonCompViewModel: SeasonCompViewModel = koinInject<SeasonCompViewModel>()) {
-    val seasonCompetitionState = seasonCompViewModel.uiState.collectAsState()
-    val competitionState = koinInject<CompetitionViewModel>().uiState.collectAsState()
+                         seasonCompViewModel: SeasonCompViewModel = koinViewModel(),
+                         competitionViewModel: CompetitionViewModel = koinViewModel()) {
+    val seasonCompetitionState = seasonCompViewModel.getState().collectAsState()
+    val competitionState = competitionViewModel.getState().collectAsState()
     var name by remember { mutableStateOf(season?.name ?: "") }
     val title = if (season == null) "Add Season" else "Edit Season"
     val startDates = remember { mutableStateMapOf<Short, Int>() }

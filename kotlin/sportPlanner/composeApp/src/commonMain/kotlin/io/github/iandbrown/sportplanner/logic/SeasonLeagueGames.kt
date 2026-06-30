@@ -170,8 +170,6 @@ private class FixtureScheduler(
 
         private fun getMessage(teamCategory: SeasonTeamCategory): String? {
             val compRoundView = compRoundsForWeekAndSeason.firstOrNull { it.teamCategoryId == teamCategory.teamCategoryId }
-            if (compRoundView != null)
-                println(compRoundView)
             return getMessage(compRoundView)
         }
 

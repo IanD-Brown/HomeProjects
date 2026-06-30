@@ -28,7 +28,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -52,7 +51,7 @@ fun NavigateSeasonBreak(argument: String?) {
 @Composable
 private fun SeasonBreakView(param: Season,
                             viewModel: SeasonBreakViewModel = koinViewModel { parametersOf(param.id) }) {
-    val state = viewModel.uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
     val gridState = rememberLazyGridState()
 
     ViewCommon(
@@ -78,8 +77,8 @@ private fun SeasonBreakView(param: Season,
 @Suppress("ParamsComparedByRef")
 @Composable
 private fun SeasonBreakEditor(info: SeasonBreakEditorInfo,
-                              viewModel: SeasonCompViewModel = koinInject<SeasonCompViewModel>()) {
-    val seasonCompetitionState = viewModel.uiState.collectAsState()
+                              viewModel: SeasonCompViewModel = koinViewModel()) {
+    val seasonCompetitionState = viewModel.getState().collectAsState()
     val title = if (info.seasonBreak == null) "Add Season break" else "Edit Season break"
     var name by remember { mutableStateOf(info.seasonBreak?.name ?: "") }
     var week by remember {mutableIntStateOf(info.seasonBreak?.week ?: 0)}

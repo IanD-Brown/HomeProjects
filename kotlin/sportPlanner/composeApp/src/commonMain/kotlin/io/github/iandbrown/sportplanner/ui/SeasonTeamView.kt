@@ -22,6 +22,7 @@ import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 class SeasonTeamViewModel(seasonId : SeasonId,
@@ -38,11 +39,13 @@ fun NavigateSeasonTeam(argument: String?) {
 }
 
 @Composable
-private fun SeasonTeamEditor(param: SeasonCompetitionParam) {
+private fun SeasonTeamEditor(param: SeasonCompetitionParam,
+                             associationViewModel: AssociationViewModel = koinViewModel(),
+                             teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()) {
     val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
-    val state = viewModel.uiState.collectAsState()
-    val associationState = koinInject<AssociationViewModel>().uiState.collectAsState()
-    val teamCategory = koinInject<TeamCategoryViewModel>().uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
+    val associationState = associationViewModel.getState().collectAsState()
+    val teamCategory = teamCategoryViewModel.getState().collectAsState()
     var isLocked by remember { mutableStateOf(true) }
     val edits = remember { mutableStateMapOf<Pair<Short, Short>, Short>() }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
@@ -123,11 +126,13 @@ private fun matchStructure(value: String, editFun: (Short) -> Unit) {
 }
 
 @Composable
-private fun SeasonTeamByCategory(param: SeasonCompetitionParam) {
-    val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId)}
-    val state = viewModel.uiState.collectAsState()
-    val teamCategory = koinInject<TeamCategoryViewModel>().uiState.collectAsState()
-    val associationState = koinInject<AssociationViewModel>().uiState.collectAsState()
+private fun SeasonTeamByCategory(param: SeasonCompetitionParam,
+                                 viewModel: SeasonTeamViewModel = koinViewModel<SeasonTeamViewModel>(parameters = { parametersOf(param.seasonId, param.competitionId) }),
+                                 teamCategoryViewModel: TeamCategoryViewModel = koinViewModel(),
+                                 associationViewModel: AssociationViewModel = koinViewModel()) {
+    val state = viewModel.getState().collectAsState()
+    val teamCategory = teamCategoryViewModel.getState().collectAsState()
+    val associationState = associationViewModel.getState().collectAsState()
     var isLocked by remember { mutableStateOf(true) }
     val edits = remember { mutableStateMapOf<Short, Short>() }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""

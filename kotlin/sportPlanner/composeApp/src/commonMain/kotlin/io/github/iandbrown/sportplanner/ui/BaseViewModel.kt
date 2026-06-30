@@ -14,12 +14,13 @@ import io.github.iandbrown.sportplanner.database.SeasonId
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CancellationException
 
 sealed interface ViewModelState<out ENTITY> {
     data class Success<ENTITY>(val data: ImmutableList<ENTITY>) : ViewModelState<ENTITY>
@@ -41,7 +42,7 @@ internal fun<ENTITY> State<ViewModelState<ENTITY>>.values() : ImmutableList<ENTI
     }
 }
 
-abstract class BaseReadViewModel<DAO: ReadDao<ENTITY>, ENTITY>(val dao: DAO, val reader: suspend (DAO) -> List<ENTITY> ) : ViewModel() {
+private class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val reader: suspend() -> List<ENTITY>) {
     private val _state = MutableStateFlow<ViewModelState<ENTITY>>(ViewModelState.Uninitialized)
     val uiState: StateFlow<ViewModelState<ENTITY>> = _state.asStateFlow()
 
@@ -53,7 +54,7 @@ abstract class BaseReadViewModel<DAO: ReadDao<ENTITY>, ENTITY>(val dao: DAO, val
         viewModelScope.launch {
             _state.update { ViewModelState.Loading }
             try {
-                _state.update { ViewModelState.Success(reader(dao).toImmutableList()) }
+                _state.update { ViewModelState.Success(reader().toImmutableList()) }
             } catch (e: Exception) {
                 handleException(e)
             }
@@ -75,18 +76,33 @@ fun logException(className: String, exception: Exception, context: String) {
 }
 
 
-open class BaseConfigReadViewModel<DAO, ENTITY>(dao: DAO) : BaseReadViewModel<DAO, ENTITY>(dao, {it.get()})
-        where DAO : ConfigReadDao<ENTITY>
+open class BaseConfigReadViewModel<DAO, ENTITY>(val dao: DAO) : ViewModel() where DAO : ConfigReadDao<ENTITY> {
+    private val readDelegate = ReadDelegate(viewModelScope) { dao.get() }
 
-open class BaseSeasonReadViewModel<DAO, ENTITY>(private var seasonId: SeasonId, dao: DAO) : BaseReadViewModel<DAO, ENTITY>(dao, {it.get(seasonId)})
-        where DAO : BaseSeasonReadDao<ENTITY>
+    fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
+
+    fun readAll() = readDelegate.readAll()
+
+    fun handleException(exception: Exception) = readDelegate.handleException(exception)
+}
+
+open class BaseSeasonReadViewModel<DAO, ENTITY>(private var seasonId: SeasonId, val dao: DAO) : ViewModel()
+        where DAO : BaseSeasonReadDao<ENTITY> {
+    private val readDelegate = ReadDelegate(viewModelScope) { dao.get(seasonId) }
+
+    fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
+}
 
 open class BaseSeasonCompReadViewModel<DAO, ENTITY>(private val seasonId: SeasonId,
                                                     private val competitionId: CompetitionId,
-                                                    dao: DAO) : BaseReadViewModel<DAO, ENTITY>(dao, {it.get(seasonId, competitionId)})
-        where DAO : BaseSeasonCompReadDao<ENTITY>
+                                                    val dao: DAO) : ViewModel()
+        where DAO : BaseSeasonCompReadDao<ENTITY> {
+    private val readDelegate = ReadDelegate(viewModelScope) { dao.get(seasonId, competitionId) }
 
-open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao, {it.get()})
+    fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
+}
+
+open class BaseConfigCRUDViewModel<DAO, ENTITY>(dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao, { it.get() })
         where DAO : ConfigReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>
 
 open class BaseSeasonCompCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId,
@@ -97,8 +113,13 @@ open class BaseSeasonCompCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId,
 open class BaseSeasonCRUDViewModel<DAO, ENTITY>(val seasonId : SeasonId, dao : DAO) : BaseCRUDViewModel<DAO, ENTITY>(dao, {it.get(seasonId)})
         where DAO : BaseSeasonReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>
 
-abstract class BaseCRUDViewModel<DAO, ENTITY>(dao : DAO, reader: suspend (DAO) -> List<ENTITY>) : BaseReadViewModel<DAO, ENTITY>(dao, reader)
+abstract class BaseCRUDViewModel<DAO, ENTITY>(val dao : DAO, reader: suspend (DAO) -> List<ENTITY>) : ViewModel()
         where DAO : ReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY> {
+    private val readDelegate = ReadDelegate(viewModelScope) {reader(dao)}
+
+    fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
+
+    fun readAll() = readDelegate.readAll()
 
     fun insert(entity: ENTITY) {
         runInCoroutine { dao.insert(entity) }
@@ -109,7 +130,7 @@ abstract class BaseCRUDViewModel<DAO, ENTITY>(dao : DAO, reader: suspend (DAO) -
     }
 
     fun delete(entity: ENTITY) {
-        runInCoroutine({ dao.delete(entity) })
+        runInCoroutine { dao.delete(entity) }
     }
 
     private fun runInCoroutine(operation: suspend () -> Unit) {
@@ -122,4 +143,6 @@ abstract class BaseCRUDViewModel<DAO, ENTITY>(dao : DAO, reader: suspend (DAO) -
             }
         }
     }
+
+    fun handleException(exception: Exception) = readDelegate.handleException(exception)
 }

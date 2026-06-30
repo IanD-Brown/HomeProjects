@@ -23,7 +23,7 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 class  TeamCategoryViewModel(dao : TeamCategoryDao = inject<TeamCategoryDao>().value) :
     BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(dao)
@@ -53,8 +53,8 @@ fun NavigateTeamCategory(argument: String?) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun TeamCategoryEditor(viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()) {
-    val state = viewModel.uiState.collectAsState()
+private fun TeamCategoryEditor(viewModel: TeamCategoryViewModel = koinViewModel()) {
+    val state = viewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -93,7 +93,7 @@ internal fun toTeamCategory(row: DataRow<Any?>): TeamCategory =
 
 @Composable
 private fun EditTeamCategory(editCategory: TeamCategory?) {
-    val viewModel: TeamCategoryViewModel = koinInject<TeamCategoryViewModel>()
+    val viewModel: TeamCategoryViewModel = koinViewModel()
     var name by remember { mutableStateOf(editCategory?.name ?: "") }
     var matchDay by remember { mutableIntStateOf(editCategory?.matchDay?.toInt() ?: 0) }
     val title = if (editCategory == null) "Add TeamCategory" else "Edit TeamCategory"
@@ -109,7 +109,7 @@ private fun EditTeamCategory(editCategory: TeamCategory?) {
         },
         confirm = {name.isNotEmpty() && (editCategory == null || name != editCategory.name) || (editCategory != null && matchDay.toShort() != editCategory.matchDay)},
         confirmAction = {save(viewModel, editCategory, name, matchDay)},
-        states = persistentListOf(viewModel.uiState.collectAsState().value)) { paddingValues ->
+        states = persistentListOf(viewModel.getState().collectAsState().value)) { paddingValues ->
             LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
                 item { ReadonlyViewText(value = "Name") }
                 item { ReadonlyViewText(value = "Match Day") }

@@ -24,7 +24,7 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 class CompetitionViewModel(dao: CompetitionDao = inject<CompetitionDao>().value) :
     BaseConfigCRUDViewModel<CompetitionDao, Competition>(dao)
@@ -50,8 +50,8 @@ enum class CompetitionTypes(val display : String) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun CompetitionView(viewModel: CompetitionViewModel = koinInject<CompetitionViewModel>()) {
-    val state = viewModel.uiState.collectAsState()
+private fun CompetitionView(viewModel: CompetitionViewModel = koinViewModel()) {
+    val state = viewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(

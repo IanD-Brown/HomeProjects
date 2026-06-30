@@ -21,7 +21,7 @@ import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 class AssociationViewModel : BaseConfigCRUDViewModel<AssociationDao, Association>(inject<AssociationDao>().value)
 
@@ -39,8 +39,8 @@ fun NavigateAssociation(argument: String?) {
 
 @Suppress("ParamsComparedByRef")
 @Composable
-private fun AssociationEditor(viewModel: AssociationViewModel = koinInject<AssociationViewModel>()) {
-    val state = viewModel.uiState.collectAsState()
+private fun AssociationEditor(viewModel: AssociationViewModel = koinViewModel()) {
+    val state = viewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon(
@@ -82,10 +82,10 @@ internal fun toAssociation(row: DataRow<Any?>): Association =
 
 @Composable
 private fun EditAssociation(association: Association?) {
-    val viewModel: AssociationViewModel = koinInject<AssociationViewModel>()
+    val viewModel: AssociationViewModel = koinViewModel()
     var name by remember { mutableStateOf(association?.name ?: "") }
     val title = if (association == null) "Add Association" else "Edit Association"
-    val state = viewModel.uiState.collectAsState()
+    val state = viewModel.getState().collectAsState()
 
     ViewCommon(
         title,
