@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -30,7 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.AssociationName
+import io.github.iandbrown.sportplanner.database.Competition
+import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.database.CompetitionId
+import io.github.iandbrown.sportplanner.database.SeasonCompView
+import io.github.iandbrown.sportplanner.database.SeasonCompViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
@@ -54,6 +59,11 @@ import kotlinx.io.buffered
 import kotlinx.io.writeString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
+import org.jetbrains.kotlinx.dataframe.io.readJson
+import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -101,8 +111,8 @@ fun NavigateSeasonCompetitionRound(argument: String?) {
 }
 
 @Composable
-private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
-    val viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
+private fun SeasonCompetitionView(param: SeasonCompetitionParam,
+                                  viewModel: SeasonCompetitionRoundViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }) {
     val state = viewModel.getState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var calculating by remember { mutableStateOf(false) }
@@ -116,7 +126,27 @@ private fun SeasonCompetitionView(param: SeasonCompetitionParam) {
         ViewCommon(
             "Competition rounds in ${param.seasonName} for ${param.competitionName}",
             bottomBar = {
-                BottomBarWithButtons(addButtonSettings { it.navigate(editor.editRoute(SeasonCompetitionRoundEditorInfo(param))) })
+                BottomBarWithButtons(
+                    exportButtonSettings(coroutineScope, "cupRounds") {
+                        toDataFrame(state.values(),
+                            inject<SeasonCompViewDao>(SeasonCompViewDao::class.java).value.getAsList(param.seasonId),
+                            inject<CompetitionDao>(CompetitionDao::class.java).value.get())
+                            .writeJson(it)
+                    },
+                    ButtonSettings(imageVector = Icons.Default.Upload) {
+                        viewModel.viewModelScope.launch {
+                            tryTransaction({viewModel.handleException(it)}, {
+                                importFromFile(
+                                    "json",
+                                    {
+                                        val dataFrame = DataFrame.readJson(it)
+                                        viewModel.dao.deleteBySeasonComp(param.seasonId, param.competitionId)
+                                        dataFrame
+                                    }, { viewModel.insert(toSeasonCompetitionRound(it, param.seasonId, param.competitionId)) })
+                            })
+                        }
+                    },
+                    addButtonSettings { it.navigate(editor.editRoute(SeasonCompetitionRoundEditorInfo(param))) })
             },
             states = persistentListOf(state.value)) { paddingValues ->
                 val values = state.values().filter { it.competitionId == param.competitionId }
@@ -544,3 +574,28 @@ fun roundUpToNextPowerOfTwo(x: Int): Int {
     n = n or (n shr 16)
     return n + 1
 }
+
+internal fun toDataFrame(records: List<SeasonCompetitionRound>,
+                         seasonCompViews: List<SeasonCompView>,
+                         competitions: List<Competition>): DataFrame<SeasonCompetitionRound> {
+    val seasonCompViewsById = seasonCompViews.associateBy { it.seasonId }
+    val competitionsById = competitions.associateBy { it.id }
+    return records.toDataFrame {
+        SEASON_NAME from { seasonCompViewsById[it.seasonId]?.seasonName }
+        COMPETITION_NAME from { competitionsById[it.competitionId]?.name }
+        ROUND from { it.round }
+        DESCRIPTION from { it.description }
+        WEEK from { it.week }
+        OPTIONAL from { it.optional }
+    }
+}
+
+internal fun toSeasonCompetitionRound(row: DataRow<Any?>,
+                                              seasonId: SeasonId,
+                                              competitionId: CompetitionId): SeasonCompetitionRound =
+    SeasonCompetitionRound(seasonId,
+        competitionId,
+        short(row[ROUND]),
+        string(row[DESCRIPTION]),
+        int(row[WEEK]),
+        boolean(row[OPTIONAL]))

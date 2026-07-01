@@ -53,6 +53,8 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.JoinType
+import org.jetbrains.kotlinx.dataframe.api.at
+import org.jetbrains.kotlinx.dataframe.api.insert
 import org.jetbrains.kotlinx.dataframe.api.join
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readJson
@@ -102,20 +104,20 @@ class SeasonCompViewModel(dao: SeasonCompViewDao) :
 private val editor : Editors = Editors.SEASONS
 
 private const val ASSOCIATION_NAME = "AssociationName"
-private const val COMPETITION_NAME = "CompetitionName"
+internal const val COMPETITION_NAME = "CompetitionName"
 private const val COUNT = "Count"
-private const val DESCRIPTION = "Description"
+internal const val DESCRIPTION = "Description"
 private const val END_DATE = "EndDate"
 private const val GAMES = "Games"
 private const val LOCKED = "Locked"
-private const val OPTIONAL = "Optional"
-private const val ROUND = "Round"
+internal const val OPTIONAL = "Optional"
+internal const val ROUND = "Round"
 private const val SEASON_BREAK_NAME = "SeasonBreakName"
-private const val SEASON_NAME = "SeasonName"
+internal const val SEASON_NAME = "SeasonName"
 private const val START_DATE = "StartDate"
 private const val TEAM_CATEGORY_NAME = "TeamCategory"
 private const val TYPE = "Type"
-private const val WEEK = "Week"
+internal const val WEEK = "Week"
 
 private enum class DataFrameTypes {SEASON_COMP, BREAK, TEAM, MATCH, ROUND}
 @Serializable
@@ -250,15 +252,9 @@ internal fun toDataFrame(seasonCompViews: List<SeasonCompView>,
             TEAM_CATEGORY_NAME from { teamCategoriesById[it.teamCategoryId]?.name }
             GAMES from {it.games}
             LOCKED from {it.locked}
-        }, JoinType.Full).join(competitionRounds.toDataFrame {
-            TYPE from {DataFrameTypes.ROUND.name}
-            SEASON_NAME from { seasonCompViewsById[it.seasonId]?.seasonName }
-            COMPETITION_NAME from { competitionsById[it.competitionId]?.name }
-            ROUND from {it.round}
-            DESCRIPTION from {it.description}
-            WEEK from {it.week}
-            OPTIONAL from {it.optional}
-        }, JoinType.Full)
+        }, JoinType.Full).join(
+        toDataFrame(competitionRounds, seasonCompViews, competitions)
+            .insert(TYPE) { DataFrameTypes.ROUND.name }.at(0), JoinType.Full)
     }
 
 internal suspend fun importRow(row: DataRow<Any?>,
@@ -293,23 +289,21 @@ internal suspend fun importRow(row: DataRow<Any?>,
             teamCategoryDao.getByName(string(row[TEAM_CATEGORY_NAME]))!!,
             short(row[GAMES]),
             boolean(row[LOCKED])))
-        DataFrameTypes.ROUND.name -> seasonCompetitionRoundDao.insert(SeasonCompetitionRound(seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
-            competitionDao.getByName(string(row[COMPETITION_NAME]))!!,
-            short(row[ROUND]),
-            string(row[DESCRIPTION]),
-            int(row[WEEK]),
-            boolean(row[OPTIONAL])))
+        DataFrameTypes.ROUND.name -> seasonCompetitionRoundDao.insert(
+            toSeasonCompetitionRound(row,
+                seasonDao.getSeasonId(string(row[SEASON_NAME]))!!,
+                competitionDao.getByName(string(row[COMPETITION_NAME]))!!))
     }
 }
 
-private fun boolean(cell: Any?) : Boolean =
+internal fun boolean(cell: Any?) : Boolean =
     when (cell) {
         is Boolean -> cell
         is String -> cell.toBoolean()
         else -> false
     }
 
-private fun string(cell: Any?): String =
+internal fun string(cell: Any?): String =
     when (cell) {
         is String -> cell
         is Double -> cell.toString()
@@ -317,13 +311,13 @@ private fun string(cell: Any?): String =
         else -> ""
     }
 
-private fun int(cell: Any?) : Int =
+internal fun int(cell: Any?) : Int =
     when (cell) {
         is Int -> cell
         is String -> if (cell.isNotBlank()) cell.toInt() else 0
         else -> 0
     }
-private fun short(cell: Any?) : Short =
+internal fun short(cell: Any?) : Short =
     when (cell) {
         is Int -> cell.toShort()
         is String -> if (cell.isNotBlank()) cell.toShort() else 0
@@ -361,7 +355,7 @@ private fun SeasonEditor(season : Season? = null,
         },
         confirm = { dirty },
         confirmAction = { save(season, viewModel, name, competitionState.values(), startDates, endDates) },
-        states = persistentListOf(competitionState.value)) { paddingValues ->
+        states = persistentListOf(competitionState.value, seasonCompetitionState.value)) { paddingValues ->
             val competitionList = competitionState.values().sortedBy { it.name.trim().uppercase() }
             if (season != null) {
                 for (current in seasonCompetitionState.values()) {
