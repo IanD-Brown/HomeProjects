@@ -31,7 +31,6 @@ import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
-import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -41,6 +40,7 @@ import org.jetbrains.kotlinx.dataframe.api.rows
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.readJson
 import org.jetbrains.kotlinx.dataframe.io.writeJson
+import org.koin.java.KoinJavaComponent.inject
 
 enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     SEASON_BREAK("Season Break", false),
@@ -126,20 +126,24 @@ private const val TEAM_CATEGORY = "TeamCategory"
 private const val FAR_ASSOCIATION = "FarAssociation"
 private const val SEASON = "Season"
 
-private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDao>().value,
-                           teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value,
-                           associationDao: AssociationDao = inject<AssociationDao>().value,
-                           farAssociationDao: FarAssociationViewDao = inject<FarAssociationViewDao>().value,
-                           seasonCompViewDao: SeasonCompViewDao = inject<SeasonCompViewDao>().value) {
+private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value,
+                           teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
+                           associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value,
+                           farAssociationDao: FarAssociationViewDao = inject<FarAssociationViewDao>(FarAssociationViewDao::class.java).value,
+                           seasonCompViewDao: SeasonCompViewDao = inject<SeasonCompViewDao>(SeasonCompViewDao::class.java).value,
+                           seasonBreaksDao: SeasonBreakDao = inject<SeasonBreakDao>(SeasonBreakDao::class.java).value,
+                           seasonTeamsDao: SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
+                           seasonTeamCategoriesDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value,
+                           seasonCompetitionRoundsDao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value) {
     val competitions = competitionDao.get()
     val teamCategories = teamCategoryDao.get()
     val associations = associationDao.get()
     val farAssociations = farAssociationDao.get()
     val seasonCompViews = seasonCompViewDao.get()
-    val seasonBreaks = inject<SeasonBreakDao>().value.getAll()
-    val seasonTeams = inject<SeasonTeamDao>().value.getAll()
-    val seasonTeamCategories = inject<SeasonTeamCategoryDao>().value.getAll()
-    val seasonCompetitionRounds = inject<SeasonCompetitionRoundDao>().value.getAll()
+    val seasonBreaks = seasonBreaksDao.getAll()
+    val seasonTeams = seasonTeamsDao.getAll()
+    val seasonTeamCategories = seasonTeamCategoriesDao.getAll()
+    val seasonCompetitionRounds = seasonCompetitionRoundsDao.getAll()
 
     exportToFile("setup", extension = "json") { output ->
         (0 until 1).toDataFrame {
@@ -172,10 +176,10 @@ private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDa
 
 
 private suspend fun import(
-    competitionDao: CompetitionDao = inject<CompetitionDao>().value,
-    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value,
-    associationDao: AssociationDao = inject<AssociationDao>().value,
-    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>().value
+    competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value,
+    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
+    associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value,
+    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>(FarAssociationDao::class.java).value
 ) {
     importFromFile(
         "json",

@@ -15,7 +15,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
-import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
@@ -25,7 +24,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.viewmodel.koinViewModel
 
-class  TeamCategoryViewModel(dao : TeamCategoryDao = inject<TeamCategoryDao>().value) :
+class  TeamCategoryViewModel(dao : TeamCategoryDao) :
     BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(dao)
 
 private val editor = Editors.TEAM_CATEGORIES

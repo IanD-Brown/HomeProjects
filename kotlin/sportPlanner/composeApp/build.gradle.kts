@@ -85,6 +85,7 @@ kotlin {
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
+            implementation(libs.koin.annotations)  // For annotation support
 
             // Enables FileKit dialogs without Compose dependencies
             implementation(libs.filekit.dialogs)

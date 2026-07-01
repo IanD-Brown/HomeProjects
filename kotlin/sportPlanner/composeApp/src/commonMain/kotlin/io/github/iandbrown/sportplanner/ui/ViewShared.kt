@@ -71,10 +71,9 @@ import androidx.room.TransactionScope
 import androidx.room.immediateTransaction
 import androidx.room.useWriterConnection
 import io.github.iandbrown.sportplanner.database.AppDatabase
-import io.github.iandbrown.sportplanner.database.ConfigReadDao
 import io.github.iandbrown.sportplanner.database.BaseWriteDao
+import io.github.iandbrown.sportplanner.database.ConfigReadDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetition
-import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
@@ -93,6 +92,7 @@ import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readJson
+import org.koin.java.KoinJavaComponent.inject
 import java.io.InputStream
 
 val fontSize = 16.sp
@@ -582,7 +582,9 @@ internal suspend fun<R> RoomDatabase.inTransaction(block: suspend TransactionSco
         useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
 }
 
-internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit, block: suspend () -> Unit, db: AppDatabase = inject<AppDatabase>().value) {
+internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit,
+                                    block: suspend () -> Unit,
+                                    db: AppDatabase = inject<AppDatabase>(AppDatabase::class.java).value) {
     try {
         db.inTransaction { block() }
     } catch (e: Exception) {

@@ -45,7 +45,6 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
-import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
@@ -60,13 +59,14 @@ import org.jetbrains.kotlinx.dataframe.io.readJson
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.java.KoinJavaComponent.inject
 
-class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCRUDViewModel<SeasonDao, Season>(dao) {
+class SeasonViewModel(dao: SeasonDao) : BaseConfigCRUDViewModel<SeasonDao, Season>(dao) {
     fun saveCompetitions(name: String,
                          competitions: List<Competition>,
                          startDates: SnapshotStateMap<CompetitionId, Int>,
                          endDates: SnapshotStateMap<CompetitionId, Int>,
-                         seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value) {
+                         seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value) {
         viewModelScope.launch {
             val seasonId = dao.getSeasonId(name.trim())!!
             for (competition in competitions) {
@@ -85,7 +85,7 @@ class SeasonViewModel(dao: SeasonDao = inject<SeasonDao>().value) : BaseConfigCR
 }
 
 // Used when viewing all seasons (SeasonListView) therefore no seasonId argument
-class SeasonCompViewModel(dao: SeasonCompViewDao = inject<SeasonCompViewDao>().value) :
+class SeasonCompViewModel(dao: SeasonCompViewDao) :
     BaseConfigReadViewModel<SeasonCompViewDao, SeasonCompView>(dao) {
     fun deleteSeason(seasonId : SeasonId) {
         viewModelScope.launch {
@@ -143,13 +143,13 @@ private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinViewMo
             BottomBarWithButtons(
             exportButtonSettings(coroutineScope, "seasons") {
                     toDataFrame(seasonCompViewState.values(),
-                        inject<SeasonBreakDao>().value.getAll(),
-                        inject<SeasonTeamDao>().value.getAll(),
-                        inject<SeasonTeamCategoryDao>().value.getAll(),
-                        inject<SeasonCompetitionRoundDao>().value.getAll(),
-                        inject<CompetitionDao>().value.get(),
-                        inject<AssociationDao>().value.get(),
-                        inject<TeamCategoryDao>().value.get(),).writeJson(it)
+                        inject<SeasonBreakDao>(SeasonBreakDao::class.java).value.getAll(),
+                        inject<SeasonTeamDao>(SeasonTeamDao::class.java).value.getAll(),
+                        inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value.getAll(),
+                        inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value.getAll(),
+                        inject<CompetitionDao>(CompetitionDao::class.java).value.get(),
+                        inject<AssociationDao>(AssociationDao::class.java).value.get(),
+                        inject<TeamCategoryDao>(TeamCategoryDao::class.java).value.get(),).writeJson(it)
                 },
                 ButtonSettings(imageVector = Icons.Default.Upload) {
                     coroutineScope.launch {
@@ -212,11 +212,14 @@ private fun SeasonListView(seasonCompViewModel: SeasonCompViewModel = koinViewMo
     }
 }
 
-internal fun toDataFrame(
-    seasonCompViews: List<SeasonCompView>, seasonBreaks: List<SeasonBreak>, seasonTeams:
-    List<SeasonTeam>, seasonTeamCategories: List<SeasonTeamCategory>, competitionRounds: List<SeasonCompetitionRound>,
-
-    competitions: List<Competition>, associations: List<Association>, teamCategories: List<TeamCategory>):
+internal fun toDataFrame(seasonCompViews: List<SeasonCompView>,
+                         seasonBreaks: List<SeasonBreak>,
+                         seasonTeams: List<SeasonTeam>,
+                         seasonTeamCategories: List<SeasonTeamCategory>,
+                         competitionRounds: List<SeasonCompetitionRound>,
+                         competitions: List<Competition>,
+                         associations: List<Association>,
+                         teamCategories: List<TeamCategory>):
         DataFrame<SeasonCompView> {
     val seasonCompViewsById = seasonCompViews.associateBy { it.seasonId }
     val competitionsById = competitions.associateBy { it.id }
@@ -259,16 +262,15 @@ internal fun toDataFrame(
     }
 
 internal suspend fun importRow(row: DataRow<Any?>,
-                               seasonDao: SeasonDao = inject<SeasonDao>().value,
-                               seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value,
-                               seasonBreakDao: SeasonBreakDao = inject<SeasonBreakDao>().value,
-                               seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>().value,
-                               seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>().value,
-                               seasonCompetitionRoundDao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>().value,
-
-                               competitionDao: CompetitionDao = inject<CompetitionDao>().value,
-                               associationDao: AssociationDao = inject<AssociationDao>().value,
-                               teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value) {
+                               seasonDao: SeasonDao = inject<SeasonDao>(SeasonDao::class.java).value,
+                               seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value,
+                               seasonBreakDao: SeasonBreakDao = inject<SeasonBreakDao>(SeasonBreakDao::class.java).value,
+                               seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
+                               seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value,
+                               seasonCompetitionRoundDao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value,
+                               competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value,
+                               associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value,
+                               teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value) {
     when (row[TYPE]) {
         DataFrameTypes.SEASON_COMP.name -> {
             if (seasonDao.getSeasonId(string(row[SEASON_NAME])) == null) {
@@ -428,7 +430,11 @@ private fun checkDirty(season: Season?, name: String, seasonCompetitionState: Li
         }
     }
 
-private fun save(season : Season?, viewModel: SeasonViewModel, name: String, competitionState: List<Competition>, startDates: SnapshotStateMap<Short, Int>, endDates: SnapshotStateMap<Short, Int>) {
+private fun save(season : Season?,
+                 viewModel: SeasonViewModel,
+                 name: String,
+                 competitionState: List<Competition>,
+                 startDates: SnapshotStateMap<Short, Int>, endDates: SnapshotStateMap<Short, Int>) {
     if (season == null) {
         viewModel.insert(Season(name = name.trim()))
     } else {

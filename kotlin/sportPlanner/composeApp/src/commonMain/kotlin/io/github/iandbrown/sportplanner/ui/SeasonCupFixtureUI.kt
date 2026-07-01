@@ -34,13 +34,13 @@ import io.github.iandbrown.sportplanner.database.SeasonCupSummaryView
 import io.github.iandbrown.sportplanner.database.SeasonCupSummaryViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonRoundDao
-import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.koin.java.KoinJavaComponent.inject
 import kotlin.time.measureTime
 
 private val editor = Editors.SEASON_CUP_FIXTURES
@@ -101,11 +101,11 @@ private fun CupFixtureView(viewModel: SeasonViewModel= koinViewModel()) {
 }
 
 internal class SeasonCupSummaryViewModel(seasonId : SeasonId,
-                                         dao: SeasonCupSummaryViewDao = inject<SeasonCupSummaryViewDao>().value) :
+                                         dao: SeasonCupSummaryViewDao) :
     BaseSeasonReadViewModel<SeasonCupSummaryViewDao, SeasonCupSummaryView>(seasonId, dao)
 
 internal class SeasonRoundViewModel(seasonId : SeasonId,
-                                    dao: SeasonRoundDao = inject<SeasonRoundDao>().value) :
+                                    dao: SeasonRoundDao) :
     BaseSeasonReadViewModel<SeasonRoundDao, SeasonCompetitionRound>(seasonId, dao)
 
 // Show summary state for all cup competitions in the season
@@ -173,7 +173,7 @@ private fun competitionState(teamCount: Int, roundCount: Int) : String {
 }
 
 internal class SeasonCupFixtureViewModel(seasonId : SeasonId,
-                                         dao: SeasonCupFixtureViewDao = inject<SeasonCupFixtureViewDao>().value) :
+                                         dao: SeasonCupFixtureViewDao) :
     BaseSeasonReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(seasonId, dao) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
@@ -248,7 +248,7 @@ private fun saveResults(edits: MutableMap<Long, Short>, viewModel: SeasonCupFixt
 }
 
 internal suspend fun calcSeasonCupFixtures(seasonId: SeasonId,
-                                           dao : SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>().value) {
+                                           dao : SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value) {
     println("Calculating fixtures for season $seasonId")
     dao.getUnstartedRounds(seasonId).forEach {
         println("Calculating fixtures for ${it.competitionId} round ${it.round}")

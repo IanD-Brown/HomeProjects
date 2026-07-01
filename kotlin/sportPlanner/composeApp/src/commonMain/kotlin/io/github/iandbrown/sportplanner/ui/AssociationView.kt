@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
-import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -23,7 +22,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.viewmodel.koinViewModel
 
-class AssociationViewModel : BaseConfigCRUDViewModel<AssociationDao, Association>(inject<AssociationDao>().value)
+class AssociationViewModel(dao: AssociationDao) : BaseConfigCRUDViewModel<AssociationDao, Association>(dao)
 
 private val editor = Editors.ASSOCIATIONS
 private const val NAME = "Name"

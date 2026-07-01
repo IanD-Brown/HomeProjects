@@ -58,6 +58,7 @@ androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.r
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin-core" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin-core" }
 koin-composeVM = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin-core" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-core" }
 # android startup
 androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = "androidx-startup" }
 # unit testing with kotest

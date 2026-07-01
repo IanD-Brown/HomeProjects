@@ -20,7 +20,6 @@ import io.github.iandbrown.sportplanner.database.FarAssociation
 import io.github.iandbrown.sportplanner.database.FarAssociationDao
 import io.github.iandbrown.sportplanner.database.FarAssociationView
 import io.github.iandbrown.sportplanner.database.FarAssociationViewDao
-import io.github.iandbrown.sportplanner.di.inject
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
@@ -31,10 +30,11 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.java.KoinJavaComponent.inject
 
-class FarAssociationViewModel : BaseConfigCRUDViewModel<FarAssociationDao, FarAssociation>(inject<FarAssociationDao>().value)
+class FarAssociationViewModel(dao: FarAssociationDao) : BaseConfigCRUDViewModel<FarAssociationDao, FarAssociation>(dao)
 
-class FarAssociationListViewModel : BaseConfigReadViewModel<FarAssociationViewDao, FarAssociationView> (inject<FarAssociationViewDao>().value) {
+class FarAssociationListViewModel(dao: FarAssociationViewDao) : BaseConfigReadViewModel<FarAssociationViewDao, FarAssociationView> (dao) {
     fun delete(entity : FarAssociationView) {
         viewModelScope.launch {
             dao.delete(entity.homeAssociationId, entity.awayAssociationId)
@@ -96,7 +96,7 @@ internal fun toDataFrame(records: List<FarAssociationView>): DataFrame<FarAssoci
     }
 
 internal suspend fun toFarAssociation(row: DataRow<Any?>,
-                                      associationDao: AssociationDao = inject<AssociationDao>().value): FarAssociation =
+                                      associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value): FarAssociation =
     FarAssociation(associationDao.getByName(row[HOME] as String)!!,
         associationDao.getByName(row[AWAY] as String)!!)
 

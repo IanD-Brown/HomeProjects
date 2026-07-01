@@ -43,7 +43,6 @@ import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamNumber
-import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.openFileSaver
@@ -58,22 +57,23 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.koin.java.KoinJavaComponent.inject
 import kotlin.random.Random
 import kotlin.time.measureTime
 
 class SeasonCompetitionRoundViewModel(seasonId: SeasonId,
                                       competitionId: CompetitionId,
-                                      dao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>().value) :
+                                      dao: SeasonCompetitionRoundDao) :
     BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(seasonId, competitionId, dao)
 
 class SeasonCompCupFixtureViewModel(seasonId: SeasonId,
                                     competitionId: CompetitionId,
-                                    dao: SeasonCupCompFixtureViewDao = inject<SeasonCupCompFixtureViewDao>().value) :
+                                    dao: SeasonCupCompFixtureViewDao) :
     BaseSeasonCompReadViewModel<SeasonCupCompFixtureViewDao, SeasonCupFixtureView>(seasonId, competitionId, dao) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
 
-class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId, dao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value) :
+class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId, dao: SeasonCompetitionDao) :
     BaseSeasonCompCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(seasonId, competitionId, dao)
 
 
@@ -440,9 +440,9 @@ internal suspend fun calcCupFixtures(
     seasonId: SeasonId,
     competitionId: CompetitionId,
     round: Short,
-    seasonTeamDao : SeasonTeamDao = inject<SeasonTeamDao>().value,
-    dao : SeasonCupFixtureDao = inject<SeasonCupFixtureDao>().value,
-    teamCategoryDao : TeamCategoryDao = inject<TeamCategoryDao>().value
+    seasonTeamDao : SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
+    dao : SeasonCupFixtureDao = inject<SeasonCupFixtureDao>(SeasonCupFixtureDao::class.java).value,
+    teamCategoryDao : TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value
 ) {
     dao.deleteByRound(seasonId, competitionId, round)
 

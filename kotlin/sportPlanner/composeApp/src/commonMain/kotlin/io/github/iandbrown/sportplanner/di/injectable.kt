@@ -7,16 +7,16 @@ import io.github.iandbrown.sportplanner.ui.CompetitionViewModel
 import io.github.iandbrown.sportplanner.ui.FarAssociationListViewModel
 import io.github.iandbrown.sportplanner.ui.FarAssociationViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonBreakViewModel
-import io.github.iandbrown.sportplanner.ui.SeasonCupSummaryViewModel
+import io.github.iandbrown.sportplanner.ui.SeasonCompCupFixtureViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionRoundViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCompetitionViewModel
-import io.github.iandbrown.sportplanner.ui.SeasonCompCupFixtureViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonCupFixtureViewModel
-import io.github.iandbrown.sportplanner.ui.SeasonRoundViewModel
+import io.github.iandbrown.sportplanner.ui.SeasonCupSummaryViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonFixtureViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonLeagueTeamCategoryViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonLeagueTeamViewModel
+import io.github.iandbrown.sportplanner.ui.SeasonRoundViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonTeamCategoryViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonTeamViewModel
 import io.github.iandbrown.sportplanner.ui.SeasonViewModel
@@ -26,25 +26,21 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
-import org.koin.mp.KoinPlatform.getKoin
-
-// Helper to use Koin inject in top-level functions
-inline fun <reified T : Any> inject() = lazy { getKoin().get<T>() }
 
 private val injectableModules = module {
-    viewModel { SeasonBreakViewModel(it.get()) }
-    viewModel { SeasonCompCupFixtureViewModel(it.get(), it.get()) }
-    viewModel { SeasonCompViewModel(it.get()) }
-    viewModel { SeasonCompetitionRoundViewModel(it.get(), it.get()) }
-    viewModel { SeasonCompetitionViewModel(it.get(), it.get()) }
-    viewModel { SeasonCupFixtureViewModel(it.get()) }
-    viewModel { SeasonCupSummaryViewModel(it.get()) }
-    viewModel { SeasonFixtureViewModel(it.get()) }
-    viewModel { SeasonLeagueTeamCategoryViewModel(it.get()) }
-    viewModel { SeasonLeagueTeamViewModel(it.get()) }
-    viewModel { SeasonRoundViewModel(it.get()) }
-    viewModel { SeasonTeamCategoryViewModel(it.get(), it.get()) }
-    viewModel { SeasonTeamViewModel(it.get(), it.get()) }
+    viewModel { SeasonBreakViewModel(it.get(), get()) }
+    viewModel { SeasonCompCupFixtureViewModel(it.get(), it.get(), get()) }
+    viewModel { SeasonCompViewModel(get()) }
+    viewModel { SeasonCompetitionRoundViewModel(it.get(), it.get(), get()) }
+    viewModel { SeasonCompetitionViewModel(it.get(), it.get(), get()) }
+    viewModel { SeasonCupFixtureViewModel(it.get(), get()) }
+    viewModel { SeasonCupSummaryViewModel(it.get(), get()) }
+    viewModel { SeasonFixtureViewModel(it.get(), get()) }
+    viewModel { SeasonLeagueTeamCategoryViewModel(it.get(), get()) }
+    viewModel { SeasonLeagueTeamViewModel(it.get(), get()) }
+    viewModel { SeasonRoundViewModel(it.get(), get()) }
+    viewModel { SeasonTeamCategoryViewModel(it.get(), it.get(), get()) }
+    viewModel { SeasonTeamViewModel(it.get(), it.get(), get()) }
     viewModelOf(::AssociationViewModel)
     viewModelOf(::CompetitionViewModel)
     viewModelOf(::FarAssociationListViewModel)

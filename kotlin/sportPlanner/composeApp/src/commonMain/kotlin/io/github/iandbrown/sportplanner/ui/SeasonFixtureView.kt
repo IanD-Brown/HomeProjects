@@ -50,7 +50,6 @@ import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import io.github.iandbrown.sportplanner.database.TeamCategoryId
-import io.github.iandbrown.sportplanner.di.inject
 import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
 import io.github.iandbrown.sportplanner.logic.SeasonWeeks
@@ -65,21 +64,22 @@ import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.koin.java.KoinJavaComponent.inject
 import kotlin.time.measureTime
 
 internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 internal typealias TeamCountMap = Map<TeamCountKey, Short>
 
 class SeasonFixtureViewModel(seasonId: SeasonId,
-                             dao : SeasonFixtureViewDao = inject<SeasonFixtureViewDao>().value) :
+                             dao : SeasonFixtureViewDao) :
     BaseSeasonReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(seasonId, dao)
 
 class SeasonLeagueTeamViewModel(seasonId: SeasonId,
-                                dao : SeasonLeagueTeamViewDao = inject<SeasonLeagueTeamViewDao>().value) :
+                                dao : SeasonLeagueTeamViewDao) :
     BaseSeasonReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(seasonId, dao)
 
 class SeasonLeagueTeamCategoryViewModel(seasonId: SeasonId,
-                                dao : SeasonLeagueTeamCategoryDao = inject<SeasonLeagueTeamCategoryDao>().value) :
+                                dao : SeasonLeagueTeamCategoryDao) :
     BaseSeasonReadViewModel<SeasonLeagueTeamCategoryDao, SeasonTeamCategory>(seasonId, dao)
 
 private val editor = Editors.SEASON_LEAGUE_FIXTURES
@@ -524,13 +524,13 @@ internal fun teamName(association : String, number : Short) : String {
 
 internal suspend fun calcFixtures(
     seasonId: SeasonId,
-    seasonFixtureDao: SeasonFixtureDao = inject<SeasonFixtureDao>().value,
-    seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>().value,
-    seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>().value,
-    seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>().value,
-    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>().value,
-    seasonCompRoundViewDao: SeasonCompRoundViewDao = inject<SeasonCompRoundViewDao>().value,
-    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>().value,
+    seasonFixtureDao: SeasonFixtureDao = inject<SeasonFixtureDao>(SeasonFixtureDao::class.java).value,
+    seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
+    seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value,
+    seasonTeamCategoryDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value,
+    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
+    seasonCompRoundViewDao: SeasonCompRoundViewDao = inject<SeasonCompRoundViewDao>(SeasonCompRoundViewDao::class.java).value,
+    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>(FarAssociationDao::class.java).value,
     seasonWeeks: SeasonWeeks? = null
 ) {
     val resolvedSeasonWeeks = seasonWeeks ?: createSeasonWeeks(seasonId)
