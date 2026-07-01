@@ -32,7 +32,7 @@ import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 
 class SeasonBreakViewModel(seasonId : SeasonId, dao : SeasonBreakDao)
-    : BaseSeasonCRUDViewModel<SeasonBreakDao, SeasonBreak>(seasonId, dao)
+    : BaseCRUDViewModel<SeasonBreakDao, SeasonBreak>(dao, {it.get(seasonId)})
 
 private val editor : Editors = Editors.SEASON_BREAK
 @Serializable

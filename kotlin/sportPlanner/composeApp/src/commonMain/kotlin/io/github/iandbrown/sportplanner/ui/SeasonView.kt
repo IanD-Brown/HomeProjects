@@ -61,7 +61,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.java.KoinJavaComponent.inject
 
-class SeasonViewModel(dao: SeasonDao) : BaseConfigCRUDViewModel<SeasonDao, Season>(dao) {
+class SeasonViewModel(dao: SeasonDao) : BaseCRUDViewModel<SeasonDao, Season>(dao, {it.get()}) {
     fun saveCompetitions(name: String,
                          competitions: List<Competition>,
                          startDates: SnapshotStateMap<CompetitionId, Int>,
@@ -86,7 +86,7 @@ class SeasonViewModel(dao: SeasonDao) : BaseConfigCRUDViewModel<SeasonDao, Seaso
 
 // Used when viewing all seasons (SeasonListView) therefore no seasonId argument
 class SeasonCompViewModel(dao: SeasonCompViewDao) :
-    BaseConfigReadViewModel<SeasonCompViewDao, SeasonCompView>(dao) {
+    BaseReadViewModel<SeasonCompViewDao, SeasonCompView>(dao, {it.get()}) {
     fun deleteSeason(seasonId : SeasonId) {
         viewModelScope.launch {
             try {

@@ -32,9 +32,9 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.java.KoinJavaComponent.inject
 
-class FarAssociationViewModel(dao: FarAssociationDao) : BaseConfigCRUDViewModel<FarAssociationDao, FarAssociation>(dao)
+class FarAssociationViewModel(dao: FarAssociationDao) : BaseCRUDViewModel<FarAssociationDao, FarAssociation>(dao, {it.get()})
 
-class FarAssociationListViewModel(dao: FarAssociationViewDao) : BaseConfigReadViewModel<FarAssociationViewDao, FarAssociationView> (dao) {
+class FarAssociationListViewModel(dao: FarAssociationViewDao) : BaseReadViewModel<FarAssociationViewDao, FarAssociationView> (dao, {it.get()}) {
     fun delete(entity : FarAssociationView) {
         viewModelScope.launch {
             dao.delete(entity.homeAssociationId, entity.awayAssociationId)

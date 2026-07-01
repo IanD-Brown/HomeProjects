@@ -72,15 +72,15 @@ internal typealias TeamCountMap = Map<TeamCountKey, Short>
 
 class SeasonFixtureViewModel(seasonId: SeasonId,
                              dao : SeasonFixtureViewDao) :
-    BaseSeasonReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(seasonId, dao)
+    BaseReadViewModel<SeasonFixtureViewDao, SeasonFixtureView>(dao, {it.get(seasonId)})
 
 class SeasonLeagueTeamViewModel(seasonId: SeasonId,
                                 dao : SeasonLeagueTeamViewDao) :
-    BaseSeasonReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(seasonId, dao)
+    BaseReadViewModel<SeasonLeagueTeamViewDao, SeasonLeagueTeamView>(dao, {it.get(seasonId)})
 
 class SeasonLeagueTeamCategoryViewModel(seasonId: SeasonId,
                                 dao : SeasonLeagueTeamCategoryDao) :
-    BaseSeasonReadViewModel<SeasonLeagueTeamCategoryDao, SeasonTeamCategory>(seasonId, dao)
+    BaseReadViewModel<SeasonLeagueTeamCategoryDao, SeasonTeamCategory>(dao, {it.get(seasonId)})
 
 private val editor = Editors.SEASON_LEAGUE_FIXTURES
 

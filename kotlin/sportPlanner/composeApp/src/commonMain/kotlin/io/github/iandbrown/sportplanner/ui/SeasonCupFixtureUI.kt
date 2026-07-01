@@ -102,11 +102,11 @@ private fun CupFixtureView(viewModel: SeasonViewModel= koinViewModel()) {
 
 internal class SeasonCupSummaryViewModel(seasonId : SeasonId,
                                          dao: SeasonCupSummaryViewDao) :
-    BaseSeasonReadViewModel<SeasonCupSummaryViewDao, SeasonCupSummaryView>(seasonId, dao)
+    BaseReadViewModel<SeasonCupSummaryViewDao, SeasonCupSummaryView>(dao, {it.get(seasonId)})
 
 internal class SeasonRoundViewModel(seasonId : SeasonId,
                                     dao: SeasonRoundDao) :
-    BaseSeasonReadViewModel<SeasonRoundDao, SeasonCompetitionRound>(seasonId, dao)
+    BaseReadViewModel<SeasonRoundDao, SeasonCompetitionRound>(dao, {it.get(seasonId)})
 
 // Show summary state for all cup competitions in the season
 // - number of teams in the competition by team category
@@ -174,7 +174,7 @@ private fun competitionState(teamCount: Int, roundCount: Int) : String {
 
 internal class SeasonCupFixtureViewModel(seasonId : SeasonId,
                                          dao: SeasonCupFixtureViewDao) :
-    BaseSeasonReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(seasonId, dao) {
+    BaseReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(dao, {it.get(seasonId)} ) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
 

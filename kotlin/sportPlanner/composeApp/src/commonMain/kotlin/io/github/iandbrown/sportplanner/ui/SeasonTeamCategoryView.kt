@@ -28,7 +28,7 @@ import org.koin.core.parameter.parametersOf
 class SeasonTeamCategoryViewModel(seasonId : SeasonId,
                                   competitionId : CompetitionId,
                                   dao: SeasonTeamCategoryDao) :
-    BaseSeasonCompCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(seasonId, competitionId, dao)
+    BaseCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(dao, {it.get(seasonId, competitionId) })
 
 @Composable
 fun NavigateSeasonTeamCategory(argument: String?) {

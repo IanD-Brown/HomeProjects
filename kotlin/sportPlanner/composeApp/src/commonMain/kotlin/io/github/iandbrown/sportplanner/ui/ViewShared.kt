@@ -541,7 +541,7 @@ internal suspend fun exportToFile(suggestName: String, extension: String = "json
 }
 
 internal fun<DAO, ENTITY, VIEW_MODEL> importJsonButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
-        where ENTITY : Any, DAO : ConfigReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseConfigCRUDViewModel<DAO, ENTITY> =
+        where ENTITY : Any, DAO : ConfigReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseCRUDViewModel<DAO, ENTITY> =
     ButtonSettings(imageVector = Icons.Default.Upload) { viewModel.viewModelScope.launch {
         tryTransaction({viewModel.handleException(it)}, {
             importFromFile(

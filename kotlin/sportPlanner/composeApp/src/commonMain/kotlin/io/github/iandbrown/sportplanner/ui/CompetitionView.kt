@@ -27,7 +27,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.java.KoinJavaComponent.inject
 
 class CompetitionViewModel(dao: CompetitionDao) :
-    BaseConfigCRUDViewModel<CompetitionDao, Competition>(dao)
+    BaseCRUDViewModel<CompetitionDao, Competition>(dao, {it.get()})
 
 
 private val editor = Editors.COMPETITIONS

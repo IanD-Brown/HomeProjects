@@ -25,7 +25,7 @@ import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.viewmodel.koinViewModel
 
 class  TeamCategoryViewModel(dao : TeamCategoryDao) :
-    BaseConfigCRUDViewModel<TeamCategoryDao, TeamCategory>(dao)
+    BaseCRUDViewModel<TeamCategoryDao, TeamCategory>(dao, {it.get()})
 
 private val editor = Editors.TEAM_CATEGORIES
 private const val NAME = "Name"

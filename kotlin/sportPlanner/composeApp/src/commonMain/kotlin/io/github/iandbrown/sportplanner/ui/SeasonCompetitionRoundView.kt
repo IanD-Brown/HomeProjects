@@ -64,18 +64,17 @@ import kotlin.time.measureTime
 class SeasonCompetitionRoundViewModel(seasonId: SeasonId,
                                       competitionId: CompetitionId,
                                       dao: SeasonCompetitionRoundDao) :
-    BaseSeasonCompCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(seasonId, competitionId, dao)
+    BaseCRUDViewModel<SeasonCompetitionRoundDao, SeasonCompetitionRound>(dao, {it.get(seasonId, competitionId) })
 
 class SeasonCompCupFixtureViewModel(seasonId: SeasonId,
                                     competitionId: CompetitionId,
                                     dao: SeasonCupCompFixtureViewDao) :
-    BaseSeasonCompReadViewModel<SeasonCupCompFixtureViewDao, SeasonCupFixtureView>(seasonId, competitionId, dao) {
+    BaseReadViewModel<SeasonCupCompFixtureViewDao, SeasonCupFixtureView>(dao, {it.get(seasonId, competitionId) }) {
     fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
 }
 
 class SeasonCompetitionViewModel(seasonId: SeasonId, competitionId: CompetitionId, dao: SeasonCompetitionDao) :
-    BaseSeasonCompCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(seasonId, competitionId, dao)
-
+    BaseCRUDViewModel<SeasonCompetitionDao, SeasonCompetition>(dao, {it.get(seasonId, competitionId) })
 
 private val editor: Editors = Editors.SEASON_COMPETITION_ROUND
 

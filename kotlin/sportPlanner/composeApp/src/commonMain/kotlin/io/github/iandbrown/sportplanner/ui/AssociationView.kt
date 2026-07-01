@@ -22,7 +22,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.viewmodel.koinViewModel
 
-class AssociationViewModel(dao: AssociationDao) : BaseConfigCRUDViewModel<AssociationDao, Association>(dao)
+class AssociationViewModel(dao: AssociationDao) : BaseCRUDViewModel<AssociationDao, Association>(dao, {it.get()})
 
 private val editor = Editors.ASSOCIATIONS
 private const val NAME = "Name"
