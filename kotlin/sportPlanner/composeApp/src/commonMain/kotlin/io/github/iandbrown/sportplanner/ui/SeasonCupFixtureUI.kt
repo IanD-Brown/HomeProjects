@@ -13,7 +13,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
@@ -37,96 +38,135 @@ import io.github.iandbrown.sportplanner.database.SeasonRoundDao
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 import kotlin.time.measureTime
 
-private val editor = Editors.SEASON_CUP_FIXTURES
+class SeasonCupSummaryViewModel(seasonId: SeasonId, dao: SeasonCupSummaryViewDao) :
+    BaseReadViewModel<SeasonCupSummaryViewDao, SeasonCupSummaryView>(dao, { it.get(seasonId) })
 
-@Composable
-internal fun NavigateCupFixtures(argument: String?) {
-    when {
-        argument == null -> {}
-        argument.startsWith("View") -> CupFixtureView()
-        argument.startsWith("Summary") -> {
-            val param = argument.substring("Summary&".length)
-            SummaryCupFixtureView(Json.decodeFromString<Season>(param))
+class SeasonRoundViewModel(seasonId: SeasonId, dao: SeasonRoundDao) :
+    BaseReadViewModel<SeasonRoundDao, SeasonCompetitionRound>(dao, { it.get(seasonId) })
+
+class SeasonCupFixtureViewModel(seasonId: SeasonId, dao: SeasonCupFixtureViewDao) :
+    BaseReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(dao, { it.get(seasonId) }) {
+    fun setResult(id: Long, result: Short) = viewModelScope.launch { dao.setResult(id, result) }
+
+    fun saveResults(edits: Map<Long, Short>) {
+        edits.forEach { (key, result) ->
+            setResult(key, result)
         }
-        else -> CupFixtureTableView(Json.decodeFromString<Season>(argument))
     }
 }
 
-@Suppress("ParamsComparedByRef")
 @Composable
-private fun CupFixtureView(viewModel: SeasonViewModel= koinViewModel()) {
-    val seasonState = viewModel.getState().collectAsState()
-    val calculating = remember {mutableStateOf(false)}
+internal fun CupFixtureScreen() {
+    val viewModel: SeasonViewModel = koinViewModel()
+    val seasonState by viewModel.getState().collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
 
-    if (calculating.value) {
+    LifecycleResumeEffect(viewModel) {
+        viewModel.readAll()
+        onPauseOrDispose { }
+    }
+
+    CupFixtureContent(
+        state = seasonState,
+        onSummary = { appNavigator.navigate(Route.CupFixturesSummary(it)) },
+        onTable = { appNavigator.navigate(Route.CupFixturesTable(it)) },
+        onCalculate = { seasonId ->
+            coroutineScope.launch {
+                val timeTaken = measureTime { calcSeasonCupFixtures(seasonId) }
+                println("Season Fixtures calculated in $timeTaken")
+            }
+        }
+    )
+}
+
+@Composable
+private fun CupFixtureContent(
+    state: ViewModelState<Season>,
+    onSummary: (Season) -> Unit,
+    onTable: (Season) -> Unit,
+    onCalculate: suspend (SeasonId) -> Unit
+) {
+    var calculating by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    if (calculating) {
         Box(modifier = Modifier.fillMaxSize()) {
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
     } else {
         ViewCommon("Cup Fixtures",
-            states = persistentListOf(seasonState.value)) { paddingValues ->
+            states = persistentListOf(state)) { paddingValues ->
             val surfaceColor = MaterialTheme.colorScheme.onSurface
             LazyVerticalGrid(columns = WeightedIconGridCells(3, 1), Modifier.padding(paddingValues)) {
                 item { ViewText("Season") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
-                for (season in seasonState.values().sortedByDescending { it.name.trim().uppercase() }) {
+                for (season in state.values().sortedByDescending { it.name.trim().uppercase() }) {
                     item { ViewText(season.name) }
                     clickableIcon(Icons.Filled.Summarize, "Show fixture summaries", surfaceColor) {
-                        "${editor.name}/Summary&${Json.encodeToString(season)}"
+                        onSummary(season)
                     }
                     clickableIcon(Icons.Filled.GridView, "Show fixtures", surfaceColor) {
-                        editor.editRoute(season)
+                        onTable(season)
                     }
-                    item { ClickableIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
-                        calculating.value = true
-                        coroutineScope.launch {
-                            val timeTaken = measureTime { calcSeasonCupFixtures(season.id) }
-                            println("Season Fixtures calculated in $timeTaken")
+                    item {
+                        ClickableIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
+                            calculating = true
+                            coroutineScope.launch {
+                                onCalculate(season.id)
+                                calculating = false
+                            }
                         }
-                        calculating.value = false
-                    }}
+                    }
                 }
             }
         }
     }
 }
 
-internal class SeasonCupSummaryViewModel(seasonId : SeasonId,
-                                         dao: SeasonCupSummaryViewDao) :
-    BaseReadViewModel<SeasonCupSummaryViewDao, SeasonCupSummaryView>(dao, {it.get(seasonId)})
-
-internal class SeasonRoundViewModel(seasonId : SeasonId,
-                                    dao: SeasonRoundDao) :
-    BaseReadViewModel<SeasonRoundDao, SeasonCompetitionRound>(dao, {it.get(seasonId)})
-
-// Show summary state for all cup competitions in the season
-// - number of teams in the competition by team category
-// - 'round state' - are the correct number of rounds defined
-@Suppress("ParamsComparedByRef")
 @Composable
-private fun SummaryCupFixtureView(season: Season,
-                                  seasonCupSummaryViewModel: SeasonCupSummaryViewModel = koinViewModel {parametersOf(season.id)},
-                                  seasonRoundViewModel: SeasonRoundViewModel = koinViewModel {parametersOf(season.id)},
-                                  competitionViewModel: CompetitionViewModel = koinViewModel()) {
-    val seasonTeamState = seasonCupSummaryViewModel.getState().collectAsState()
-    val seasonRoundState = seasonRoundViewModel.getState().collectAsState()
-    val competitionState = competitionViewModel.getState().collectAsState()
+internal fun SummaryCupFixtureScreen(season: Season) {
+    val seasonCupSummaryViewModel: SeasonCupSummaryViewModel = koinViewModel { parametersOf(season.id) }
+    val seasonRoundViewModel: SeasonRoundViewModel = koinViewModel { parametersOf(season.id) }
+    val competitionViewModel: CompetitionViewModel = koinViewModel()
 
+    val seasonTeamState by seasonCupSummaryViewModel.getState().collectAsStateWithLifecycle()
+    val seasonRoundState by seasonRoundViewModel.getState().collectAsStateWithLifecycle()
+    val competitionState by competitionViewModel.getState().collectAsStateWithLifecycle()
+
+    LifecycleResumeEffect(seasonCupSummaryViewModel) {
+        seasonCupSummaryViewModel.readAll()
+        seasonRoundViewModel.readAll()
+        onPauseOrDispose { }
+    }
+
+    SummaryCupFixtureContent(
+        season = season,
+        seasonTeamState = seasonTeamState,
+        seasonRoundState = seasonRoundState,
+        competitionState = competitionState
+    )
+}
+
+@Composable
+private fun SummaryCupFixtureContent(
+    season: Season,
+    seasonTeamState: ViewModelState<SeasonCupSummaryView>,
+    seasonRoundState: ViewModelState<SeasonCompetitionRound>,
+    competitionState: ViewModelState<io.github.iandbrown.sportplanner.database.Competition>
+) {
     ViewCommon("Season Cup summary ${season.name}",
-        states = persistentListOf(seasonTeamState.value, seasonRoundState.value, competitionState.value)) { paddingValues ->
+        states = persistentListOf(seasonTeamState, seasonRoundState, competitionState)) { paddingValues ->
         val data = seasonTeamState.values()
             .groupBy { it.competitionName }
-            .mapValues { (_, list) -> list.groupBy { it.teamCategoryName }}
-        val competitionNameLookup = competitionState.values().associateBy ({ it.id }, {it.name} )
+            .mapValues { (_, list) -> list.groupBy { it.teamCategoryName } }
+        val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
         val roundsByCompetition = seasonRoundState.values().groupBy { competitionNameLookup[it.competitionId] }
         LazyVerticalGrid(columns = WeightedIconGridCells(0, 2, 1, 2, 1, 2), Modifier.padding(paddingValues)) {
             viewTextItems(listOf("Competition", "Rounds", "Team Category", "Team Count", "State"))
@@ -136,17 +176,33 @@ private fun SummaryCupFixtureView(season: Season,
                     val roundCount = roundsByCompetition[v2[0].competitionName]?.size ?: 0
                     val teamCount = v2.sumOf { it.count.toInt() }
                     if (first) {
-                        viewTextItems(listOf(competitionName, roundCount.toString(), "", "", roundsState(roundsByCompetition[competitionName] ?: emptyList())))
+                        viewTextItems(
+                            listOf(
+                                competitionName,
+                                roundCount.toString(),
+                                "",
+                                "",
+                                roundsState(roundsByCompetition[competitionName] ?: emptyList())
+                            )
+                        )
                         first = false
                     }
-                    viewTextItems(listOf("", "", teamCategoryName,  teamCount.toString(), competitionState(teamCount, roundCount)))
+                    viewTextItems(
+                        listOf(
+                            "",
+                            "",
+                            teamCategoryName,
+                            teamCount.toString(),
+                            competitionStateText(teamCount, roundCount)
+                        )
+                    )
                 }
             }
         }
     }
 }
 
-private fun roundsState(rounds: List<SeasonCompetitionRound>) : String {
+private fun roundsState(rounds: List<SeasonCompetitionRound>): String {
     var week = -1
 
     for (round in rounds) {
@@ -158,57 +214,79 @@ private fun roundsState(rounds: List<SeasonCompetitionRound>) : String {
     return ""
 }
 
-private fun competitionState(teamCount: Int, roundCount: Int) : String {
+private fun competitionStateText(teamCount: Int, roundCount: Int): String {
     var gameCount = calculateGameCount(teamCount)
     var requiredRounds = 0
     while (gameCount > 0) {
         ++requiredRounds
         gameCount /= 2
     }
-    return when  {
+    return when {
         roundCount == requiredRounds -> ""
         roundCount < requiredRounds -> "TOO FEW ROUNDS"
         else -> "TOO MANY ROUNDS"
     }
 }
 
-internal class SeasonCupFixtureViewModel(seasonId : SeasonId,
-                                         dao: SeasonCupFixtureViewDao) :
-    BaseReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(dao, {it.get(seasonId)} ) {
-    fun setResult(id: Long, result: Short) = viewModelScope.launch {  dao.setResult(id, result) }
+@Composable
+internal fun CupFixtureTableScreen(season: Season) {
+    val viewModel: SeasonCupFixtureViewModel = koinViewModel { parametersOf(season.id) }
+    val competitionViewModel: CompetitionViewModel = koinViewModel()
+
+    val state by viewModel.getState().collectAsStateWithLifecycle()
+    val competitionState by competitionViewModel.getState().collectAsStateWithLifecycle()
+
+    LifecycleResumeEffect(viewModel) {
+        viewModel.readAll()
+        onPauseOrDispose { }
+    }
+
+    CupFixtureTableContent(
+        season = season,
+        state = state,
+        competitionState = competitionState,
+        onSaveResults = { edits ->
+            viewModel.saveResults(edits)
+        }
+    )
 }
 
-@Suppress("ParamsComparedByRef")
 @Composable
-private fun CupFixtureTableView(season: Season,
-                                viewModel: SeasonCupFixtureViewModel = koinViewModel { parametersOf(season.id) },
-                                competitionViewModel: CompetitionViewModel = koinViewModel()) {
-    val state = viewModel.getState().collectAsState()
-    val competitionState = competitionViewModel.getState().collectAsState()
+private fun CupFixtureTableContent(
+    season: Season,
+    state: ViewModelState<SeasonCupFixtureView>,
+    competitionState: ViewModelState<io.github.iandbrown.sportplanner.database.Competition>,
+    onSaveResults: (Map<Long, Short>) -> Unit
+) {
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
 
     ViewCommon("Cup Fixtures ${season.name}",
-        states = persistentListOf(state.value, competitionState.value),
+        states = persistentListOf(state, competitionState),
         bottomBar = {
             BottomBarWithButtons(
                 ButtonSettings(buttonText) {
                     if (!isLocked && edits.isNotEmpty()) {
-                        saveResults(edits, viewModel)
+                        onSaveResults(edits)
+                        edits.clear()
                     }
                     isLocked = !isLocked
                 }
             )
         },
         confirm = { edits.isNotEmpty() },
-        confirmAction = { saveResults(edits, viewModel) }) { paddingValues ->
-        val competitionNameLookup = competitionState.values().associateBy ({ it.id }, {it.name} )
+        confirmAction = {
+            onSaveResults(edits)
+            edits.clear()
+        }) { paddingValues ->
+        val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
         LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 1, 1, 1, 1, 1), Modifier.padding(paddingValues)) {
             val fixturesById = state.values().associateBy { it.id }
             viewTextItems(listOf("Competition", "Team Category", "Round", "Home", "Away", "Winner"))
             var competitionId: CompetitionId = 0
-            for (fixture in state.values().sortedWith(compareBy({competitionNameLookup[it.competitionId] ?: ""}, {it.teamCategoryName}))) {
+            for (fixture in state.values()
+                .sortedWith(compareBy({ competitionNameLookup[it.competitionId] ?: "" }, { it.teamCategoryName }))) {
                 if (fixture.competitionId != competitionId) {
                     viewTextItems(listOf(competitionNameLookup[fixture.competitionId] ?: "", "", "", "", "", ""))
                     competitionId = fixture.competitionId
@@ -218,8 +296,18 @@ private fun CupFixtureTableView(season: Season,
                         "",
                         fixture.teamCategoryName,
                         fixture.round.toString(),
-                        teamDescription(fixturesById, fixture.homePending, fixture.homeAssociation, fixture.homeTeamNumber),
-                        teamDescription(fixturesById, fixture.awayPending, fixture.awayAssociation, fixture.awayTeamNumber),
+                        teamDescription(
+                            fixturesById,
+                            fixture.homePending,
+                            fixture.homeAssociation,
+                            fixture.homeTeamNumber
+                        ),
+                        teamDescription(
+                            fixturesById,
+                            fixture.awayPending,
+                            fixture.awayAssociation,
+                            fixture.awayTeamNumber
+                        ),
                     )
                 )
                 item {
@@ -240,15 +328,10 @@ private fun CupFixtureTableView(season: Season,
     }
 }
 
-private fun saveResults(edits: MutableMap<Long, Short>, viewModel: SeasonCupFixtureViewModel) {
-    edits.forEach { (key, result) ->
-        viewModel.setResult(key, result)
-    }
-    edits.clear()
-}
-
-internal suspend fun calcSeasonCupFixtures(seasonId: SeasonId,
-                                           dao : SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value) {
+internal suspend fun calcSeasonCupFixtures(
+    seasonId: SeasonId,
+    dao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value
+) {
     println("Calculating fixtures for season $seasonId")
     dao.getUnstartedRounds(seasonId).forEach {
         println("Calculating fixtures for ${it.competitionId} round ${it.round}")

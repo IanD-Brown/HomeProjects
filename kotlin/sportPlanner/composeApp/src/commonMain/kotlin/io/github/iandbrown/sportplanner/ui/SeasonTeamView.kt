@@ -6,45 +6,103 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.json.Json
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-class SeasonTeamViewModel(seasonId : SeasonId,
-                          competitionId : CompetitionId, dao: SeasonTeamDao) :
-    BaseCRUDViewModel<SeasonTeamDao, SeasonTeam>(dao, {it.get(seasonId, competitionId) })
+class SeasonTeamViewModel(
+    val seasonId: SeasonId,
+    val competitionId: CompetitionId,
+    dao: SeasonTeamDao
+) : BaseCRUDViewModel<SeasonTeamDao, SeasonTeam>(dao, { it.get(seasonId, competitionId) }) {
 
-@Composable
-fun NavigateSeasonTeam(argument: String?) {
-    when {
-        argument == null -> {}
-        argument.startsWith("View&") -> SeasonTeamEditor(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(5)))
-        argument.startsWith("ByCategory&") -> SeasonTeamByCategory(Json.decodeFromString<SeasonCompetitionParam>(argument.substring(11)))
+    fun saveTeams(
+        param: SeasonCompetitionParam,
+        edits: Map<Pair<Short, Short>, Short>,
+        currentValues: Map<Pair<Short, Short>, Short>
+    ) {
+        for ((key, count) in edits) {
+            if (currentValues.getOrDefault(key, 0) != count) {
+                insert(
+                    SeasonTeam(
+                        seasonId = param.seasonId,
+                        teamCategoryId = key.second,
+                        associationId = key.first,
+                        competitionId = param.competitionId,
+                        count = count
+                    )
+                )
+            }
+        }
+    }
+
+    fun saveByCategory(param: SeasonCompetitionParam, edits: Map<Short, Short>, associations: List<Association>) {
+        for ((key, count) in edits) {
+            for (association in associations) {
+                insert(
+                    SeasonTeam(
+                        seasonId = param.seasonId,
+                        teamCategoryId = key,
+                        associationId = association.id,
+                        competitionId = param.competitionId,
+                        count = count
+                    )
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun SeasonTeamEditor(param: SeasonCompetitionParam,
-                             associationViewModel: AssociationViewModel = koinViewModel(),
-                             teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()) {
-    val viewModel: SeasonTeamViewModel = koinInject { parametersOf(param.seasonId, param.competitionId) }
-    val state = viewModel.getState().collectAsState()
-    val associationState = associationViewModel.getState().collectAsState()
-    val teamCategory = teamCategoryViewModel.getState().collectAsState()
+fun SeasonTeamScreen(param: SeasonCompetitionParam) {
+    val viewModel: SeasonTeamViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) }
+    val associationViewModel: AssociationViewModel = koinViewModel()
+    val teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()
+
+    val state by viewModel.getState().collectAsStateWithLifecycle()
+    val associationState by associationViewModel.getState().collectAsStateWithLifecycle()
+    val teamCategoryState by teamCategoryViewModel.getState().collectAsStateWithLifecycle()
+
+    LifecycleResumeEffect(viewModel) {
+        viewModel.readAll()
+        onPauseOrDispose { }
+    }
+
+    SeasonTeamContent(
+        param = param,
+        state = state,
+        associationState = associationState,
+        teamCategoryState = teamCategoryState,
+        onSave = { edits, values ->
+            viewModel.saveTeams(param, edits, values)
+        },
+        onNavigateByCategory = { appNavigator.navigate(Route.SeasonTeamsByCategory(param)) }
+    )
+}
+
+@Composable
+private fun SeasonTeamContent(
+    param: SeasonCompetitionParam,
+    state: ViewModelState<SeasonTeam>,
+    associationState: ViewModelState<Association>,
+    teamCategoryState: ViewModelState<TeamCategory>,
+    onSave: (Map<Pair<Short, Short>, Short>, Map<Pair<Short, Short>, Short>) -> Unit,
+    onNavigateByCategory: () -> Unit
+) {
     var isLocked by remember { mutableStateOf(true) }
     val edits = remember { mutableStateMapOf<Pair<Short, Short>, Short>() }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
@@ -57,81 +115,97 @@ private fun SeasonTeamEditor(param: SeasonCompetitionParam,
             Row {
                 ReadonlyViewText("", Modifier.weight(4f))
                 OutlinedTextButton("By Category", Modifier.weight(1.3f), isLocked) {
-                    appNavController.navigate("${Editors.SEASON_TEAMS.name}/ByCategory&${Json.encodeToString(param)}")
+                    onNavigateByCategory()
                 }
-                OutlinedTextButton(value = buttonText,modifier = Modifier.weight(1f)){
+                OutlinedTextButton(value = buttonText, modifier = Modifier.weight(1f)) {
                     if (!isLocked && edits.isNotEmpty()) {
-                        for ((key, count) in edits) {
-                            if (values.getOrDefault(key, 0) != count) {
-                                viewModel.insert(
-                                    SeasonTeam(
-                                        seasonId = param.seasonId,
-                                        teamCategoryId = key.second,
-                                        associationId = key.first,
-                                        competitionId = param.competitionId,
-                                        count = count
-                                    )
-                                )
-                            }
-                        }
+                        onSave(edits, values)
                         edits.clear()
                     }
                     isLocked = !isLocked
                 }
             }
         },
-        states = persistentListOf(state.value, associationState.value, teamCategory.value)) { paddingValues ->
-            val teamCategoryList = teamCategory.values().sortedBy { it.name.uppercase().trim() }
-            val associationList = associationState.values().sortedBy { it.name.trim().uppercase() }
-            for (seasonTeam in state.values().filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }) {
-                values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
-            }
+        states = persistentListOf(state, associationState, teamCategoryState)
+    ) { paddingValues ->
+        val teamCategoryList = teamCategoryState.values().sortedBy { it.name.uppercase().trim() }
+        val associationList = associationState.values().sortedBy { it.name.trim().uppercase() }
+        for (seasonTeam in state.values().filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId }) {
+            values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
+        }
 
-            LazyVerticalGrid(columns = DoubleFirstGridCells(teamCategoryList.size + 1),
-                modifier = Modifier.padding(paddingValues).fillMaxWidth()) {
-                item { ReadonlyViewText("") }
-                for (teamCategory in teamCategoryList) {
-                    item { ReadonlyViewText(teamCategory.name) }
-                }
-                for (association in associationList) {
-                    item { ReadonlyViewText(association.name) }
-                    for (team in teamCategoryList) {
-                        item {
-                            val key = Pair(association.id, team.id)
-                            val value = if (edits.contains(key)) edits[key] else values.getOrDefault(key, 0)
-                            if (isLocked) {
-                                ReadonlyViewText(value?.toString() ?: "")
-                            } else {
-                                ViewTextField(
-                                    value = value.toString(),
-                                    onValueChange = {matchStructure(it) { number -> edits[key] = number } })
-                            }
+        LazyVerticalGrid(
+            columns = DoubleFirstGridCells(teamCategoryList.size + 1),
+            modifier = Modifier.padding(paddingValues).fillMaxWidth()
+        ) {
+            item { ReadonlyViewText("") }
+            for (teamCategory in teamCategoryList) {
+                item { ReadonlyViewText(teamCategory.name) }
+            }
+            for (association in associationList) {
+                item { ReadonlyViewText(association.name) }
+                for (team in teamCategoryList) {
+                    item {
+                        val key = Pair(association.id, team.id)
+                        val value = if (edits.contains(key)) edits[key] else values.getOrDefault(key, 0)
+                        if (isLocked) {
+                            ReadonlyViewText(value?.toString() ?: "")
+                        } else {
+                            ViewTextField(
+                                value = value.toString(),
+                                onValueChange = { matchStructure(it) { number -> edits[key] = number } })
                         }
                     }
                 }
             }
         }
+    }
 }
 
 private fun matchStructure(value: String, editFun: (Short) -> Unit) {
     try {
-        when(value.toIntOrNull()) {
-            0 -> editFun(0)
-            1 -> editFun(1)
-            2 -> editFun(2)
+        val num = value.toShortOrNull()
+        if (num != null && num in 0..2) {
+            editFun(num)
         }
     } catch (_: NumberFormatException) {
     }
 }
 
 @Composable
-private fun SeasonTeamByCategory(param: SeasonCompetitionParam,
-                                 viewModel: SeasonTeamViewModel = koinViewModel<SeasonTeamViewModel>(parameters = { parametersOf(param.seasonId, param.competitionId) }),
-                                 teamCategoryViewModel: TeamCategoryViewModel = koinViewModel(),
-                                 associationViewModel: AssociationViewModel = koinViewModel()) {
-    val state = viewModel.getState().collectAsState()
-    val teamCategory = teamCategoryViewModel.getState().collectAsState()
-    val associationState = associationViewModel.getState().collectAsState()
+fun SeasonTeamByCategoryScreen(param: SeasonCompetitionParam) {
+    val viewModel: SeasonTeamViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) }
+    val teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()
+    val associationViewModel: AssociationViewModel = koinViewModel()
+
+    val state by viewModel.getState().collectAsStateWithLifecycle()
+    val teamCategoryState by teamCategoryViewModel.getState().collectAsStateWithLifecycle()
+    val associationState by associationViewModel.getState().collectAsStateWithLifecycle()
+
+    LifecycleResumeEffect(viewModel) {
+        viewModel.readAll()
+        onPauseOrDispose { }
+    }
+
+    SeasonTeamByCategoryContent(
+        param = param,
+        state = state,
+        teamCategoryState = teamCategoryState,
+        associationState = associationState,
+        onSave = { edits ->
+            viewModel.saveByCategory(param, edits, associationState.values())
+        }
+    )
+}
+
+@Composable
+private fun SeasonTeamByCategoryContent(
+    param: SeasonCompetitionParam,
+    state: ViewModelState<SeasonTeam>,
+    teamCategoryState: ViewModelState<TeamCategory>,
+    associationState: ViewModelState<Association>,
+    onSave: (Map<Short, Short>) -> Unit
+) {
     var isLocked by remember { mutableStateOf(true) }
     val edits = remember { mutableStateMapOf<Short, Short>() }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
@@ -142,69 +216,61 @@ private fun SeasonTeamByCategory(param: SeasonCompetitionParam,
         bottomBar = {
             BottomBarWithButton(buttonText) {
                 if (!isLocked && edits.isNotEmpty()) {
-                    for ((key, count) in edits) {
-                        for (association in associationState.values()) {
-                            viewModel.insert(
-                                SeasonTeam(
-                                    seasonId = param.seasonId,
-                                    teamCategoryId = key,
-                                    associationId = association.id,
-                                    competitionId = param.competitionId,
-                                    count = count
-                                )
-                            )
-                        }
-                    }
+                    onSave(edits)
                     edits.clear()
                 }
                 isLocked = !isLocked
             }
         },
-        states = persistentListOf(state.value, teamCategory.value, associationState.value)) { paddingValues ->
-            val teamCategoryList = teamCategory.values().sortedBy { it.name.uppercase().trim() }
-            val values = countByTeamCategory(teamCategoryList,
-                associationState.values().count(),
-                state.values().filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId })
+        states = persistentListOf(state, teamCategoryState, associationState)
+    ) { paddingValues ->
+        val teamCategoryList = teamCategoryState.values().sortedBy { it.name.uppercase().trim() }
+        val associationsCount = associationState.values().count()
+        val values = countByTeamCategory(
+            teamCategoryList,
+            associationsCount,
+            state.values().filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId })
 
-            LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-                item { ReadonlyViewText("Team Category") }
-                item { ReadonlyViewText("Team Count") }
-                for (teamCategory in teamCategoryList) {
-                    item { ReadonlyViewText(teamCategory.name) }
-                    item {
-                        val key = teamCategory.id
-                        val value = if (edits.contains(key)) {
-                            edits[key]?.toString()!!
-                        } else if (values.contains(key) && values[key]!!.toInt() != -1) {
-                            values[key]?.toString()!!
-                        } else {
-                            ""
-                        }
-                        if (isLocked) {
-                            ReadonlyViewText(value)
-                        } else {
-                            ViewTextField(
-                                value = value,
-                                onValueChange = {matchStructure(it) { number -> edits[key] = number } })
-                        }
+        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
+            item { ReadonlyViewText("Team Category") }
+            item { ReadonlyViewText("Team Count") }
+            for (teamCategory in teamCategoryList) {
+                item { ReadonlyViewText(teamCategory.name) }
+                item {
+                    val key = teamCategory.id
+                    val value = if (edits.contains(key)) {
+                        edits[key]?.toString() ?: ""
+                    } else if (values.contains(key) && values[key] != (-1).toShort()) {
+                        values[key]?.toString() ?: ""
+                    } else {
+                        ""
+                    }
+                    if (isLocked) {
+                        ReadonlyViewText(value)
+                    } else {
+                        ViewTextField(
+                            value = value,
+                            onValueChange = { matchStructure(it) { number -> edits[key] = number } })
                     }
                 }
             }
         }
+    }
 }
 
-fun countByTeamCategory(teamCategoryList: List<TeamCategory>, associationCount: Int, seasonTeams: List<SeasonTeam>) : Map<Short, Short> {
+fun countByTeamCategory(
+    teamCategoryList: List<TeamCategory>,
+    associationCount: Int,
+    seasonTeams: List<SeasonTeam>
+): Map<Short, Short> {
     val result = mutableMapOf<Short, Short>()
-    val valueCounts = teamCategoryList.associateBy({it.id}, {0}).toMutableMap()
+    val valueCounts = teamCategoryList.associateBy({ it.id }, { 0 }).toMutableMap()
     for (seasonTeam in seasonTeams) {
         valueCounts[seasonTeam.teamCategoryId] = valueCounts.getOrDefault(seasonTeam.teamCategoryId, 0) + 1
 
         when {
-            // doesn't exist so seed
             result[seasonTeam.teamCategoryId] == null -> result[seasonTeam.teamCategoryId] = seasonTeam.count
-            // match, ignore
             result[seasonTeam.teamCategoryId] == seasonTeam.count -> {}
-            // different, mark...
             else -> result[seasonTeam.teamCategoryId] = -1
         }
     }

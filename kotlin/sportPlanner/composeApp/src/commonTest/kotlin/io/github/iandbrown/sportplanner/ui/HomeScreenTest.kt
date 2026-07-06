@@ -3,28 +3,27 @@ package io.github.iandbrown.sportplanner.ui
 import io.github.iandbrown.sportplanner.database.Season
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.json.Json
 
 class HomeScreenTest : ShouldSpec({
     context("Editors") {
         should("generate correct viewRoute") {
-            Editors.SEASONS.viewRoute() shouldBe "SEASONS/View"
+            Editors.SEASONS.viewRoute() shouldBe Route.SeasonList
         }
 
         should("generate correct addRoute") {
-            Editors.SEASONS.addRoute() shouldBe "SEASONS/Add"
+            Editors.SEASONS.addRoute() shouldBe Route.SeasonEdit(null)
         }
 
         should("generate correct editRoute for an item") {
             val season = Season(1, "2025")
-            val expected = "SEASONS/${Json.encodeToString(season)}"
+            val expected = Route.SeasonEdit(season)
             Editors.SEASONS.editRoute(season) shouldBe expected
         }
 
         should("generate correct viewRoute for an item") {
             val season = Season(1, "2025")
-            val expected = "SEASONS/View&${Json.encodeToString(season)}"
-            Editors.SEASONS.viewRoute(season) shouldBe expected
+            val expected = Route.SeasonBreakList(season)
+            Editors.SEASON_BREAK.viewRoute(season) shouldBe expected
         }
 
         should("only show specific editors on home screen") {

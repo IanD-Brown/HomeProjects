@@ -51,7 +51,7 @@ class SeasonViewModelTest : ShouldSpec({
                 everySuspend { seasonCompetitionDao.insert(any()) } returns 1L
 
                 val seasonViewModel = SeasonViewModel(seasonDao)
-                seasonViewModel.saveCompetitions("Season 1", competition, startDates, endDates, seasonCompetitionDao); advanceUntilIdle()
+                seasonViewModel.save(null, "Season 1", competition, startDates, endDates, seasonCompetitionDao); advanceUntilIdle()
 
                 verifySuspend {
                     seasonCompetitionDao.insert(SeasonCompetition(123.toShort(), compId1, 100, 200))

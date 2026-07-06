@@ -17,22 +17,28 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import io.github.iandbrown.sportplanner.database.Association
 import io.github.iandbrown.sportplanner.database.AssociationDao
+import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.database.FarAssociationDao
+import io.github.iandbrown.sportplanner.database.FarAssociationView
 import io.github.iandbrown.sportplanner.database.FarAssociationViewDao
+import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonBreakDao
 import io.github.iandbrown.sportplanner.database.SeasonCompViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
+import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategoryDao
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.at
 import org.jetbrains.kotlinx.dataframe.api.insert
@@ -55,19 +61,92 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
     ASSOCIATIONS("Associations"),
     FAR_ASSOCIATIONS("Distant Away Games");
 
-    fun viewRoute() : String = "$name/View"
-    fun addRoute() : String = "$name/Add"
-    inline fun<reified T> editRoute(item : T) = "$name/${Json.encodeToString(item)}"
-    inline fun<reified T> viewRoute(item : T) = "$name/View&${Json.encodeToString(item)}"
+    fun viewRoute(): Route = when (this) {
+        SEASON_BREAK -> Route.Home
+        SEASON_COMPETITION_ROUND -> Route.Home
+        SEASON_TEAMS -> Route.Home
+        SEASON_TEAM_CATEGORY -> Route.Home
+        SEASON_LEAGUE_FIXTURES -> Route.LeagueFixtures
+        SEASON_CUP_FIXTURES -> Route.CupFixtures
+        SEASONS -> Route.SeasonList
+        COMPETITIONS -> Route.CompetitionList
+        TEAM_CATEGORIES -> Route.TeamCategoryList
+        ASSOCIATIONS -> Route.AssociationList
+        FAR_ASSOCIATIONS -> Route.FarAssociationList
+    }
+
+    fun addRoute(): Route = when (this) {
+        ASSOCIATIONS -> Route.AssociationEdit(null)
+        COMPETITIONS -> Route.CompetitionEdit(null)
+        SEASONS -> Route.SeasonEdit(null)
+        TEAM_CATEGORIES -> Route.TeamCategoryEdit(null)
+        FAR_ASSOCIATIONS -> Route.FarAssociationEdit(null)
+        else -> Route.Home
+    }
+
+    inline fun <reified T> editRoute(item: T): Route = when (this) {
+        ASSOCIATIONS -> Route.AssociationEdit(item as Association)
+        COMPETITIONS -> Route.CompetitionEdit(item as Competition)
+        SEASONS -> Route.SeasonEdit(item as Season)
+        TEAM_CATEGORIES -> Route.TeamCategoryEdit(item as TeamCategory)
+        FAR_ASSOCIATIONS -> Route.FarAssociationEdit(item as FarAssociationView)
+        else -> Route.Home
+    }
+
+    inline fun <reified T> viewRoute(item: T): Route = when (this) {
+        SEASON_BREAK -> Route.SeasonBreakList(item as Season)
+        SEASON_COMPETITION_ROUND -> Route.SeasonCompetitionRoundList(item as SeasonCompetitionParam)
+        SEASON_TEAM_CATEGORY -> Route.SeasonTeamCategory(item as SeasonCompetitionParam)
+        SEASON_TEAMS -> Route.SeasonTeams(item as SeasonCompetitionParam)
+        SEASON_LEAGUE_FIXTURES -> Route.LeagueFixturesTable(item as Season)
+        SEASON_CUP_FIXTURES -> Route.CupFixturesTable(item as Season)
+        else -> Route.Home
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen() {
     val coroutineScope = rememberCoroutineScope()
-    val exceptionState = remember {mutableStateOf<Exception?>(null)}
+    var exception by remember { mutableStateOf<Exception?>(null) }
 
-    Scaffold(modifier = Modifier.fillMaxSize(),
+    HomeContent(
+        exception = exception,
+        onDismissException = { exception = null },
+        onExport = {
+            coroutineScope.launch {
+                try {
+                    export()
+                    exception = null
+                } catch (e: Exception) {
+                    logException("HomeScreen", e, "Export failed:")
+                    exception = e
+                }
+            }
+        },
+        onImport = {
+            coroutineScope.launch {
+                tryTransaction({
+                    logException("HomeScreen", it, "Import failed:")
+                    exception = it
+                }, { import() })
+            }
+        },
+        onNavigate = { appNavigator.navigate(it) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeContent(
+    exception: Exception?,
+    onDismissException: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    onNavigate: (Route) -> Unit
+) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(title = { Text("Season Planner") }, actions = {
                 IconButton(onClick = AppState.switchThemeCallback) {
@@ -77,34 +156,17 @@ fun HomeScreen() {
         },
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings(imageVector = Icons.Default.Download) {
-                    coroutineScope.launch {
-                        try {
-                            export()
-                            exceptionState.value = null
-                        } catch (exception: Exception) {
-                            logException(javaClass.simpleName, exception, "Export failed:")
-                            exceptionState.value = exception
-                        }
-                    }
-                },
-                ButtonSettings(imageVector = Icons.Default.Upload) {
-                    coroutineScope.launch {
-                        tryTransaction({
-                            logException(javaClass.simpleName, it, "Import failed:")
-                            exceptionState.value = it
-                        }, { import() })
-                    }
-                }
+                ButtonSettings(imageVector = Icons.Default.Download) { onExport() },
+                ButtonSettings(imageVector = Icons.Default.Upload) { onImport() }
             )
         }
     ) { paddingValues ->
-        if (exceptionState.value != null) {
+        if (exception != null) {
             AlertDialog(
-                onDismissRequest = { exceptionState.value = null },
-                confirmButton = { Button(onClick = { exceptionState.value = null }) { Text("OK") } },
+                onDismissRequest = onDismissException,
+                confirmButton = { Button(onClick = onDismissException) { Text("OK") } },
                 title = { ViewText("Error") },
-                text = { ViewText(exceptionState.value!!.message ?: exceptionState.value!!.javaClass.simpleName) }
+                text = { ViewText(exception.message ?: exception.javaClass.simpleName) }
             )
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
@@ -112,7 +174,7 @@ fun HomeScreen() {
                     items = Editors.entries.filter { it.showOnHome }.toTypedArray(),
                     key = { entry -> entry.ordinal }) { editor ->
                     OutlinedTextButton(value = editor.displayName)
-                    { appNavController.navigate(editor.viewRoute()) }
+                    { onNavigate(editor.viewRoute()) }
                 }
             }
         }
@@ -126,15 +188,17 @@ private const val TEAM_CATEGORY = "TeamCategory"
 private const val FAR_ASSOCIATION = "FarAssociation"
 private const val SEASON = "Season"
 
-private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value,
-                           teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
-                           associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value,
-                           farAssociationDao: FarAssociationViewDao = inject<FarAssociationViewDao>(FarAssociationViewDao::class.java).value,
-                           seasonCompViewDao: SeasonCompViewDao = inject<SeasonCompViewDao>(SeasonCompViewDao::class.java).value,
-                           seasonBreaksDao: SeasonBreakDao = inject<SeasonBreakDao>(SeasonBreakDao::class.java).value,
-                           seasonTeamsDao: SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
-                           seasonTeamCategoriesDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value,
-                           seasonCompetitionRoundsDao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value) {
+private suspend fun export(
+    competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value,
+    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
+    associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value,
+    farAssociationDao: FarAssociationViewDao = inject<FarAssociationViewDao>(FarAssociationViewDao::class.java).value,
+    seasonCompViewDao: SeasonCompViewDao = inject<SeasonCompViewDao>(SeasonCompViewDao::class.java).value,
+    seasonBreaksDao: SeasonBreakDao = inject<SeasonBreakDao>(SeasonBreakDao::class.java).value,
+    seasonTeamsDao: SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
+    seasonTeamCategoriesDao: SeasonTeamCategoryDao = inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value,
+    seasonCompetitionRoundsDao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value
+) {
     val competitions = competitionDao.get()
     val teamCategories = teamCategoryDao.get()
     val associations = associationDao.get()
@@ -160,7 +224,8 @@ private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDa
                 toDataFrame(farAssociations).insert(ENTITY) { FAR_ASSOCIATION }.at(0)
             }
             "season" from {
-                toDataFrame(seasonCompViews,
+                toDataFrame(
+                    seasonCompViews,
                     seasonBreaks,
                     seasonTeams,
                     seasonTeamCategories,
@@ -168,7 +233,7 @@ private suspend fun export(competitionDao: CompetitionDao = inject<CompetitionDa
                     competitions,
                     associations,
                     teamCategories
-                    ).insert(ENTITY) { SEASON }.at(0)
+                ).insert(ENTITY) { SEASON }.at(0)
             }
         }.writeJson(output, true)
     }

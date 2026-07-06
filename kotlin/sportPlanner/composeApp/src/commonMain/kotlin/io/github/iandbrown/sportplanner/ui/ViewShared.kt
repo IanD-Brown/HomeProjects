@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -98,8 +97,8 @@ import java.io.InputStream
 val fontSize = 16.sp
 const val OK = "OK"
 
-var appFileKitDialogSettings : FileKitDialogSettings? = null
-lateinit var appNavController : NavController
+var appFileKitDialogSettings: FileKitDialogSettings? = null
+lateinit var appNavigator: Navigator
 
 @Composable
 fun ViewCommon(
@@ -116,14 +115,14 @@ fun ViewCommon(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = { CreateTopBar(title, description, confirm, confirmAction) },
-        ) {paddingValues ->
+        ) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 for (error in errors) {
                     ViewText(error.message)
                 }
             }
         }
-    } else if (states.filter { it !is ViewModelState.Error }.any { it !is ViewModelState.Success }) {
+    } else if (states.any { it is ViewModelState.Loading || it is ViewModelState.Uninitialized }) {
         Box(modifier = Modifier.fillMaxSize()) {
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
@@ -158,7 +157,7 @@ private fun CreateTopBar(
             if (confirm()) {
                 isDialogOpen = true
             } else {
-                appNavController.navigateUp()
+                appNavigator.goBack()
             }
         }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
@@ -166,14 +165,21 @@ private fun CreateTopBar(
     })
     if (isDialogOpen) {
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = { isDialogOpen = false },
             dismissButton = {
-                Button(onClick = { isDialogOpen = closeConfirmDialog(appNavController) {} }) {
+                Button(onClick = {
+                    isDialogOpen = false
+                    appNavigator.goBack()
+                }) {
                     Text("Discard changes")
                 }
             },
             confirmButton = {
-                Button(onClick = { isDialogOpen = closeConfirmDialog(appNavController, confirmAction) }) {
+                Button(onClick = {
+                    isDialogOpen = false
+                    confirmAction()
+                    appNavigator.goBack()
+                }) {
                     Text("Save")
                 }
             },
@@ -182,14 +188,8 @@ private fun CreateTopBar(
     }
 }
 
-private fun closeConfirmDialog(navController: NavController, confirmAction : () -> Unit) : Boolean {
-    confirmAction()
-    navController.navigateUp()
-    return false
-}
-
 @Composable
-fun ViewText(value : String, modifier: Modifier = Modifier) {
+fun ViewText(value: String, modifier: Modifier = Modifier) {
     Text(
         text = value,
         fontSize = fontSize,
@@ -200,7 +200,7 @@ fun ViewText(value : String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
+fun ReadonlyViewText(value: String, modifier: Modifier = Modifier) {
     TextField(
         value = value,
         readOnly = true,
@@ -213,7 +213,12 @@ fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ViewTextField(value : String, modifier : Modifier, isError : () -> Boolean, onValueChange: (String) -> Unit) {
+fun ViewTextField(
+    value: String,
+    modifier: Modifier = Modifier,
+    isError: () -> Boolean = { false },
+    onValueChange: (String) -> Unit
+) {
     TextField(
         value = value,
         onValueChange = onValueChange,
@@ -221,7 +226,8 @@ fun ViewTextField(value : String, modifier : Modifier, isError : () -> Boolean, 
         singleLine = true,
         colors = textFieldColors(),
         textStyle = textStyle(),
-        isError = isError())
+        isError = isError()
+    )
 }
 
 @Composable
@@ -232,27 +238,16 @@ fun ViewTextField(
     label: String? = null,
     onValueChange: (String) -> Unit
 ) {
-    when (label) {
-        null -> TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier,
-            singleLine = true,
-            trailingIcon = trailingIcon,
-            colors = textFieldColors(),
-            textStyle = textStyle()
-        )
-        else -> TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier,
-            singleLine = true,
-            label = { ViewText(label) },
-            trailingIcon = trailingIcon,
-            colors = textFieldColors(),
-            textStyle = textStyle()
-        )
-    }
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        singleLine = true,
+        label = label?.let { { ViewText(it) } },
+        trailingIcon = trailingIcon,
+        colors = textFieldColors(),
+        textStyle = textStyle()
+    )
 }
 
 @Composable
@@ -271,7 +266,7 @@ fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
 )
 
 @Composable
-fun SpacedViewText(value : String, modifier: Modifier = Modifier) {
+fun SpacedViewText(value: String, modifier: Modifier = Modifier) {
     Spacer(modifier = Modifier.size(16.dp))
     ViewText(value, modifier)
 }
@@ -291,39 +286,30 @@ fun DropdownList(
     if (isLocked()) {
         ViewText(selectedText, modifier)
     } else {
-        // Up Icon when expanded and down icon when collapsed
-        val icon = if (expanded)
-            Icons.Filled.KeyboardArrowUp
-        else
-            Icons.Filled.KeyboardArrowDown
+        val icon = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = modifier
-                .fillMaxWidth().padding(0.dp)
-                .clickable {
-                    if (!isLocked()) {
-                        expanded = !expanded
-                    }
-                },
+                .fillMaxWidth()
+                .padding(0.dp)
+                .clickable { expanded = !expanded },
         ) {
             ViewTextField(
                 value = selectedText,
                 label = label,
                 trailingIcon = {
-                    if (!isLocked()) {
-                        Icon(
-                            icon, "contentDescription",
-                            Modifier.clickable { expanded = !expanded })
-                    }
+                    Icon(
+                        icon, "contentDescription",
+                        Modifier.clickable { expanded = !expanded })
                 }
             ) {}
-            if (!isLocked() && expanded) {
+            if (expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
-                    itemList.forEach { label ->
+                    itemList.forEachIndexed { index, label ->
                         DropdownMenuItem(
                             text = { ViewText(label) },
                             onClick = {
-                                onItemClick(itemList.indexOf(label))
+                                onItemClick(index)
                                 expanded = false
                             }
                         )
@@ -336,7 +322,7 @@ fun DropdownList(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> Boolean, onItemClick: (Int) -> Unit) {
+fun DatePickerView(current: Int, modifier: Modifier, isSelectable: (Long) -> Boolean, onItemClick: (Int) -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     ViewTextField(
@@ -379,13 +365,13 @@ fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (Long) -> B
     }
 }
 
-fun isMondayIn(seasonCompetition : SeasonCompetition, utcMs : Long) : Boolean =
+fun isMondayIn(seasonCompetition: SeasonCompetition, utcMs: Long): Boolean =
     DayDate.isMondayIn(IntRange(seasonCompetition.startDate, seasonCompetition.endDate), DayDate(utcMs).value())
 
-internal fun LazyGridScope.editButton(route : () -> String) =
-    clickableIcon(Icons.Default.Edit, "edit", Color.Green, route)
+internal fun LazyGridScope.editButton(onClick: () -> Unit) =
+    clickableIcon(Icons.Default.Edit, "edit", Color.Green, onClick)
 
-internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () -> Unit) {
+internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick: () -> Unit) {
     item {
         if (disabled) {
             Icon(Icons.Default.Delete, "delete", tint = Color(0x99990000))
@@ -400,17 +386,19 @@ fun ClickableIcon(
     imageVector: ImageVector,
     contentDescription: String?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: () -> String
+    onClick: () -> Unit
 ) {
-    Icon(imageVector, contentDescription, Modifier.clickable(onClick = { appNavController.navigate(onClick())}), tint)
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = onClick), tint)
 }
 
 
-internal fun LazyGridScope.clickableIcon(imageVector: ImageVector,
-                                         contentDescription: String?,
-                                         color: Color,
-                                         route : () -> String) {
-    item { ClickableIcon(imageVector, contentDescription, color, route) }
+internal fun LazyGridScope.clickableIcon(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    color: Color,
+    onClick: () -> Unit
+) {
+    item { ClickableIcon(imageVector, contentDescription, color, onClick) }
 }
 
 @Composable
@@ -445,7 +433,6 @@ class WeightedIconGridCells(val iconCount: Int, vararg val weights: Int) : GridC
 class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
     GridCells {
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
-        // Define the total available width after accounting for spacing
         val columnCount = dataColumnCount + trailingIconCount
         val totalSpacing = spacing * (columnCount - 1)
         val iconSize = (IconSize + 16.dp).roundToPx()
@@ -462,13 +449,11 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
     }
 }
 
-class DoubleFirstGridCells(val columns : Int) : GridCells {
+class DoubleFirstGridCells(val columns: Int) : GridCells {
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
-        // Define the total available width after accounting for spacing
         val totalSpacing = spacing * (columns - 1)
         val usableWidth = availableSize - totalSpacing
 
-        // Calculate widths based on a 2:1 ratio (first column twice as wide as second)
         val laterColumnWidth = (usableWidth * 1) / (columns + 1)
         val sizes = mutableListOf<Int>().apply {
             repeat(columns - 1) {
@@ -486,20 +471,27 @@ class DoubleFirstGridCells(val columns : Int) : GridCells {
 
 @Composable
 fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    OutlinedButton(enabled = enabled,
+    OutlinedButton(
+        enabled = enabled,
         shape = MaterialTheme.shapes.small,
         modifier = modifier.padding(6.dp),
-        onClick = onClick)
+        onClick = onClick
+    )
     { ViewText(value) }
 }
 
-internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val navigateFun : (NavController) -> Unit)
+internal data class ButtonSettings(
+    val value: String = OK,
+    val enabled: Boolean = true,
+    val imageVector: ImageVector? = null,
+    val navigateFun: (Navigator) -> Unit
+)
 
-internal fun addButtonSettings(onClick : (NavController) -> Unit) : ButtonSettings =
+internal fun addButtonSettings(onClick: (Navigator) -> Unit): ButtonSettings =
     ButtonSettings(imageVector = Icons.Default.Add, navigateFun = onClick)
 
 @Composable
-fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : (NavController) -> Unit) =
+fun BottomBarWithButton(value: String = OK, enabled: Boolean = true, onClick: (Navigator) -> Unit) =
     BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun = onClick))
 
 @Composable
@@ -508,10 +500,10 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
         for (buttonSetting in buttonSettings) {
             if (buttonSetting.imageVector == null) {
                 OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
-                    buttonSetting.navigateFun(appNavController)
+                    buttonSetting.navigateFun(appNavigator)
                 }
             } else {
-                IconButton(onClick = { buttonSetting.navigateFun(appNavController) }) {
+                IconButton(onClick = { buttonSetting.navigateFun(appNavigator) }) {
                     Icon(buttonSetting.imageVector, contentDescription = null)
                 }
             }
@@ -519,15 +511,23 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     }
 }
 
-internal fun exportButtonSettings(coroutineScope: CoroutineScope,
-                                  suggestName: String,
-                                  extension: String = "json",
-                                  transformedDataSupplier: suspend (Appendable) -> Unit) : ButtonSettings =
-    ButtonSettings(imageVector = Icons.Default.Download) { coroutineScope.launch {
-        exportToFile(suggestName, extension, transformedDataSupplier)
-    }}
+internal fun exportButtonSettings(
+    coroutineScope: CoroutineScope,
+    suggestName: String,
+    extension: String = "json",
+    transformedDataSupplier: suspend (Appendable) -> Unit
+): ButtonSettings =
+    ButtonSettings(imageVector = Icons.Default.Download) { _ ->
+        coroutineScope.launch {
+            exportToFile(suggestName, extension, transformedDataSupplier)
+        }
+    }
 
-internal suspend fun exportToFile(suggestName: String, extension: String = "json", transformedDataSupplier: suspend (Appendable) -> Unit) {
+internal suspend fun exportToFile(
+    suggestName: String,
+    extension: String = "json",
+    transformedDataSupplier: suspend (Appendable) -> Unit
+) {
     val file = FileKit.openFileSaver(suggestedName = suggestName, defaultExtension = extension)
     val sink = file?.sink(append = false)?.buffered()
 
@@ -540,18 +540,22 @@ internal suspend fun exportToFile(suggestName: String, extension: String = "json
     }
 }
 
-internal fun<DAO, ENTITY, VIEW_MODEL> importJsonButtonSettings(viewModel: VIEW_MODEL, rowHandler: suspend (DataRow<Any?>) -> ENTITY) : ButtonSettings
+internal fun <DAO, ENTITY, VIEW_MODEL> importJsonButtonSettings(
+    viewModel: VIEW_MODEL,
+    rowHandler: suspend (DataRow<Any?>) -> ENTITY
+): ButtonSettings
         where ENTITY : Any, DAO : ConfigReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>, VIEW_MODEL : BaseCRUDViewModel<DAO, ENTITY> =
-    ButtonSettings(imageVector = Icons.Default.Upload) { viewModel.viewModelScope.launch {
-        tryTransaction({viewModel.handleException(it)}, {
-            importFromFile(
-                "json",
-                {
-                    val dataFrame = DataFrame.readJson(it)
-                    viewModel.dao.deleteAll()
-                    dataFrame
-                }, { viewModel.dao.insert(rowHandler(it)) })
-        })
+    ButtonSettings(imageVector = Icons.Default.Upload) { _ ->
+        viewModel.viewModelScope.launch {
+            tryTransaction({ exception -> viewModel.handleException(exception) }, {
+                importFromFile(
+                    "json",
+                    { inputStream ->
+                        val dataFrame = DataFrame.readJson(inputStream)
+                        viewModel.dao.deleteAll()
+                        dataFrame
+                    }, { row -> viewModel.dao.insert(rowHandler(row)) })
+            })
         }
     }
 
@@ -578,13 +582,15 @@ internal fun LazyGridScope.viewTextItems(values: List<String>) {
     }
 }
 
-internal suspend fun<R> RoomDatabase.inTransaction(block: suspend TransactionScope<R>.() -> R) {
-        useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
+internal suspend fun <R> RoomDatabase.inTransaction(block: suspend TransactionScope<R>.() -> R) {
+    useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
 }
 
-internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit,
-                                    block: suspend () -> Unit,
-                                    db: AppDatabase = inject<AppDatabase>(AppDatabase::class.java).value) {
+internal suspend fun tryTransaction(
+    exceptionHandler: (Exception) -> Unit,
+    block: suspend () -> Unit,
+    db: AppDatabase = inject<AppDatabase>(AppDatabase::class.java).value
+) {
     try {
         db.inTransaction { block() }
     } catch (e: Exception) {

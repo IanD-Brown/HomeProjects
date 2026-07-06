@@ -1,6 +1,6 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.runtime.State
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.shivathapaa.logger.api.LoggerFactory
@@ -17,27 +17,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Immutable
 sealed interface ViewModelState<out ENTITY> {
     data class Success<ENTITY>(val data: ImmutableList<ENTITY>) : ViewModelState<ENTITY>
     data class Error(val message: String, val reset: () -> Unit) : ViewModelState<Nothing>
-    object Loading : ViewModelState<Nothing>
-    object Uninitialized : ViewModelState<Nothing>
+    data object Loading : ViewModelState<Nothing>
+    data object Uninitialized : ViewModelState<Nothing>
 
-    fun values() : ImmutableList<ENTITY> =
+    fun values(): ImmutableList<ENTITY> =
         when (this) {
             is Success -> data
             else -> persistentListOf()
         }
 }
 
-internal fun<ENTITY> State<ViewModelState<ENTITY>>.values() : ImmutableList<ENTITY> {
-    return when (val value = this.value) {
-        is ViewModelState.Success -> value.data
-        else -> persistentListOf()
-    }
-}
-
-private class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val reader: suspend() -> List<ENTITY>) {
+private class ReadDelegate<ENTITY>(private val viewModelScope: CoroutineScope, private val reader: suspend () -> List<ENTITY>) {
     private val _state = MutableStateFlow<ViewModelState<ENTITY>>(ViewModelState.Uninitialized)
     val uiState: StateFlow<ViewModelState<ENTITY>> = _state.asStateFlow()
 
@@ -70,31 +64,31 @@ fun logException(className: String, exception: Exception, context: String) {
     logger.error(exception) { "$context ${exception.message}" }
 }
 
-open class BaseReadViewModel<DAO, ENTITY>(val dao : DAO, reader: suspend (DAO) -> List<ENTITY>) : ViewModel() where DAO : ReadDao<ENTITY> {
-    private val readDelegate = ReadDelegate(viewModelScope) {reader(dao)}
+abstract class BaseReadViewModel<DAO, ENTITY>(val dao: DAO, reader: suspend (DAO) -> List<ENTITY>) : ViewModel() where DAO : ReadDao<ENTITY> {
+    private val readDelegate = ReadDelegate(viewModelScope) { reader(dao) }
 
-    fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
+    fun getState(): StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
 
     fun readAll() = readDelegate.readAll()
 
     fun handleException(exception: Exception) = readDelegate.handleException(exception)
 }
 
-open class BaseCRUDViewModel<DAO, ENTITY>(dao : DAO, reader: suspend (DAO) -> List<ENTITY>) : BaseReadViewModel<DAO, ENTITY>(dao, reader)
+abstract class BaseCRUDViewModel<DAO, ENTITY>(dao: DAO, reader: suspend (DAO) -> List<ENTITY>) : BaseReadViewModel<DAO, ENTITY>(dao, reader)
         where DAO : ReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY> {
     fun insert(entity: ENTITY) {
         runInCoroutine { dao.insert(entity) }
     }
 
     fun update(entity: ENTITY) {
-       runInCoroutine {  dao.update(entity) }
+        runInCoroutine { dao.update(entity) }
     }
 
     fun delete(entity: ENTITY) {
         runInCoroutine { dao.delete(entity) }
     }
 
-    private fun runInCoroutine(operation: suspend () -> Unit) {
+    protected fun runInCoroutine(operation: suspend () -> Unit) {
         viewModelScope.launch {
             try {
                 operation()

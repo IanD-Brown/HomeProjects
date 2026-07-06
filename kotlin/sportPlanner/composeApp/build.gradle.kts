@@ -71,6 +71,11 @@ kotlin {
 
             // navigation
             implementation(libs.navigation.compose)
+            implementation(libs.navigation3.runtime)
+            implementation(libs.navigation3.ui)
+            implementation(libs.navigation3.lifecycle)
+            implementation(libs.androidx.savedstate)
+            implementation(libs.koin.compose.nav3)
 
             // theme prefs
             implementation(libs.material.theme)
