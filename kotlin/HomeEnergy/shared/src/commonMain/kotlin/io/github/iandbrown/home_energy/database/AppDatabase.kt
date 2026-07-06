@@ -8,7 +8,8 @@ private const val majorVersion = 1
 
 @Database(entities = [
         Meter::class,
-        Usage::class
+        Usage::class,
+        Setting::class
     ],
     views = [],
     version = version,
@@ -16,6 +17,7 @@ private const val majorVersion = 1
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getMeterDao(): MeterDao
     abstract fun getUsageDao(): UsageDao
+    abstract fun getSettingDao(): SettingDao
 }
 
 const val dbFileName = "HomeEnergyDb$majorVersion.db"

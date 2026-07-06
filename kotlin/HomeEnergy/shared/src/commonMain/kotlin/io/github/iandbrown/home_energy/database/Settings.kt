@@ -6,18 +6,18 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import kotlinx.serialization.Serializable
 
-private const val table = "Meters"
+private const val table = "Settings"
 
 @Serializable
 @Entity(tableName = table)
-data class Meter(
-    @PrimaryKey
-    val meterPointAdminNumber : String,
-    val serial : String,
-    val electric : Boolean)
+data class Setting(
+    @PrimaryKey val id: Long = 1,
+    val apiKey: String,
+    val apiPassword : String,
+    val targetYear: Short)
 
 @Dao
-interface MeterDao : BaseReadDao<Meter>, BaseWriteDao<Meter> {
+interface SettingDao : BaseReadDao<Setting>, BaseWriteDao<Setting> {
     @Query("SELECT * FROM $table")
-    override suspend fun get(): List<Meter>
+    override suspend fun get(): List<Setting>
 }

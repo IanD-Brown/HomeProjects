@@ -16,14 +16,18 @@ import java.io.File
 fun main() {
     System.setProperty("apple.awt.application.appearance", "system")
     val formatter = LogFormatter()
+    val logDir = File(getAppDataFolder())
+    logDir.mkdirs()
     LoggerFactory.install(
         LoggerConfig.Builder()
             .minLevel(LogLevel.DEBUG)
-            .addSink(FileSink("${getAppDataFolder()}/HomeEnergyLog.txt", formatter))
+            .addSink(FileSink(File(logDir, "HomeEnergyLog.txt").absolutePath, formatter))
             .build()
     )
     application {
-        initKoin()
+        if (org.koin.core.context.GlobalContext.getOrNull() == null) {
+            initKoin()
+        }
         Window(onCloseRequest = ::exitApplication, title = "Home energy") {
             App()
         }

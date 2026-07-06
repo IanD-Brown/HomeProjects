@@ -25,12 +25,15 @@ private fun getFilePath(): String {
     return File(path, dbFileName).absolutePath
 }
 
-internal fun getAppDataFolder(): String? {
+fun getAppDataFolder(): String {
     val system = System.getProperty("os.name")
+    val userHome = System.getProperty("user.home")
     val path = if (system.contains("Windows", true)) {
-        System.getenv("APPDATA")
+        System.getenv("APPDATA") ?: "$userHome/AppData/Roaming"
+    } else if (system.contains("Mac", true)) {
+        "$userHome/Library/Application Support/HomeEnergy"
     } else {
-        "${System.getProperty("user.home")}/Library/Application Support/"
+        "$userHome/.homeenergy"
     }
     return path
 }

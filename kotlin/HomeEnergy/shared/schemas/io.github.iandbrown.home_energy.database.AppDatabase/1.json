@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "29694b1db899c95d310973a3efe4ff1e",
+    "identityHash": "944a7bfce62176e301d291b64cb1ea2a",
     "entities": [
       {
         "tableName": "Meters",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`meterPointAdminNumber` TEXT NOT NULL, `serial` TEXT NOT NULL, PRIMARY KEY(`meterPointAdminNumber`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`meterPointAdminNumber` TEXT NOT NULL, `serial` TEXT NOT NULL, `electric` INTEGER NOT NULL, PRIMARY KEY(`meterPointAdminNumber`))",
         "fields": [
           {
             "fieldPath": "meterPointAdminNumber",
@@ -19,6 +19,12 @@
             "columnName": "serial",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "electric",
+            "columnName": "electric",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -30,17 +36,87 @@
       },
       {
         "tableName": "Usages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`year` INTEGER NOT NULL, `month` INTEGER NOT NULL, `day` INTEGER NOT NULL, `period` INTEGER NOT NULL, `meterPointAdminNumber` TEXT NOT NULL, `consumption` REAL NOT NULL, PRIMARY KEY(`year`, `month`, `day`, `period`, `meterPointAdminNumber`))",
+        "fields": [
+          {
+            "fieldPath": "year",
+            "columnName": "year",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "month",
+            "columnName": "month",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "day",
+            "columnName": "day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "period",
+            "columnName": "period",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "meterPointAdminNumber",
+            "columnName": "meterPointAdminNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consumption",
+            "columnName": "consumption",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "year",
+            "month",
+            "day",
+            "period",
+            "meterPointAdminNumber"
+          ]
+        }
+      },
+      {
+        "tableName": "Settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `apiKey` TEXT NOT NULL, `apiPassword` TEXT NOT NULL, `targetYear` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "apiKey",
+            "columnName": "apiKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apiPassword",
+            "columnName": "apiPassword",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetYear",
+            "columnName": "targetYear",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
             "id"
           ]
@@ -49,7 +125,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '29694b1db899c95d310973a3efe4ff1e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '944a7bfce62176e301d291b64cb1ea2a')"
     ]
   }
 }

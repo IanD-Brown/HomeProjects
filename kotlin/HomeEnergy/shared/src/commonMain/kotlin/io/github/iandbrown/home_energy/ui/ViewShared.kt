@@ -232,14 +232,14 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
     }
 }
 
-internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val navigateFun : () -> Unit)
+internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val onClick : () -> Unit)
 
 internal fun addButtonSettings(onClick : () -> Unit) : ButtonSettings =
-    ButtonSettings(imageVector = Icons.Default.Add, navigateFun = onClick)
+    ButtonSettings(imageVector = Icons.Default.Add, onClick = onClick)
 
 @Composable
 fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
-    BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun = onClick))
+    BottomBarWithButtons(ButtonSettings(value, enabled, onClick = onClick))
 
 @Composable
 internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
@@ -247,10 +247,10 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
         for (buttonSetting in buttonSettings) {
             if (buttonSetting.imageVector == null) {
                 OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
-                    buttonSetting.navigateFun()
+                    buttonSetting.onClick()
                 }
             } else {
-                IconButton(onClick = { buttonSetting.navigateFun() }) {
+                IconButton(onClick = { buttonSetting.onClick() }) {
                     Icon(buttonSetting.imageVector, contentDescription = null)
                 }
             }

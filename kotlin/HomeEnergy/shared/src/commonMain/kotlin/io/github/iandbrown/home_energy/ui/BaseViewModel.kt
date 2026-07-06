@@ -56,6 +56,10 @@ private class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val reade
         }
     }
 
+    fun setLoading() {
+        _state.update { ViewModelState.Loading }
+    }
+
     fun handleException(exception: Exception) {
         logException(javaClass.simpleName, exception, "operation failed:")
         if (exception is CancellationException) {
@@ -63,7 +67,6 @@ private class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val reade
         }
         _state.update { ViewModelState.Error(exception.message ?: exception.javaClass.simpleName, ::readAll) }
     }
-
 }
 
 fun logException(className: String, exception: Exception, context: String) {
@@ -77,6 +80,10 @@ internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO) : ViewModel()
 
     fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
 
+    protected fun setLoading() = readDelegate.setLoading()
+
+    protected fun readAll() = readDelegate.readAll()
+
     fun insert(entity: ENTITY) {
         runInCoroutine { dao.insert(entity) }
     }
@@ -89,13 +96,15 @@ internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO) : ViewModel()
         runInCoroutine { dao.delete(entity) }
     }
 
+    fun handleException(exception: Exception) = readDelegate.handleException(exception)
+
     private fun runInCoroutine(operation: suspend () -> Unit) {
         viewModelScope.launch {
             try {
                 operation()
-                readDelegate.readAll()
+                readAll()
             } catch (e: Exception) {
-                readDelegate.handleException(e)
+                handleException(e)
             }
         }
     }
