@@ -139,3 +139,15 @@ tasks.named<Test>("jvmTest") {
         isFailOnNoMatchingTests = false
     }
 }
+
+tasks.matching { it.name == "stabilityCheck" }.configureEach {
+    dependsOn(tasks.matching { it.name.startsWith("compile") && it.name.contains("Kotlin") })
+    dependsOn(tasks.matching { it.name == "compileAndroidMain" })
+    dependsOn(tasks.matching { it.name == "compileAndroidHostTest" })
+}
+
+tasks.matching { it.name == "stabilityDump" }.configureEach {
+    dependsOn(tasks.matching { it.name.startsWith("compile") && it.name.contains("Kotlin") })
+    dependsOn(tasks.matching { it.name == "compileAndroidMain" })
+    dependsOn(tasks.matching { it.name == "compileAndroidHostTest" })
+}

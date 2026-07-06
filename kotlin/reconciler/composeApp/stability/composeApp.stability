@@ -39,13 +39,13 @@ public fun io.github.iandbrown.reconciler.ui.AppState.switchThemeCallback(): kot
   params:
 
 @Composable
-internal fun io.github.iandbrown.reconciler.ui.BottomBarWithButton(value: kotlin.String, enabled: kotlin.Boolean, navigateFun: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.BottomBarWithButton(value: kotlin.String, enabled: kotlin.Boolean, onClick: kotlin.Function1<androidx.navigation.NavController, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - value: STABLE (String is immutable)
     - enabled: STABLE (primitive type)
-    - navigateFun: STABLE (function type)
+    - onClick: STABLE (function type)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.BottomBarWithButtons(buttonSettings: kotlin.Array<out io.github.iandbrown.reconciler.ui.ButtonSettings>): kotlin.Unit
@@ -84,11 +84,11 @@ internal fun io.github.iandbrown.reconciler.ui.DeleteButton(disabled: kotlin.Boo
     - onClick: STABLE (function type)
 
 @Composable
-internal fun io.github.iandbrown.reconciler.ui.DropdownList(itemList: kotlinx.coroutines.flow.MutableStateFlow<kotlin.collections.List<kotlin.String>>, selectedIndex: kotlin.Int, modifier: androidx.compose.ui.Modifier, isLocked: kotlin.Function0<kotlin.Boolean>, label: kotlin.String?, onItemClick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
-  skippable: false
+internal fun io.github.iandbrown.reconciler.ui.DropdownList(itemList: kotlinx.collections.immutable.ImmutableList<kotlin.String>, selectedIndex: kotlin.Int, modifier: androidx.compose.ui.Modifier, isLocked: kotlin.Function0<kotlin.Boolean>, label: kotlin.String?, onItemClick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
+  skippable: true
   restartable: true
   params:
-    - itemList: RUNTIME (requires runtime check)
+    - itemList: STABLE (known stable type)
     - selectedIndex: STABLE (primitive type)
     - modifier: STABLE (marked @Stable or @Immutable)
     - isLocked: STABLE (function type)
@@ -156,12 +156,11 @@ internal fun io.github.iandbrown.reconciler.ui.EditTransactionCategory(transacti
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-private fun io.github.iandbrown.reconciler.ui.FilterConfigEditor(currentConfig: io.github.iandbrown.reconciler.ui.FilterConfig, includeMatchDistance: kotlin.Boolean, onDismiss: kotlin.Function0<kotlin.Unit>, onConfirm: kotlin.Function1<io.github.iandbrown.reconciler.ui.FilterConfig, kotlin.Unit>, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel): kotlin.Unit
+private fun io.github.iandbrown.reconciler.ui.FilterConfigEditor(fullFilter: kotlin.Boolean, onDismiss: kotlin.Function0<kotlin.Unit>, onConfirm: kotlin.Function1<io.github.iandbrown.reconciler.ui.FilterConfig, kotlin.Unit>, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
-    - currentConfig: STABLE (class with no mutable properties)
-    - includeMatchDistance: STABLE (primitive type)
+    - fullFilter: STABLE (primitive type)
     - onDismiss: STABLE (function type)
     - onConfirm: STABLE (function type)
     - transCategoryViewModel: RUNTIME (requires runtime check)
@@ -219,8 +218,8 @@ public fun io.github.iandbrown.reconciler.ui.ViewAllTransaction(viewModel: io.gi
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-internal fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, states: kotlin.collections.List<io.github.iandbrown.reconciler.ui.ViewModelState<*>>, actions: @[Composable] @[ExtensionFunctionType] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.RowScope, kotlin.Unit>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
-  skippable: false
+internal fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, description: kotlin.String, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, states: kotlinx.collections.immutable.ImmutableList<io.github.iandbrown.reconciler.ui.ViewModelState<*>>, actions: @[Composable] @[ExtensionFunctionType] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.RowScope, kotlin.Unit>, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.PaddingValues, kotlin.Unit>): kotlin.Unit
+  skippable: true
   restartable: true
   params:
     - title: STABLE (String is immutable)
@@ -228,7 +227,7 @@ internal fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, 
     - bottomBar: STABLE (composable function type)
     - confirm: STABLE (function type)
     - confirmAction: STABLE (function type)
-    - states: RUNTIME (requires runtime check)
+    - states: STABLE (known stable type)
     - actions: STABLE (composable function type)
     - content: STABLE (composable function type)
 
