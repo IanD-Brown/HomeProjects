@@ -472,13 +472,13 @@ internal fun teamDescription(
         if (previousFixture != null) {
             val homeTeam = teamDescription(
                 fixturesById,
-                -1L,
+                previousFixture.homePending,
                 previousFixture.homeAssociation,
                 previousFixture.homeTeamNumber
             )
             val awayTeam = teamDescription(
                 fixturesById,
-                -1L,
+                previousFixture.awayPending,
                 previousFixture.awayAssociation,
                 previousFixture.awayTeamNumber
             )
@@ -526,7 +526,6 @@ internal suspend fun calcCupFixtures(
 
             planFixtures(games, competitionTeams)
                 .forEach {
-                    val result = if (it.awayAssociation == 0.toShort()) 1.toShort() else 1.toShort()
                     dao.insert(
                         SeasonCupFixture(
                             seasonId = seasonId,
@@ -537,7 +536,7 @@ internal suspend fun calcCupFixtures(
                             homeTeamNumber = it.homeTeamNumber,
                             awayAssociationId = it.awayAssociation,
                             awayTeamNumber = it.awayTeamNumber,
-                            result = result
+                            result = (if (it.awayAssociation > 0) 0 else 1).toShort()
                         )
                     )
                 }
@@ -545,6 +544,7 @@ internal suspend fun calcCupFixtures(
             val previousRoundFixtures =
                 dao.getByRound(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
                     .shuffled(Random(System.currentTimeMillis()))
+            if (previousRoundFixtures.size > 1) {
             for (i in previousRoundFixtures.indices step 2) {
                 val home = previousRoundFixtures[i]
                 val away = previousRoundFixtures[i + 1]
@@ -562,6 +562,7 @@ internal suspend fun calcCupFixtures(
                         awayPending = if (away.result == 0.toShort()) away.id else 0L
                     )
                 )
+                }
             }
         }
     }
