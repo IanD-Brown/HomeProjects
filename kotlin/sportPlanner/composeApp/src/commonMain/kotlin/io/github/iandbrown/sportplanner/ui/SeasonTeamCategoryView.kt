@@ -28,8 +28,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 class SeasonTeamCategoryViewModel(
-    seasonId: SeasonId,
-    competitionId: CompetitionId,
+    val seasonId: SeasonId,
+    val competitionId: CompetitionId,
     dao: SeasonTeamCategoryDao
 ) : BaseCRUDViewModel<SeasonTeamCategoryDao, SeasonTeamCategory>(dao, { it.get(seasonId, competitionId) }) {
 
@@ -39,16 +39,18 @@ class SeasonTeamCategoryViewModel(
         gameStructureStates: Map<TeamCategoryId, Short>,
         lockedStates: Map<TeamCategoryId, Boolean>
     ) {
-        teamCategoryList.forEach { item ->
-            insert(
-                SeasonTeamCategory(
-                    seasonId = param.seasonId,
-                    competitionId = param.competitionId,
-                    teamCategoryId = item.id,
-                    games = gameStructureStates[item.id] ?: 0,
-                    locked = lockedStates[item.id] ?: false
+        runInCoroutine {
+            teamCategoryList.forEach { item ->
+                dao.insert(
+                    SeasonTeamCategory(
+                        seasonId = param.seasonId,
+                        competitionId = param.competitionId,
+                        teamCategoryId = item.id,
+                        games = gameStructureStates[item.id] ?: 0,
+                        locked = lockedStates[item.id] ?: false
+                    )
                 )
-            )
+            }
         }
     }
 }

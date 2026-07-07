@@ -91,6 +91,7 @@ class SeasonCompCupFixtureViewModel(seasonId: SeasonId, competitionId: Competiti
                 edits.forEach { (key, result) ->
                     dao.setResult(key, result)
                 }
+                readAll()
             } catch (e: Exception) {
                 handleException(e)
             }
@@ -237,28 +238,6 @@ fun SeasonCompetitionRoundEditScreen(
     val state by viewModel.getState().collectAsStateWithLifecycle()
     val seasonCompetitionState by seasonCompetitionViewModel.getState().collectAsStateWithLifecycle()
 
-    SeasonCompetitionRoundEditContent(
-        competitionRound = competitionRound,
-        state = state,
-        seasonCompetitionState = seasonCompetitionState,
-        onSave = { round, description, week, optional ->
-            viewModel.save(competitionRound, round, description, week, optional)
-            appNavigator.goBack()
-        },
-        onConfirmSave = { round, description, week, optional ->
-            viewModel.save(competitionRound, round, description, week, optional)
-        }
-    )
-}
-
-@Composable
-private fun SeasonCompetitionRoundEditContent(
-    competitionRound: SeasonCompetitionRound?,
-    state: ViewModelState<SeasonCompetitionRound>,
-    seasonCompetitionState: ViewModelState<SeasonCompetition>,
-    onSave: (Short, String, Int, Boolean) -> Unit,
-    onConfirmSave: (Short, String, Int, Boolean) -> Unit
-) {
     val rounds = getRounds(state.values())
     var description by remember { mutableStateOf(competitionRound?.description ?: "") }
     var week by remember { mutableIntStateOf(competitionRound?.week ?: 0) }
@@ -274,11 +253,14 @@ private fun SeasonCompetitionRoundEditContent(
         if (competitionRound == null) "Add Competition round" else "Edit Competition round",
         bottomBar = {
             BottomBarWithButton(enabled = description.isNotEmpty() && validRound) {
-                onSave(round, description, week, optional)
+                viewModel.save(competitionRound, round, description, week, optional)
             }
         },
         confirm = { description.isNotEmpty() && validRound },
-        confirmAction = { onConfirmSave(round, description, week, optional) },
+        confirmAction = {
+            viewModel.save(competitionRound, round, description, week, optional)
+            appNavigator.goBack()
+        },
         states = persistentListOf(state, seasonCompetitionState)
     ) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(4), Modifier.padding(paddingValues)) {
@@ -308,127 +290,6 @@ internal enum class FixtureResult(var display: String) {
     )
 }
 
-@Suppress("ParamsComparedByRef")
-@Composable
-fun SeasonCupFixtureScreen(
-    param: SeasonCompetitionParam,
-    competitionRound: SeasonCompetitionRound
-) {
-    val viewModel: SeasonCompCupFixtureViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) }
-    val teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()
-
-    val state by viewModel.getState().collectAsStateWithLifecycle()
-    val teamCategoryState by teamCategoryViewModel.getState().collectAsStateWithLifecycle()
-    val coroutineScope = rememberCoroutineScope()
-
-    SeasonCupFixtureContent(
-        param = param,
-        competitionRound = competitionRound,
-        state = state,
-        teamCategoryState = teamCategoryState,
-        onSave = { edits ->
-            viewModel.saveResults(edits)
-        },
-        onExport = { withTeamCategory, filterCategory, fixturesById ->
-            coroutineScope.launch {
-                val file =
-                    FileKit.openFileSaver(suggestedName = "cupFixtures", defaultExtension = "csv")
-                val sink = file?.sink(append = false)?.buffered()
-
-                sink.use { bufferedSink ->
-                    if (withTeamCategory) {
-                        bufferedSink?.writeString("Team Category,")
-                    }
-                    bufferedSink?.writeString("Home,Away\n")
-                    getFixtures(
-                        state.values(),
-                        competitionRound.round,
-                        filterCategory,
-                        fixturesById
-                    ) { teamCategoryName, home, away, _, _, _ ->
-                        if (withTeamCategory) {
-                            bufferedSink?.writeString("$teamCategoryName,")
-                        }
-                        bufferedSink?.writeString("$home,$away\n")
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun SeasonCupFixtureContent(
-    param: SeasonCompetitionParam,
-    competitionRound: SeasonCompetitionRound,
-    state: ViewModelState<SeasonCupFixtureView>,
-    teamCategoryState: ViewModelState<io.github.iandbrown.sportplanner.database.TeamCategory>,
-    onSave: (Map<Long, Short>) -> Unit,
-    onExport: (Boolean, String, Map<Long, SeasonCupFixtureView>) -> Unit
-) {
-    val edits = remember { mutableStateMapOf<Long, Short>() }
-    var isLocked by remember { mutableStateOf(true) }
-    val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
-    val filterTeamCategory = remember { mutableStateOf("") }
-    val fixturesById = state.values().associateBy { it.id }
-    val withTeamCategory = filterTeamCategory.value.isBlank()
-
-    ViewCommon(
-        "${param.seasonName} ${param.competitionName} Round ${competitionRound.round} Fixtures",
-        bottomBar = {
-            BottomBarWithButtons(
-                ButtonSettings("Export", edits.isEmpty()) {
-                    onExport(withTeamCategory, filterTeamCategory.value, fixturesById)
-                },
-                ButtonSettings(buttonText) {
-                    if (!isLocked && edits.isNotEmpty()) {
-                        onSave(edits)
-                        edits.clear()
-                    }
-                    isLocked = !isLocked
-                }
-            )
-        },
-        confirm = { edits.isNotEmpty() },
-        confirmAction = {
-            onSave(edits)
-            edits.clear()
-        },
-        states = persistentListOf(state, teamCategoryState)
-    ) { paddingValues ->
-        val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }
-        val columns = if (withTeamCategory) 4 else 3
-
-        LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
-            item(span = { GridItemSpan(columns) }) {
-                DropdownList(
-                    teamCategoryList.toImmutableList(),
-                    0,
-                    label = "Filter Team Category"
-                ) { filterTeamCategory.value = teamCategoryList[it] }
-            }
-            if (withTeamCategory) {
-                item { ViewText("Team Category") }
-            }
-            viewTextItems(listOf("Home", "Away", "Winner"))
-            getFixtures(state.values(), competitionRound.round, filterTeamCategory.value, fixturesById) {
-                    teamCategoryName, home, away, result, fixtureId, blankAwayAssociation ->
-                if (withTeamCategory) {
-                    item { ViewText(teamCategoryName) }
-                }
-                viewTextItems(listOf(home, away))
-                item {
-                    DropdownList(
-                        itemList = FixtureResult.entries.map { it.display }.toImmutableList(),
-                        selectedIndex = result.toInt(),
-                        isLocked = { isLocked || blankAwayAssociation },
-                    ) { edits[fixtureId] = it.toShort() }
-                }
-            }
-        }
-    }
-}
-
 internal fun getFixtures(
     allFixtures: List<SeasonCupFixtureView>,
     round: Short,
@@ -455,11 +316,18 @@ internal fun getFixtures(
                 ),
                 fixture.result,
                 fixture.id,
-                fixture.awayAssociation.isBlank()
+               isPending(fixture, fixturesById)
             )
         }
 }
 
+private fun isPending(fixture: SeasonCupFixtureView, fixturesById: Map<Long, SeasonCupFixtureView>): Boolean {
+    if (fixture.result > 0) {
+        return false
+    }
+    return fixture.homePending > 0 && fixturesById[fixture.homePending]?.result!! == 0.toShort() ||
+            fixture.awayPending > 0 && fixturesById[fixture.awayPending]?.result!! == 0.toShort()
+}
 
 internal fun teamDescription(
     fixturesById: Map<Long, SeasonCupFixtureView>,
@@ -490,6 +358,99 @@ internal fun teamDescription(
         }
     }
     return teamName(associationName, teamNumber)
+}
+
+@Suppress("ParamsComparedByRef")
+@Composable
+fun SeasonCupFixtureScreen(param: SeasonCompetitionParam, competitionRound: SeasonCompetitionRound) {
+    val viewModel: SeasonCompCupFixtureViewModel = koinViewModel { parametersOf(param.seasonId, param.competitionId) }
+    val teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()
+
+    val state by viewModel.getState().collectAsStateWithLifecycle()
+    val teamCategoryState by teamCategoryViewModel.getState().collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+
+    val edits = remember { mutableStateMapOf<Long, Short>() }
+    var isLocked by remember { mutableStateOf(true) }
+    val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
+    val filterTeamCategory = remember { mutableStateOf("") }
+    val fixturesById = state.values().associateBy { it.id }
+    val withTeamCategory = filterTeamCategory.value.isBlank()
+
+    fun getFixtures(fixtureConsumer: (String, String, String, Short, Long, Boolean) -> Unit) {
+        getFixtures(state.values(), competitionRound.round, filterTeamCategory.value, fixturesById, fixtureConsumer)
+    }
+
+    ViewCommon(
+        "${param.seasonName} ${param.competitionName} Round ${competitionRound.round} Fixtures",
+        bottomBar = {
+            BottomBarWithButtons(
+                ButtonSettings("Export", edits.isEmpty()) {
+                    coroutineScope.launch {
+                        val file = FileKit.openFileSaver(suggestedName = "cupFixtures", defaultExtension = "csv")
+                        val sink = file?.sink(append = false)?.buffered()
+
+                        sink.use { bufferedSink ->
+                            if (withTeamCategory) {
+                                bufferedSink?.writeString("Team Category,")
+                            }
+                            bufferedSink?.writeString("Home,Away\n")
+                            getFixtures { teamCategoryName, home, away, _, _, _ ->
+                                if (withTeamCategory) {
+                                    bufferedSink?.writeString("$teamCategoryName,")
+                                }
+                                bufferedSink?.writeString("$home,$away\n")
+                            }
+                        }
+                    }
+                },
+                ButtonSettings(buttonText) {
+                    if (!isLocked && edits.isNotEmpty()) {
+                        viewModel.saveResults(edits)
+                        edits.clear()
+                    }
+                    isLocked = !isLocked
+                }
+            )
+        },
+        confirm = { edits.isNotEmpty() },
+        confirmAction = {
+            viewModel.saveResults(edits)
+            edits.clear()
+        },
+        states = persistentListOf(state, teamCategoryState)
+    ) { paddingValues ->
+        val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }
+        val columns = if (withTeamCategory) 4 else 3
+
+        LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
+            item(span = { GridItemSpan(columns) }) {
+                DropdownList(
+                    teamCategoryList.toImmutableList(),
+                    0,
+                    label = "Filter Team Category"
+                ) { filterTeamCategory.value = teamCategoryList[it] }
+            }
+            if (withTeamCategory) {
+                item { ViewText("Team Category") }
+            }
+            viewTextItems(listOf("Home", "Away", "Winner"))
+            getFixtures {
+                    teamCategoryName, home, away, result, fixtureId, blankAwayAssociation ->
+                if (withTeamCategory) {
+                    item { ViewText(teamCategoryName) }
+                }
+                viewTextItems(listOf(home, away))
+                item {
+                    DropdownList(
+                        itemList = FixtureResult.entries.map { it.display }.toImmutableList(),
+                        selectedIndex = edits[fixtureId]?.toInt() ?: result.toInt(),
+                        isLocked = { isLocked || blankAwayAssociation || result != 0.toShort() },
+                    ) { edits[fixtureId] = it.toShort() }
+                }
+            }
+        }
+    }
 }
 
 private fun getRounds(data: List<SeasonCompetitionRound>): Set<Short> =

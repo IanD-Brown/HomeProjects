@@ -51,11 +51,17 @@ class SeasonRoundViewModel(seasonId: SeasonId, dao: SeasonRoundDao) :
 
 class SeasonCupFixtureViewModel(seasonId: SeasonId, dao: SeasonCupFixtureViewDao) :
     BaseReadViewModel<SeasonCupFixtureViewDao, SeasonCupFixtureView>(dao, { it.get(seasonId) }) {
-    fun setResult(id: Long, result: Short) = viewModelScope.launch { dao.setResult(id, result) }
 
     fun saveResults(edits: Map<Long, Short>) {
-        edits.forEach { (key, result) ->
-            setResult(key, result)
+        viewModelScope.launch {
+            try {
+                edits.forEach { (key, result) ->
+                    dao.setResult(key, result)
+                }
+                readAll()
+            } catch (e: Exception) {
+                handleException(e)
+            }
         }
     }
 }
@@ -71,28 +77,7 @@ internal fun CupFixtureScreen() {
         onPauseOrDispose { }
     }
 
-    CupFixtureContent(
-        state = seasonState,
-        onSummary = { appNavigator.navigate(Route.CupFixturesSummary(it)) },
-        onTable = { appNavigator.navigate(Route.CupFixturesTable(it)) },
-        onCalculate = { seasonId ->
-            coroutineScope.launch {
-                val timeTaken = measureTime { calcSeasonCupFixtures(seasonId) }
-                println("Season Fixtures calculated in $timeTaken")
-            }
-        }
-    )
-}
-
-@Composable
-private fun CupFixtureContent(
-    state: ViewModelState<Season>,
-    onSummary: (Season) -> Unit,
-    onTable: (Season) -> Unit,
-    onCalculate: suspend (SeasonId) -> Unit
-) {
     var calculating by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
 
     if (calculating) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -100,26 +85,27 @@ private fun CupFixtureContent(
         }
     } else {
         ViewCommon("Cup Fixtures",
-            states = persistentListOf(state)) { paddingValues ->
+            states = persistentListOf(seasonState)) { paddingValues ->
             val surfaceColor = MaterialTheme.colorScheme.onSurface
             LazyVerticalGrid(columns = WeightedIconGridCells(3, 1), Modifier.padding(paddingValues)) {
                 item { ViewText("Season") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
-                for (season in state.values().sortedByDescending { it.name.trim().uppercase() }) {
+                for (season in seasonState.values().sortedByDescending { it.name.trim().uppercase() }) {
                     item { ViewText(season.name) }
                     clickableIcon(Icons.Filled.Summarize, "Show fixture summaries", surfaceColor) {
-                        onSummary(season)
+                        appNavigator.navigate(Route.CupFixturesSummary(season))
                     }
                     clickableIcon(Icons.Filled.GridView, "Show fixtures", surfaceColor) {
-                        onTable(season)
+                        appNavigator.navigate(Route.CupFixturesTable(season))
                     }
                     item {
                         ClickableIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
                             calculating = true
                             coroutineScope.launch {
-                                onCalculate(season.id)
+                                val timeTaken = measureTime { calcSeasonCupFixtures(season.id) }
+                                println("Season Fixtures calculated in $timeTaken")
                                 calculating = false
                             }
                         }
@@ -146,21 +132,6 @@ internal fun SummaryCupFixtureScreen(season: Season) {
         onPauseOrDispose { }
     }
 
-    SummaryCupFixtureContent(
-        season = season,
-        seasonTeamState = seasonTeamState,
-        seasonRoundState = seasonRoundState,
-        competitionState = competitionState
-    )
-}
-
-@Composable
-private fun SummaryCupFixtureContent(
-    season: Season,
-    seasonTeamState: ViewModelState<SeasonCupSummaryView>,
-    seasonRoundState: ViewModelState<SeasonCompetitionRound>,
-    competitionState: ViewModelState<io.github.iandbrown.sportplanner.database.Competition>
-) {
     ViewCommon("Season Cup summary ${season.name}",
         states = persistentListOf(seasonTeamState, seasonRoundState, competitionState)) { paddingValues ->
         val data = seasonTeamState.values()
@@ -241,23 +212,6 @@ internal fun CupFixtureTableScreen(season: Season) {
         onPauseOrDispose { }
     }
 
-    CupFixtureTableContent(
-        season = season,
-        state = state,
-        competitionState = competitionState,
-        onSaveResults = { edits ->
-            viewModel.saveResults(edits)
-        }
-    )
-}
-
-@Composable
-private fun CupFixtureTableContent(
-    season: Season,
-    state: ViewModelState<SeasonCupFixtureView>,
-    competitionState: ViewModelState<io.github.iandbrown.sportplanner.database.Competition>,
-    onSaveResults: (Map<Long, Short>) -> Unit
-) {
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
@@ -268,7 +222,7 @@ private fun CupFixtureTableContent(
             BottomBarWithButtons(
                 ButtonSettings(buttonText) {
                     if (!isLocked && edits.isNotEmpty()) {
-                        onSaveResults(edits)
+                        viewModel.saveResults(edits)
                         edits.clear()
                     }
                     isLocked = !isLocked
@@ -277,7 +231,7 @@ private fun CupFixtureTableContent(
         },
         confirm = { edits.isNotEmpty() },
         confirmAction = {
-            onSaveResults(edits)
+            viewModel.saveResults(edits)
             edits.clear()
         }) { paddingValues ->
         val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })

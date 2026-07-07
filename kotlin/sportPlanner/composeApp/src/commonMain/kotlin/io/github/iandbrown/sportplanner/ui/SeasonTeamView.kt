@@ -35,33 +35,37 @@ class SeasonTeamViewModel(
         edits: Map<Pair<Short, Short>, Short>,
         currentValues: Map<Pair<Short, Short>, Short>
     ) {
-        for ((key, count) in edits) {
-            if (currentValues.getOrDefault(key, 0) != count) {
-                insert(
-                    SeasonTeam(
-                        seasonId = param.seasonId,
-                        teamCategoryId = key.second,
-                        associationId = key.first,
-                        competitionId = param.competitionId,
-                        count = count
+        runInCoroutine {
+            for ((key, count) in edits) {
+                if (currentValues.getOrDefault(key, 0) != count) {
+                    dao.insert(
+                        SeasonTeam(
+                            seasonId = param.seasonId,
+                            teamCategoryId = key.second,
+                            associationId = key.first,
+                            competitionId = param.competitionId,
+                            count = count
+                        )
                     )
-                )
+                }
             }
         }
     }
 
     fun saveByCategory(param: SeasonCompetitionParam, edits: Map<Short, Short>, associations: List<Association>) {
-        for ((key, count) in edits) {
-            for (association in associations) {
-                insert(
-                    SeasonTeam(
-                        seasonId = param.seasonId,
-                        teamCategoryId = key,
-                        associationId = association.id,
-                        competitionId = param.competitionId,
-                        count = count
+        runInCoroutine {
+            for ((key, count) in edits) {
+                for (association in associations) {
+                    dao.insert(
+                        SeasonTeam(
+                            seasonId = param.seasonId,
+                            teamCategoryId = key,
+                            associationId = association.id,
+                            competitionId = param.competitionId,
+                            count = count
+                        )
                     )
-                )
+                }
             }
         }
     }
