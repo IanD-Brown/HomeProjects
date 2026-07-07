@@ -35,7 +35,8 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
         ) {
             items(items = listOf(
                 "Meters" to Route.Meters,
-                "Usage" to Route.Usage
+                "Usage" to Route.Usage,
+                "Settings" to Route.Settings
             )) { (name, route) ->
                 ListItem(
                     headlineContent = { Text(name) },

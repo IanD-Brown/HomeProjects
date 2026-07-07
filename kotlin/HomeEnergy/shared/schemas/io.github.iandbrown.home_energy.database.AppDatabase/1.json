@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "944a7bfce62176e301d291b64cb1ea2a",
+    "identityHash": "59fbd917f0bf18b4b22aab496f95de47",
     "entities": [
       {
         "tableName": "Meters",
@@ -36,14 +36,8 @@
       },
       {
         "tableName": "Usages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`year` INTEGER NOT NULL, `month` INTEGER NOT NULL, `day` INTEGER NOT NULL, `period` INTEGER NOT NULL, `meterPointAdminNumber` TEXT NOT NULL, `consumption` REAL NOT NULL, PRIMARY KEY(`year`, `month`, `day`, `period`, `meterPointAdminNumber`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`month` INTEGER NOT NULL, `day` INTEGER NOT NULL, `period` INTEGER NOT NULL, `meterPointAdminNumber` TEXT NOT NULL, `averageConsumption` REAL NOT NULL, PRIMARY KEY(`month`, `day`, `period`, `meterPointAdminNumber`))",
         "fields": [
-          {
-            "fieldPath": "year",
-            "columnName": "year",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
           {
             "fieldPath": "month",
             "columnName": "month",
@@ -69,8 +63,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "consumption",
-            "columnName": "consumption",
+            "fieldPath": "averageConsumption",
+            "columnName": "averageConsumption",
             "affinity": "REAL",
             "notNull": true
           }
@@ -78,7 +72,6 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "year",
             "month",
             "day",
             "period",
@@ -125,7 +118,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '944a7bfce62176e301d291b64cb1ea2a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '59fbd917f0bf18b4b22aab496f95de47')"
     ]
   }
 }

@@ -14,7 +14,8 @@ import org.koin.compose.viewmodel.koinViewModel
 internal class UsageViewModel(usageDao: UsageDao) : CRUDViewModel<UsageDao, Usage>(dao = usageDao)
 
 @Composable
-internal fun UsageRoute(viewModel: UsageViewModel = koinViewModel()) {
+internal fun UsageRoute() {
+    val viewModel: UsageViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
     UsageScreen(state = state)
 }
@@ -26,15 +27,15 @@ internal fun UsageScreen(state: ViewModelState<Usage>) {
         bottomBar = {
         }) { padding ->
         LazyVerticalGrid(modifier = Modifier.padding(padding),
-            columns = TrailingIconGridCells(6, 0)) {
-            viewTextItems(listOf("Year", "Month", "Day", "Period", "Meter", "Amount"))
+            columns = TrailingIconGridCells(5, 0)) {
+            viewTextItems(listOf( "Month", "Day", "Period", "Meter", "Amount"))
             state.values().forEach {
-                viewTextItems(listOf(it.year.toString(),
+                viewTextItems(listOf(
                     it.month.toString(),
                     it.day.toString(),
                     it.period.toString(),
                     it.meterPointAdminNumber,
-                    it.consumption.toString()))
+                    it.averageConsumption.toString()))
             }
         }
     }

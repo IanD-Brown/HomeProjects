@@ -9,18 +9,17 @@ private const val table = "Usages"
 
 @Serializable
 @Entity(tableName = table,
-    primaryKeys = ["year", "month", "day", "period", "meterPointAdminNumber"])
+    primaryKeys = ["month", "day", "period", "meterPointAdminNumber"])
 data class Usage(
-    val year: Short,
     val month: Short,
     val day: Short,
     val period: Short,
     val meterPointAdminNumber: String,
-    val consumption: Double)
+    val averageConsumption: Double)
 
 @Dao
 interface UsageDao : BaseReadDao<Usage>, BaseWriteDao<Usage> {
-    @Query("SELECT * FROM $table ORDER BY year, month, day, period, meterPointAdminNumber")
+    @Query("SELECT * FROM $table ORDER BY month, day, period, meterPointAdminNumber")
     override suspend fun get(): List<Usage>
 
     @Query("DELETE FROM $table")

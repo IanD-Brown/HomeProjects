@@ -95,7 +95,6 @@ fun ViewCommon(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateTopBar(
@@ -116,7 +115,6 @@ private fun CreateTopBar(
         confirmAction()
         return false
     }
-
 
     TopAppBar(title = { Text(title) }, navigationIcon = {
         IconButton(onClick = {
@@ -157,6 +155,7 @@ fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
         modifier = modifier
     )
 }
+
 @Composable
 fun ViewTextField(
     value: String,
@@ -234,8 +233,8 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
 
 internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val onClick : () -> Unit)
 
-internal fun addButtonSettings(onClick : () -> Unit) : ButtonSettings =
-    ButtonSettings(imageVector = Icons.Default.Add, onClick = onClick)
+internal fun addButtonSettings(onClick : () -> Unit, enabled: Boolean = true) : ButtonSettings =
+    ButtonSettings(imageVector = Icons.Default.Add, enabled = enabled, onClick = onClick)
 
 @Composable
 fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =

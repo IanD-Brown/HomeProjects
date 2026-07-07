@@ -37,10 +37,8 @@ internal class MeterViewModel(dao: MeterDao, private val repository: MeterReposi
 }
 
 @Composable
-internal fun MeterRoute(
-    navigate: (Meter?) -> Unit,
-    viewModel: MeterViewModel = koinViewModel()
-) {
+internal fun MeterRoute(navigate: (Meter?) -> Unit) {
+    val viewModel: MeterViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
 
     MeterScreen(
@@ -83,11 +81,8 @@ internal fun MeterScreen(
 }
 
 @Composable
-internal fun MeterEditorRoute(
-    meter: Meter? = null,
-    done: () -> Unit,
-    viewModel: MeterViewModel = koinViewModel()
-) {
+internal fun MeterEditorRoute(meter: Meter? = null, done: () -> Unit) {
+    val viewModel: MeterViewModel = koinViewModel()
     MeterEditorScreen(
         meter = meter,
         onSave = { updatedMeter ->
@@ -102,10 +97,7 @@ internal fun MeterEditorRoute(
 }
 
 @Composable
-internal fun MeterEditorScreen(
-    meter: Meter? = null,
-    onSave: (Meter) -> Unit
-) {
+internal fun MeterEditorScreen(meter: Meter? = null, onSave: (Meter) -> Unit) {
     val title = if (meter == null) "New Meter" else "Edit Meter"
     var meterPointAdminNumber by remember { mutableStateOf(meter?.meterPointAdminNumber ?: "") }
     var serial by remember { mutableStateOf(meter?.serial ?: "") }

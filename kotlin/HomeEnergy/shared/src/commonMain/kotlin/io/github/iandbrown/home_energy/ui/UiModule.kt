@@ -12,14 +12,23 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import io.github.iandbrown.home_energy.repository.SettingsRepository
+import io.ktor.client.plugins.HttpRequestRetry
 
 @OptIn(KoinExperimentalAPI::class)
 val uiModule = module {
     viewModelOf(::MeterViewModel)
     viewModelOf(::UsageViewModel)
+    viewModelOf(::SettingsViewModel)
 
     single {
         HttpClient {
+            install(HttpRequestRetry) {
+                // Retries on any 5xx response (including 502)
+                retryOnServerErrors(maxRetries = 3)
+
+                // Optional: Add exponential backoff delay
+                exponentialDelay()
+            }
             install(Auth) {
                 basic {
                     credentials {
@@ -54,6 +63,16 @@ val uiModule = module {
 
     navigation<Route.Usage> {
         UsageRoute()
+    }
+
+    navigation<Route.Settings> {
+        val backstack = LocalBackstack.current
+        SettingsRoute(navigate = { setting -> backstack.add(Route.SettingEditor(setting)) })
+    }
+
+    navigation<Route.SettingEditor> { route ->
+        val backstack = LocalBackstack.current
+        SettingsEditorRoute(route.setting) { backstack.removeLastOrNull() }
     }
 
     navigation<Route.MeterEditor> { route ->
