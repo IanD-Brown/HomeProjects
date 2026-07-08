@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
+import dev.shivathapaa.logger.api.Logger
 import dev.shivathapaa.logger.api.LoggerFactory
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.AccountImportDefinition
@@ -367,33 +368,40 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
 }
 
 private suspend fun readPdf(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {
-    val logger = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)
     val sourceBytes = importFile.readBytes()
     val converter: AbstractPDFConverter = koinApp.koin.get { parametersOf(sourceBytes)}
-    val dateRange = converter.getDateRange()
+
+    val rows = converter.rowContent { it.size >= 4 }
+
+    return toDataFrame(rows, importDefinition,  converter.getDateRange())
+}
+
+internal fun toDataFrame(rows: List<Map<Range, String>>,
+                         importDefinition: ImportDefinitionListView,
+                         dateRange: Pair<Int, Int>,
+                         logger : Logger? = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)): DataFrame<Any?> {
     val datePattern = "(\\d{1,2})(st |nd |rd |th )([a-zA-Z]{3})".toRegex()
     val dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy")
     var transactionDate: Long = 0
 
-    logger.debug {"Range ${converter.getDateRange()}"}
-    val rows = converter.rowContent { it.size >= 4 }
+    logger?.debug {"Range $dateRange"}
 
     val headerRow = rows.firstOrNull { row -> row.values.toSet().containsAll(
         listOf(importDefinition.dateColumn,
         importDefinition.descriptionColumn,
             importDefinition.amountInColumn,
             importDefinition.amountOutColumn)) }
-    logger.debug {"HeaderRow $headerRow"}
+    logger?.debug {"HeaderRow $headerRow"}
     val dateIndex = getRange(importDefinition.dateColumn, headerRow!!)
     val descriptionIndex = getRange(importDefinition.descriptionColumn, headerRow)
     val amountInIndex = getRange(importDefinition.amountInColumn, headerRow)
     val amountOutIndex = getRange(importDefinition.amountOutColumn, headerRow)
-    logger.debug {"HeaderRanges   $dateIndex\n   $descriptionIndex\n   $amountInIndex\n   $amountOutIndex"}
+    logger?.debug { "HeaderRanges   $dateIndex\n   $descriptionIndex\n   $amountInIndex\n   $amountOutIndex" }
     var df = DataFrame.emptyOf<Any?>()
     for (row in rows.filter { it.size >= 4 }) {
-        val dateColumn = getByRange(dateIndex, row)
-        val amountIn = getByRange(amountInIndex, row).replace(Regex(","), "").toDoubleOrNull()
-        val amountOut = getByRange(amountOutIndex, row).replace(Regex(","), "").toDoubleOrNull()
+        val dateColumn = getByPosition(dateIndex, row, true)
+        val amountIn = getByPosition(amountInIndex, row, false).replace(Regex(","), "").toDoubleOrNull()
+        val amountOut = getByPosition(amountOutIndex, row, false).replace(Regex(","), "").toDoubleOrNull()
         if (datePattern.matches(dateColumn) && (amountIn != null || amountOut != null)) {
             val dateParts = datePattern.matchEntire(dateColumn)?.groupValues!!
             val dayNumber = dateParts[1].toInt().toString().padStart(2, '0')
@@ -403,11 +411,11 @@ private suspend fun readPdf(importFile: PlatformFile, importDefinition: ImportDe
             }
             transactionDate = date.toEpochDay()
             val amount = (amountIn ?: 0.0) - (amountOut ?: 0.0)
-            df = df.concat(dataFrameOf("A", "B", "C")(DayDate.of(date), getByRange(descriptionIndex, row).trim(), amount))
+            df = df.concat(dataFrameOf("A", "B", "C")(DayDate.of(date), getByPosition(descriptionIndex, row, true).trim(), amount))
         } else {
-            logger.debug {"$dateColumn ${getByRange(descriptionIndex, row)} $amountIn $amountOut"}
+            logger?.debug { "$dateColumn ${getByPosition(descriptionIndex, row, true)} $amountIn $amountOut" }
             for (cell in row) {
-                logger.debug {"Pair(Range(${cell.key.from}F, ${cell.key.to}F), \"${cell.value}\"),"}
+                logger?.debug { "Pair(Range(${cell.key.from}F, ${cell.key.to}F), \"${cell.value}\")," }
             }
         }
     }
@@ -419,10 +427,17 @@ private fun getRange(content: String, row: Map<Range, String>) : Range
 
 private fun asIntOneDecimal(position: Float) = (position * 10.0F).toInt()
 
-internal fun getByRange(range: Range, row: Map<Range, String>) : String {
-    val intFrom = asIntOneDecimal(range.from)
-    val intTo = asIntOneDecimal(range.to)
-    return row.filter { asIntOneDecimal(it.key.from) in intFrom..intTo }
+internal fun getByPosition(range: Range, row: Map<Range, String>, useFrom: Boolean) : String {
+    val intFrom : Int
+    val intTo : Int
+    if (useFrom) {
+        intFrom = asIntOneDecimal(range.from) - 5
+        intTo = intFrom + 10
+    } else {
+        intTo = asIntOneDecimal(range.to) + 5
+        intFrom = intTo - 10
+    }
+    return row.filter { asIntOneDecimal(if (useFrom) it.key.from else it.key.to) in intFrom..intTo }
         .values.fold("") {acc, it -> acc + it}
 }
 

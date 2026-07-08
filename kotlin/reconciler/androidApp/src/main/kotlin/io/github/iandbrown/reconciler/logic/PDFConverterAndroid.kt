@@ -30,6 +30,7 @@ private class MyTextStripper : PDFTextStripper() {
 
     @Throws(IOException::class)
     override fun startPage(page: PDPage?) {
+        areaHolder.saveCurrent()
         val cropBox = page?.cropBox!!
         areaHolder.startPage(cropBox.lowerLeftX, cropBox.lowerLeftY, cropBox.height)
         super.startPage(page)

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.reconciler.database.AccountDao
 import io.github.iandbrown.reconciler.database.Rule
 import io.github.iandbrown.reconciler.database.Transaction
@@ -51,6 +52,7 @@ import io.github.iandbrown.reconciler.logic.DayDate
 import io.github.iandbrown.reconciler.logic.TO_STRING_PATTERN
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.launch
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.api.toDataFrame
@@ -64,7 +66,14 @@ private data class FilterConfig(val minDate: DayDate, val maxDate: DayDate?, val
 private var baseFilterConfig = FilterConfig(DayDate.ofCurrentYearStart(), null, null, null, null)
 
 class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionListViewDao>().value) :
-    BaseReadViewModel<TransactionListViewDao, TransactionListView>(dao)
+    BaseReadViewModel<TransactionListViewDao, TransactionListView>(dao) {
+    fun delete(item: TransactionListView) {
+        viewModelScope.launch {
+            dao.deleteById(item.id)
+            readAll()
+        }
+    }
+}
 
 class TransactionViewModel(dao: TransactionDao = inject<TransactionDao>().value) :
     BaseConfigCRUDViewModel<TransactionDao, Transaction>(dao)
@@ -210,10 +219,10 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                     Spacer(modifier = Modifier.size(16.dp))
                     ViewText("Filters")
                 }
-                LazyVerticalGrid(columns = WeightedIconGridCells(2, 1, 1, 6, 1, 1)) {
+                LazyVerticalGrid(columns = WeightedIconGridCells(3, 1, 1, 6, 1, 1)) {
                    item(span = { GridItemSpan(2) }) {}
                     viewTextItems(values = listOf("Description", "Amount"))
-                    item(span = { GridItemSpan(3) }) {}
+                    item(span = { GridItemSpan(4) }) {}
                     for (transaction in filterTransaction(state.values(), true, accountGroup, transactionCategories.values())) {
                         viewTextItems(
                             values = listOf(
@@ -224,6 +233,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                         formatedNumber("%.2f", transaction.amount)
                         viewTextItems(values = listOf(transaction.categoryName))
                         item { EditButton { navController -> navController.navigate(transaction) } }
+                        item { DeleteButton { viewModel.delete(transaction) } }
                         item {
                             Icon(
                                 Icons.Default.Add,

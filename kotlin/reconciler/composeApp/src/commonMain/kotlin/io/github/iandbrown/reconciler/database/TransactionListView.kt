@@ -46,4 +46,7 @@ interface TransactionListViewDao : BaseReadDao<TransactionListView> {
 
     @Query("SELECT * FROM $viewName")
     suspend fun getAll() : List<TransactionListView>
+
+    @Query("DELETE FROM Transactions WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
