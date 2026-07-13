@@ -14,14 +14,10 @@ import org.koin.compose.viewmodel.koinViewModel
 internal class UsageViewModel(usageDao: UsageDao) : CRUDViewModel<UsageDao, Usage>(dao = usageDao)
 
 @Composable
-internal fun UsageRoute() {
+internal fun UsageList() {
     val viewModel: UsageViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
-    UsageScreen(state = state)
-}
 
-@Composable
-internal fun UsageScreen(state: ViewModelState<Usage>) {
     ViewCommon("Energy usage",
         persistentListOf(state),
         bottomBar = {
@@ -34,7 +30,7 @@ internal fun UsageScreen(state: ViewModelState<Usage>) {
                     it.month.toString(),
                     it.day.toString(),
                     it.period.toString(),
-                    it.meterPointAdminNumber,
+                    it.meterId.toString(),
                     it.averageConsumption.toString()))
             }
         }

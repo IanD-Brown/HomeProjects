@@ -1,5 +1,6 @@
 package io.github.iandbrown.home_energy.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -14,7 +15,10 @@ data class Setting(
     @PrimaryKey val id: Long = 1,
     val apiKey: String,
     val apiPassword : String,
-    val targetYear: Short)
+    val targetYear: Short,
+    val startMonth: Short,
+    val initialBalance: Double,
+    @ColumnInfo(defaultValue = "0.0") val directDebitAmount: Double)
 
 @Dao
 interface SettingDao : BaseReadDao<Setting>, BaseWriteDao<Setting> {

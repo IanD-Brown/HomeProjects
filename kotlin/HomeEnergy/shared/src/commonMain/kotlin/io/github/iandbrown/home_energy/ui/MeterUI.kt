@@ -1,19 +1,20 @@
 package io.github.iandbrown.home_energy.ui
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReadMore
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.home_energy.database.Meter
 import io.github.iandbrown.home_energy.database.MeterDao
@@ -37,44 +38,31 @@ internal class MeterViewModel(dao: MeterDao, private val repository: MeterReposi
 }
 
 @Composable
-internal fun MeterRoute(navigate: (Meter?) -> Unit) {
+internal fun MeterRoute(showMeterEditor: (Meter?) -> Unit, editTariff: (Meter?) -> Unit) {
     val viewModel: MeterViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
 
-    MeterScreen(
-        state = state,
-        onReadConsumption = { viewModel.readConsumption(state.values()) },
-        onAddMeter = { navigate(null) },
-        onEditMeter = { navigate(it) },
-        onDeleteMeter = { viewModel.delete(it) }
-    )
-}
-
-@Composable
-internal fun MeterScreen(
-    state: ViewModelState<Meter>,
-    onReadConsumption: () -> Unit,
-    onAddMeter: () -> Unit,
-    onEditMeter: (Meter) -> Unit,
-    onDeleteMeter: (Meter) -> Unit
-) {
     ViewCommon("Energy meters",
         persistentListOf(state),
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings(imageVector = Icons.AutoMirrored.Filled.ReadMore, onClick = onReadConsumption),
-                addButtonSettings(onAddMeter)
+                ButtonSettings(imageVector = Icons.AutoMirrored.Filled.ReadMore, onClick = { viewModel.readConsumption(state.values()) }),
+                addButtonSettings({
+                    showMeterEditor(null)
+                    viewModel.readAll()
+                })
             )
         }) { padding ->
-        LazyVerticalGrid(
-            modifier = Modifier.padding(padding),
-            columns = TrailingIconGridCells(2, 2)
-        ) {
-            viewTextItems(listOf("Meter Point Admin Number", "Serial", "", ""))
+        TrailingIconLazyVerticalGrid(padding, 3, 3) {
+            viewTextItems(listOf("Name", "Meter Point Admin Number", "Serial", "", "", ""))
             state.values().forEach {
-                viewTextItems(listOf(it.meterPointAdminNumber, it.serial))
-                editButton { onEditMeter(it) }
-                deleteButton { onDeleteMeter(it) }
+                viewTextItems(listOf(it.name, it.meterPointAdminNumber, it.serial))
+                clickableIcon(Icons.Default.ShoppingCart, "Tariff", Color.Green) { editTariff(it) }
+                editButton {
+                    showMeterEditor(it)
+                    viewModel.readAll()
+                }
+                deleteButton { viewModel.delete(it) }
             }
         }
     }
@@ -83,30 +71,20 @@ internal fun MeterScreen(
 @Composable
 internal fun MeterEditorRoute(meter: Meter? = null, done: () -> Unit) {
     val viewModel: MeterViewModel = koinViewModel()
-    MeterEditorScreen(
-        meter = meter,
-        onSave = { updatedMeter ->
-            if (meter == null) {
-                viewModel.insert(updatedMeter)
-            } else {
-                viewModel.update(updatedMeter)
-            }
-            done()
-        }
-    )
-}
-
-@Composable
-internal fun MeterEditorScreen(meter: Meter? = null, onSave: (Meter) -> Unit) {
     val title = if (meter == null) "New Meter" else "Edit Meter"
     var meterPointAdminNumber by remember { mutableStateOf(meter?.meterPointAdminNumber ?: "") }
     var serial by remember { mutableStateOf(meter?.serial ?: "") }
     var electric by remember { mutableStateOf(meter?.electric ?: true) }
+    var standingCharge by remember { mutableDoubleStateOf(meter?.standingCharge ?: 0.0) }
+    var name by remember { mutableStateOf(meter?.name ?: "") }
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
 
     fun setEditorState() {
-        editorState = if ((meter == null && meterPointAdminNumber.isEmpty() && serial.isEmpty() && electric) ||
-            (meter != null && meterPointAdminNumber == meter.meterPointAdminNumber && serial == meter.serial && electric == meter.electric)
+        editorState = if ((meter == null && meterPointAdminNumber.isEmpty() && serial.isEmpty() &&
+                    electric && standingCharge == 0.0 && name.isEmpty()) ||
+            (meter != null && meterPointAdminNumber == meter.meterPointAdminNumber &&
+                    serial == meter.serial && electric == meter.electric &&
+                    standingCharge == meter.standingCharge && name == meter.name)
         ) {
             EditorState.CLEAN
         } else if (meterPointAdminNumber.isEmpty() || serial.isEmpty()) {
@@ -116,32 +94,38 @@ internal fun MeterEditorScreen(meter: Meter? = null, onSave: (Meter) -> Unit) {
         }
     }
 
+    fun save() {
+        if (meter == null) {
+            viewModel.insert(Meter(meterPointAdminNumber, serial, electric, standingCharge, name = name))
+        } else {
+            viewModel.update(Meter(meterPointAdminNumber, serial, electric, standingCharge, meter.id, name))
+        }
+    }
+
     ViewCommon(title,
         description = "Return to Energy meters screen",
         bottomBar = {
             BottomBarWithButton(enabled = editorState == EditorState.VALID) {
-                onSave(Meter(meterPointAdminNumber, serial, electric))
+                save()
+                done()
             }
         },
         confirm = { editorState == EditorState.VALID },
-        confirmAction = { onSave(Meter(meterPointAdminNumber, serial, electric)) }) { padding ->
+        confirmAction = { save() }) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            Row {
-                ReadonlyViewText("Meter Point Admin Number")
+            EditorRow("Meter Point Admin Number") {
                 ViewTextField(meterPointAdminNumber) {
                     meterPointAdminNumber = it
                     setEditorState()
                 }
             }
-            Row {
-                ReadonlyViewText("Serial")
+            EditorRow("Serial") {
                 ViewTextField(serial) {
                     serial = it
                     setEditorState()
                 }
             }
-            Row {
-                ReadonlyViewText("Electric")
+            EditorRow("Electric") {
                 Checkbox(
                     checked = electric,
                     onCheckedChange = {
@@ -149,6 +133,18 @@ internal fun MeterEditorScreen(meter: Meter? = null, onSave: (Meter) -> Unit) {
                         setEditorState()
                     }
                 )
+            }
+            EditorRow("Standing charge") {
+                NumericField(standingCharge.toString()) {
+                    standingCharge = it.toDouble()
+                    setEditorState()
+                }
+            }
+            EditorRow("Name") {
+                ViewTextField(name) {
+                    name = it
+                    setEditorState()
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 package io.github.iandbrown.home_energy.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -11,10 +12,13 @@ private const val table = "Meters"
 @Serializable
 @Entity(tableName = table)
 data class Meter(
-    @PrimaryKey
     val meterPointAdminNumber : String,
     val serial : String,
-    val electric : Boolean)
+    val electric : Boolean,
+    val standingCharge : Double,
+    @PrimaryKey(autoGenerate = true) val id : Int = 0,
+    @ColumnInfo(defaultValue = "") val name: String
+    )
 
 @Dao
 interface MeterDao : BaseReadDao<Meter>, BaseWriteDao<Meter> {

@@ -37,7 +37,7 @@ internal fun<ENTITY> State<ViewModelState<ENTITY>>.values() : ImmutableList<ENTI
     }
 }
 
-private class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val reader: suspend() -> List<ENTITY>) {
+internal class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val reader: suspend() -> List<ENTITY>) {
     private val _state = MutableStateFlow<ViewModelState<ENTITY>>(ViewModelState.Uninitialized)
     val uiState: StateFlow<ViewModelState<ENTITY>> = _state.asStateFlow()
 
@@ -74,15 +74,15 @@ fun logException(className: String, exception: Exception, context: String) {
     logger.error(exception) { "$context ${exception.message}" }
 }
 
-internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO) : ViewModel()
+internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO, val reader: suspend() -> List<ENTITY> = { dao.get() }) : ViewModel()
     where DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY> {
-    private val readDelegate = ReadDelegate(viewModelScope) { dao.get() }
+    private val readDelegate = ReadDelegate(viewModelScope) { reader() }
 
     fun getState() : StateFlow<ViewModelState<ENTITY>> = readDelegate.uiState
 
     protected fun setLoading() = readDelegate.setLoading()
 
-    protected fun readAll() = readDelegate.readAll()
+    internal fun readAll() = readDelegate.readAll()
 
     fun insert(entity: ENTITY) {
         runInCoroutine { dao.insert(entity) }

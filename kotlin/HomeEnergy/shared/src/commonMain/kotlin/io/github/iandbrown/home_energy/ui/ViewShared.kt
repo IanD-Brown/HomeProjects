@@ -13,16 +13,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -144,6 +151,17 @@ private fun CreateTopBar(
 }
 
 @Composable
+internal fun ViewText(value : String, modifier: Modifier = Modifier) {
+    Text(
+        text = value,
+        fontSize = fontSize,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
+}
+
+@Composable
 fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
     TextField(
         value = value,
@@ -209,6 +227,68 @@ fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Bo
         modifier = modifier.padding(6.dp),
         onClick = onClick)
     { Text(value, fontSize = fontSize, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+}
+
+@Composable
+internal fun DropdownList(
+    itemList: ImmutableList<String>,
+    selectedIndex: Int,
+    modifier: Modifier = Modifier,
+    isLocked: () -> Boolean = { false },
+    label: String? = null,
+    onItemClick: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedText = if (itemList.isNotEmpty() && selectedIndex >= 0) itemList[selectedIndex] else ""
+
+    if (!isLocked() && itemList.isNotEmpty() && selectedIndex < 0) {
+        onItemClick(0)
+    }
+
+    if (isLocked() || itemList.size <= 1) {
+        ViewText(selectedText, modifier)
+    } else {
+        // Up Icon when expanded and down icon when collapsed
+        val icon = if (expanded)
+            Icons.Filled.KeyboardArrowUp
+        else
+            Icons.Filled.KeyboardArrowDown
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = modifier
+                .fillMaxWidth().padding(0.dp)
+                .clickable {
+                    if (!isLocked()) {
+                        expanded = !expanded
+                    }
+                },
+        ) {
+            ViewTextField(
+                value = selectedText,
+                label = label,
+                trailingIcon = {
+                    if (!isLocked()) {
+                        Icon(
+                            icon, "contentDescription",
+                            Modifier.clickable { expanded = !expanded })
+                    }
+                }
+            ) {}
+            if (!isLocked() && expanded) {
+                DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
+                    itemList.forEach { label ->
+                        DropdownMenuItem(
+                            text = { ViewText(label) },
+                            onClick = {
+                                onItemClick(itemList.indexOf(label))
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
@@ -289,5 +369,41 @@ internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () 
 internal fun LazyGridScope.viewTextItems(values: List<String>) {
     items(items = values) {
         ReadonlyViewText(it)
+    }
+}
+
+@Composable
+internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
+    TextField(
+        value = value,
+        onValueChange = {
+            try {
+                onValueChange(it)
+            } catch (_: NumberFormatException) {
+            }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        colors = textFieldColors(),
+        textStyle = textStyle()
+    )
+}
+
+@Composable
+internal fun EditorRow(title: String, content: @Composable () -> Unit) {
+    Row {
+        ReadonlyViewText(title)
+        content()
+    }
+}
+
+@Composable
+internal fun TrailingIconLazyVerticalGrid(paddingValues: PaddingValues,
+                                          dataColumnCount: Int,
+                                          trailingIconCount: Int,
+                                          content: LazyGridScope.() -> Unit) {
+    LazyVerticalGrid(modifier = Modifier.padding(paddingValues),
+        columns = TrailingIconGridCells(dataColumnCount, trailingIconCount)) {
+        content()
     }
 }

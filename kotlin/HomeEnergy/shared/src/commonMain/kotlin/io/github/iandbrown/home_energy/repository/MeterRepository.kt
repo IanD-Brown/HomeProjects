@@ -4,8 +4,6 @@ import io.github.iandbrown.home_energy.database.Meter
 import io.github.iandbrown.home_energy.database.Usage
 import io.github.iandbrown.home_energy.database.UsageDao
 import io.github.iandbrown.home_energy.networking.OctopusApi
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 private data class PeriodUsage (var total: Double = 0.0, var count: Int = 1)
 
@@ -15,40 +13,41 @@ class MeterRepository(
 ) {
     suspend fun syncConsumption(meters: List<Meter>) {
         usageDao.deleteAll()
+        val datePattern = "(\\d{4})(-)(\\d{2})(-)(\\d{2})(T)(\\d{2})(:)(\\d{2})".toRegex()
         for (meter in meters) {
             var url: String? = null
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[XXX]")
             val periodUsages = mutableMapOf<Triple<Short, Short, Short>, PeriodUsage>()
+
+            println("Fetching consumption for ${meter.name} (${meter.meterPointAdminNumber})")
             do {
                 val response = api.getConsumption(meter, url)
                 response.results.forEach { dto ->
                     if (dto.consumption > 0.0) {
-                        var startInstant = LocalDateTime.parse(dto.intervalStart, formatter)
-                        val endInstant = LocalDateTime.parse(dto.intervalEnd, formatter)
-                        var count = 1
+                        val startDateParts = datePattern.matchAt(dto.intervalStart, 0)?.groupValues!!
+                        val endDateParts = datePattern.matchAt(dto.intervalEnd, 0)?.groupValues!!
+                        val startInstant = toPeriod(startDateParts)
+                        val endInstant = toPeriod(endDateParts)
+                        val count = endInstant - startInstant
 
-                        while (startInstant.plusMinutes((30 * count).toLong()) < endInstant) {
-                            ++count
-                        }
                         if (count > 1) {
                             println("Multiple intervals ${dto.intervalStart}   $count consumption ${dto.consumption}")
                         }
-                        repeat(count) {
-                            val period =
-                                (startInstant.hour * 2 + startInstant.minute / 30).toShort()
+                        if (startDateParts[3] == "01" && startDateParts[5] == "01") {
+                            println("Multi Consumption ${dto.intervalStart} ${meter.id} ${dto.consumption}")
+                        }
+                        for (period in startInstant..endInstant) {
                             periodUsages.compute(
-                                Triple(
-                                    startInstant.monthValue.toShort(),
-                                    startInstant.dayOfMonth.toShort(),
-                                    period
-                                )
+                                Triple(startDateParts[3].toShort(), startDateParts[5].toShort(), period.toShort())
                             ) { _, v ->
+                                val consumption = when (meter.electric) {
+                                    true -> dto.consumption
+                                    false -> dto.consumption * 14.4 / 1.261 // hack convert m3 to kw
+                                }
                                 if (v == null)
-                                    PeriodUsage(dto.consumption / count, 1)
+                                    PeriodUsage(consumption, 1)
                                 else
-                                    PeriodUsage(v.total + dto.consumption / count, v.count + 1)
+                                    PeriodUsage(v.total + consumption, v.count + 1)
                             }
-                            startInstant = startInstant.plusMinutes(30)
                         }
                     }
                 }
@@ -56,9 +55,12 @@ class MeterRepository(
             } while (url != null)
             for ((key, value) in periodUsages) {
                 usageDao.insert(
-                    Usage(key.first, key.second, key.third, meter.meterPointAdminNumber, value.total / value.count)
+                    Usage(key.first, key.second, key.third, meter.id, value.total / value.count)
                 )
             }
+            println("${meter.name} added ${periodUsages.size} usages")
         }
     }
 }
+
+private fun toPeriod(parts: List<String>) : Short = (parts[7].toInt() * 2 + parts[9].toInt() / 30).toShort()

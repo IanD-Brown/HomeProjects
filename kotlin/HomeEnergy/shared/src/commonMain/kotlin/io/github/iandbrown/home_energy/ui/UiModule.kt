@@ -13,12 +13,15 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import io.github.iandbrown.home_energy.repository.SettingsRepository
 import io.ktor.client.plugins.HttpRequestRetry
+import org.koin.core.module.dsl.viewModel
 
 @OptIn(KoinExperimentalAPI::class)
 val uiModule = module {
+    viewModel { MeterTariffViewModel(it.get(), get()) }
+    viewModelOf(::MeterTariffsViewModel)
     viewModelOf(::MeterViewModel)
-    viewModelOf(::UsageViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::UsageViewModel)
 
     single {
         HttpClient {
@@ -58,11 +61,12 @@ val uiModule = module {
 
     navigation<Route.Meters> {
         val backstack = LocalBackstack.current
-        MeterRoute(navigate = { meter -> backstack.add(Route.MeterEditor(meter)) })
+        MeterRoute(showMeterEditor = { meter -> backstack.add(Route.MeterEditor(meter)) },
+            editTariff = { meter -> backstack.add(Route.MeterTariffList(meter!!)) })
     }
 
     navigation<Route.Usage> {
-        UsageRoute()
+        UsageList()
     }
 
     navigation<Route.Settings> {
@@ -78,5 +82,20 @@ val uiModule = module {
     navigation<Route.MeterEditor> { route ->
         val backstack = LocalBackstack.current
         MeterEditorRoute(meter = route.meter, done = { backstack.removeLastOrNull() })
+    }
+
+    navigation<Route.MeterTariffList> { route ->
+        val backstack = LocalBackstack.current
+        MeterTariffListRoute(meter = route.meter) { meterId, meterTariff ->
+            backstack.add(Route.MeterTariffEditor(meterId, meterTariff)) }
+    }
+
+    navigation<Route.MeterTariffEditor> {route ->
+        val backstack = LocalBackstack.current
+        MeterTariffEditorRoute(route.meterId, route.meterTariff) { backstack.removeLastOrNull() }
+    }
+
+    navigation<Route.Future> {
+        FutureScreen()
     }
 }
