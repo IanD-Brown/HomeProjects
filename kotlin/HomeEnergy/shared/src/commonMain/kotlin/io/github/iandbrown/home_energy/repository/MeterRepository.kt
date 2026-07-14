@@ -22,7 +22,7 @@ class MeterRepository(
             do {
                 val response = api.getConsumption(meter, url)
                 response.results.forEach { dto ->
-                    if (dto.consumption > 0.0) {
+                    if (dto.consumption > 0.0 && datePattern.matches(dto.intervalStart)) {
                         val startDateParts = datePattern.matchAt(dto.intervalStart, 0)?.groupValues!!
                         val endDateParts = datePattern.matchAt(dto.intervalEnd, 0)?.groupValues!!
                         val startInstant = toPeriod(startDateParts)
