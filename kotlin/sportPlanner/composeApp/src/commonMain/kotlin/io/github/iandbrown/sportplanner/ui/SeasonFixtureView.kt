@@ -15,9 +15,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MultipleStop
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,9 +57,16 @@ import io.github.iandbrown.sportplanner.logic.DayDate
 import io.github.iandbrown.sportplanner.logic.SeasonLeagueGames
 import io.github.iandbrown.sportplanner.logic.SeasonWeeks
 import io.github.iandbrown.sportplanner.logic.SeasonWeeksImpl.Companion.createSeasonWeeks
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
+import io.github.vinceglb.filekit.sink
+import io.github.vinceglb.filekit.toKotlinxIoPath
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
+import kotlinx.io.buffered
+import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.concat
 import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
@@ -65,6 +74,7 @@ import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
+import kotlin.io.path.Path
 import kotlin.time.measureTime
 
 internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
@@ -127,30 +137,6 @@ private fun CompetitionFilter(
 fun FixtureScreen() {
     val viewModel: SeasonViewModel = koinViewModel()
     val seasonState by viewModel.getState().collectAsStateWithLifecycle()
-    val coroutineScope = rememberCoroutineScope()
-
-    FixtureContent(
-        state = seasonState,
-        onDateSummary = { appNavigator.navigate(Route.LeagueFixturesDate(it)) },
-        onSummary = { appNavigator.navigate(Route.LeagueFixturesSummary(it)) },
-        onTable = { appNavigator.navigate(Route.LeagueFixturesTable(it)) },
-        onCalculate = { seasonId ->
-            coroutineScope.launch {
-                val timeTaken = measureTime { calcFixtures(seasonId) }
-                println("Fixtures calculated in $timeTaken")
-            }
-        }
-    )
-}
-
-@Composable
-private fun FixtureContent(
-    state: ViewModelState<Season>,
-    onDateSummary: (Season) -> Unit,
-    onSummary: (Season) -> Unit,
-    onTable: (Season) -> Unit,
-    onCalculate: suspend (SeasonId) -> Unit
-) {
     var calculating by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -159,38 +145,36 @@ private fun FixtureContent(
             CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
         }
     } else {
+        val onSurface = MaterialTheme.colorScheme.onSurface
+
         ViewCommon("Fixtures",
-            states = persistentListOf(state)) { paddingValues ->
+            states = persistentListOf(seasonState)) { paddingValues ->
             LazyVerticalGrid(columns = WeightedIconGridCells(4, 1), Modifier.padding(paddingValues)) {
                 item { ViewText("Season") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
                 item { Icon(Blank, "") }
-                for (season in state.values().sortedByDescending { it.name.trim().uppercase() }) {
+                for (season in seasonState.values().sortedByDescending { it.name.trim().uppercase() }) {
                     item { ViewText(season.name) }
-                    item {
-                        ClickableIcon(Icons.Filled.Info, "Date summary") {
-                            onDateSummary(season)
-                        }
+                    clickableIcon(Icons.Filled.Info, "Date summary", onSurface) {
+                        appNavigator.navigate(Route.LeagueFixturesDate(season))
                     }
-                    item {
-                        ClickableIcon(Icons.Filled.Summarize, "Show fixture summaries") {
-                            onSummary(season)
-                        }
+
+                    clickableIcon(Icons.Filled.Summarize, "Show fixture summaries", onSurface) {
+                        appNavigator.navigate(Route.LeagueFixturesSummary(season))
                     }
-                    item {
-                        ClickableIcon(Icons.Filled.GridView, "Show fixtures") {
-                            onTable(season)
-                        }
+
+                    clickableIcon(Icons.Filled.GridView, "Show fixtures", onSurface) {
+                        appNavigator.navigate(Route.LeagueFixturesTable(season))
                     }
-                    item {
-                        ClickableIconOld(Icons.Filled.Calculate, "Calculate fixtures") {
-                            calculating = true
-                            coroutineScope.launch {
-                                onCalculate(season.id)
-                                calculating = false
-                            }
+                    clickableIcon(Icons.Filled.Calculate, "Calculate fixtures", onSurface) {
+                        calculating = true
+                        coroutineScope.launch {
+                            val timeTaken = measureTime { calcFixtures(season.id) }
+                            println("Fixtures calculated in $timeTaken")
+
+                            calculating = false
                         }
                     }
                 }
@@ -379,28 +363,17 @@ fun FixtureTableScreen(season: Season) {
     val state by viewModel.getState().collectAsStateWithLifecycle()
     val seasonLeagueTeamState by seasonLeagueTeamModel.getState().collectAsStateWithLifecycle()
 
-    FixtureTableContent(
-        season = season,
-        associationState = associationState,
-        teamCategoryState = teamCategoryState,
-        state = state,
-        seasonLeagueTeamState = seasonLeagueTeamState
-    )
-}
-
-@Composable
-private fun FixtureTableContent(
-    season: Season,
-    associationState: ViewModelState<Association>,
-    teamCategoryState: ViewModelState<TeamCategory>,
-    state: ViewModelState<SeasonFixtureView>,
-    seasonLeagueTeamState: ViewModelState<SeasonLeagueTeamView>
-) {
     var filterAssociation by remember { mutableStateOf("") }
     var filterTeamCategory by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val withTeamCategory = filterTeamCategory.isBlank()
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
+
+    fun getSourceFixtureValues() = SourceFixtureValues(state.values(),
+        teamCategoryState.values(), seasonLeagueTeamState.values()
+            .associateBy(
+                { Triple(it.teamCategoryId, it.associationName, it.competitionId) },
+                { it.count }))
 
     ViewCommon(
         "Season fixtures",
@@ -408,30 +381,29 @@ private fun FixtureTableContent(
         {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "seasonFixtures", "csv") { writer ->
-                    val teamCounts = seasonLeagueTeamState.values()
-                        .associateBy({ Triple(it.teamCategoryId, it.associationName, it.competitionId) }, { it.count })
-                    var df = DataFrame.emptyOf<Any?>()
-                    getFixtures(
-                        state.values(),
-                        competitionFilter,
-                        filterAssociation,
-                        filterTeamCategory,
-                        teamCategoryState.values(),
-                        teamCounts
-                    ) { date, teamCategory, message, home, away ->
-                        df = if (withTeamCategory) {
-                            df.concat(
-                                dataFrameOf("Date", "Team Category", "Message", "Home", "Away")
-                                    (date, teamCategory, message, home, away)
-                            )
-                        } else {
-                            df.concat(
-                                dataFrameOf("Date", "Message", "Home", "Away")
-                                    (date, message, home, away)
-                            )
+                    export(getSourceFixtureValues(),
+                        FixtureFilter(competitionFilter, filterAssociation, filterTeamCategory),
+                        withTeamCategory,
+                        writer
+                    )
+                },
+                ButtonSettings(imageVector = Icons.Default.MultipleStop) {
+                    coroutineScope.launch {
+                        val folder = FileKit.openDirectoryPicker()
+                        val sourceFixtureValues = getSourceFixtureValues()
+
+                        associationState.values().forEach {
+                            val associationName = it.name
+                            val fixtureFilter = FixtureFilter(competitionFilter, associationName, "")
+                            multiFileExport(folder, associationName, sourceFixtureValues, fixtureFilter)
+                        }
+
+                        teamCategoryState.values().forEach {
+                            val teamCategoryName = it.name
+                            val fixtureFilter = FixtureFilter(competitionFilter, "", teamCategoryName)
+                            multiFileExport(folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
                         }
                     }
-                    df.writeCsv(writer)
                 }
             )
         },
@@ -499,6 +471,43 @@ private fun FixtureTableContent(
             }
         }
     }
+}
+
+private fun multiFileExport(folder: PlatformFile?,
+                            fileName: String,
+                            sourceFixtureValues: SourceFixtureValues,
+                            fixtureFilter: FixtureFilter) {
+    val file = PlatformFile(
+        Path(folder?.toKotlinxIoPath().toString()).resolve("$fileName.csv").toFile()
+    )
+    val sink = file.sink(append = false).buffered()
+    sink.use { bufferedSink ->
+        val sb = StringBuilder()
+        export(sourceFixtureValues, fixtureFilter, true, sb)
+        bufferedSink.writeString(sb.toString())
+    }
+}
+
+private fun export(sourceFixtureValues: SourceFixtureValues,
+                   fixtureFilter: FixtureFilter,
+                   withTeamCategory: Boolean,
+                   writer: Appendable
+) {
+    var df = DataFrame.emptyOf<Any?>()
+    getFixtures(sourceFixtureValues, fixtureFilter) { date, teamCategory, message, home, away ->
+        df = if (withTeamCategory) {
+            df.concat(
+                dataFrameOf("Date", "Team Category", "Message", "Home", "Away")
+                    (date, teamCategory, message, home, away)
+            )
+        } else {
+            df.concat(
+                dataFrameOf("Date", "Message", "Home", "Away")
+                    (date, message, home, away)
+            )
+        }
+    }
+    df.writeCsv(writer)
 }
 
 @Composable
@@ -605,6 +614,15 @@ private fun adjustedWeek(fixture: SeasonFixtureView, matchDayAdjust: Map<String,
 private fun adjustedDate(fixture: SeasonFixtureView, matchDayAdjust: Map<String, Short>): String =
     DayDate(adjustedWeek(fixture, matchDayAdjust)).toString()
 
+private data class SourceFixtureValues(val allFixtures: List<SeasonFixtureView>,
+                                       val teamCategories: List<TeamCategory>,
+                                       val teamCounts: TeamCountMap)
+
+private data class FixtureFilter(val filterCompetition: CompetitionId, val filterAssociation: String, val filterTeamCategory: String)
+
+private fun getFixtures(values: SourceFixtureValues, filter: FixtureFilter, fixtureConsumer: (String, String, String, String, String) -> Unit) {
+    getFixtures(values.allFixtures, filter.filterCompetition, filter.filterAssociation, filter.filterTeamCategory, values.teamCategories, values.teamCounts, fixtureConsumer)
+}
 
 internal fun getFixtures(
     allFixtures: List<SeasonFixtureView>,

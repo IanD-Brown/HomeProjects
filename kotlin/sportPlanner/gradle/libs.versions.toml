@@ -28,7 +28,7 @@ sqliteBundled = "2.7.0"
 koin-core = "4.2.2"
 androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
-kotest-version = "6.2.1"
+kotest-version = "6.2.2"
 kover = "0.9.8"
 mockkery = "3.4.2"
 coroutine-test-version = "1.11.0"

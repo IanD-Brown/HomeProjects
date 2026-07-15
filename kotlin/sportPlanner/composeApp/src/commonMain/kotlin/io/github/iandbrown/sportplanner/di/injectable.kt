@@ -48,6 +48,7 @@ import io.github.iandbrown.sportplanner.ui.SummaryFixtureScreen
 import io.github.iandbrown.sportplanner.ui.TeamCategoryEditScreen
 import io.github.iandbrown.sportplanner.ui.TeamCategoryListScreen
 import io.github.iandbrown.sportplanner.ui.TeamCategoryViewModel
+import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.navigation3.navigation
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModel
@@ -55,6 +56,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
+@OptIn(KoinExperimentalAPI::class)
 private val injectableModules = module {
     navigation<Route.Home> { HomeScreen() }
     navigation<Route.AssociationList> { AssociationListScreen() }

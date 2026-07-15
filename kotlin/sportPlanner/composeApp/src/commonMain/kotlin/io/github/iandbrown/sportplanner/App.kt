@@ -13,7 +13,9 @@ import io.github.iandbrown.sportplanner.ui.rememberNavigationState
 import io.github.iandbrown.sportplanner.ui.toEntries
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import org.koin.compose.navigation3.koinEntryProvider
+import org.koin.core.annotation.KoinExperimentalAPI
 
+@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun App(fileKitDialogSettings: FileKitDialogSettings) {
     appFileKitDialogSettings = fileKitDialogSettings
