@@ -15,7 +15,6 @@ actual fun platformModule(): Module = module {
         Room.databaseBuilder<AppDatabase>(getFilePath())
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
-            .fallbackToDestructiveMigration(true)
     }
     single<AppDatabase> { get<RoomDatabase.Builder<AppDatabase>>().build() }
 }

@@ -5,12 +5,13 @@ import androidx.room.Entity
 import androidx.room.Query
 import kotlinx.serialization.Serializable
 
-private const val table = "Usages"
+private const val table = "RawUsages"
 
 @Serializable
 @Entity(tableName = table,
-    primaryKeys = ["day", "period", "month", "meterId"])
-data class Usage(
+    primaryKeys = ["year", "day", "period", "month", "meterId"])
+data class RawUsage(
+    val year: Short,
     val month: Short,
     val day: Short,
     val period: Short,
@@ -18,9 +19,9 @@ data class Usage(
     val averageConsumption: Double)
 
 @Dao
-interface UsageDao : BaseReadDao<Usage>, BaseWriteDao<Usage> {
-    @Query("SELECT * FROM $table ORDER BY meterId, month, day, period")
-    override suspend fun get(): List<Usage>
+interface RawUsageDao : BaseReadDao<RawUsage>, BaseWriteDao<RawUsage> {
+    @Query("SELECT * FROM $table")
+    override suspend fun get(): List<RawUsage>
 
     @Query("DELETE FROM $table")
     suspend fun deleteAll()

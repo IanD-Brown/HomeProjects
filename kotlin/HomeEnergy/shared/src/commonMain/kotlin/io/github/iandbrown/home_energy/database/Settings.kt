@@ -18,7 +18,8 @@ data class Setting(
     val targetYear: Short,
     val startMonth: Short,
     val initialBalance: Double,
-    @ColumnInfo(defaultValue = "0.0") val directDebitAmount: Double)
+    @ColumnInfo(defaultValue = "0.0") val directDebitAmount: Double,
+    @ColumnInfo(defaultValue = "0") val fromYear: Short)
 
 @Dao
 interface SettingDao : BaseReadDao<Setting>, BaseWriteDao<Setting> {

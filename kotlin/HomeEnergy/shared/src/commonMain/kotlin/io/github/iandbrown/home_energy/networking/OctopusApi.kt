@@ -23,8 +23,8 @@ data class ConsumptionDto(
 )
 
 class OctopusApi(private val client: HttpClient) {
-    suspend fun getConsumption(meter: Meter, url: String? = null): OctopusConsumptionResponse {
-        val requestUrl = url ?: "https://api.octopus.energy/v1/${meter.urlPart()}/?period_from=2023-04-01T00:00:00"
+    suspend fun getConsumption(meter: Meter, url: String? = null, year: Short = 2023): OctopusConsumptionResponse {
+        val requestUrl = url ?: "https://api.octopus.energy/v1/${meter.urlPart()}/?period_from=$year-01-01T00:00:00"
         return client.get(requestUrl).body()
     }
 

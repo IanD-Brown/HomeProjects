@@ -3,8 +3,8 @@ package io.github.iandbrown.home_energy.di
 import io.github.iandbrown.home_energy.database.AppDatabase
 import io.github.iandbrown.home_energy.database.MeterDao
 import io.github.iandbrown.home_energy.database.MeterTariffDao
+import io.github.iandbrown.home_energy.database.RawUsageDao
 import io.github.iandbrown.home_energy.database.SettingDao
-import io.github.iandbrown.home_energy.database.UsageDao
 import io.github.iandbrown.home_energy.networking.OctopusApi
 import io.github.iandbrown.home_energy.repository.MeterRepository
 import io.github.iandbrown.home_energy.repository.SettingsRepository
@@ -21,13 +21,13 @@ val commonModule = module {
     includes(uiModule)
 
     single { OctopusApi(get()) }
-    single { MeterRepository(get(), get()) }
+    single { MeterRepository(get(), get(), get()) }
     single { SettingsRepository(get(), CoroutineScope(Dispatchers.Default + SupervisorJob())) }
 
     // Provide DAOs
     single<MeterDao> { get<AppDatabase>().getMeterDao() }
     single<MeterTariffDao> { get<AppDatabase>().getMeterTariffDao() }
-    single<UsageDao> { get<AppDatabase>().getUsageDao() }
+    single<RawUsageDao> { get<AppDatabase>().getRawUsageDao() }
     single<SettingDao> { get<AppDatabase>().getSettingDao() }
 }
 

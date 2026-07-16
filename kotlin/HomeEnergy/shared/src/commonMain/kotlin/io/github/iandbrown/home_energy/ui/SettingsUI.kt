@@ -74,17 +74,20 @@ internal fun SettingsEditorScreen(setting: Setting? = null, onSave: (Setting) ->
     var startMonth by remember { mutableIntStateOf(setting?.startMonth?.toInt() ?: 0) }
     var initialBalance by remember { mutableDoubleStateOf(setting?.initialBalance ?: 0.0) }
     var directDebitAmount by remember { mutableDoubleStateOf(setting?.directDebitAmount ?: 0.0) }
+    var fromYear by remember { mutableIntStateOf(setting?.fromYear?.toInt() ?: 0) }
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
 
     fun setEditorState() {
         editorState = if ((setting == null && apiKey.isEmpty() && apiPassword.isEmpty() &&
-                    targetYear == 0 && startMonth == 0 && initialBalance == 0.0 && directDebitAmount == 0.0) ||
+                    targetYear == 0 && startMonth == 0 && initialBalance == 0.0 && directDebitAmount == 0.0 &&
+                    fromYear == 0) ||
             (setting != null && apiKey == setting.apiKey && apiPassword == setting.apiPassword &&
                     targetYear == setting.targetYear.toInt() && startMonth == setting.startMonth.toInt() &&
-                    initialBalance == setting.initialBalance && directDebitAmount == setting.directDebitAmount)
+                    initialBalance == setting.initialBalance && directDebitAmount == setting.directDebitAmount &&
+                    fromYear == setting.fromYear.toInt())
         ) {
             EditorState.CLEAN
-        } else if (apiKey.isEmpty() || targetYear == 0) {
+        } else if (apiKey.isEmpty() || targetYear == 0 || fromYear == 0) {
             EditorState.DIRTY
         } else {
             EditorState.VALID
@@ -92,7 +95,8 @@ internal fun SettingsEditorScreen(setting: Setting? = null, onSave: (Setting) ->
     }
 
     fun toSetting() : Setting = Setting(apiKey = apiKey, apiPassword = apiPassword,
-        targetYear = targetYear.toShort(), startMonth = startMonth.toShort(), initialBalance = initialBalance, directDebitAmount = directDebitAmount)
+        targetYear = targetYear.toShort(), startMonth = startMonth.toShort(),
+        initialBalance = initialBalance, directDebitAmount = directDebitAmount, fromYear = fromYear.toShort())
 
     ViewCommon(title,
         description = "Return to Energy settings screen",
@@ -137,6 +141,12 @@ internal fun SettingsEditorScreen(setting: Setting? = null, onSave: (Setting) ->
             EditorRow("Direct Debit Amount") {
                 NumericField(directDebitAmount.toString()) {
                     directDebitAmount = it.toDouble()
+                    setEditorState()
+                }
+            }
+            EditorRow("From Year") {
+                NumericField(fromYear.toString()) {
+                    fromYear = it.toInt()
                     setEditorState()
                 }
             }

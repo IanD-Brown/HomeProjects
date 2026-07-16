@@ -14,8 +14,6 @@ sealed interface Route {
     @Serializable
     data object Meters : Route
     @Serializable
-    data object Usage : Route
-    @Serializable
     data object Settings : Route
     @Serializable
     data object Future : Route

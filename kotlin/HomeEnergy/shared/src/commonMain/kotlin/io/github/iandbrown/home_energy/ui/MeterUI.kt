@@ -41,12 +41,16 @@ internal class MeterViewModel(dao: MeterDao, private val repository: MeterReposi
 internal fun MeterRoute(showMeterEditor: (Meter?) -> Unit, editTariff: (Meter?) -> Unit) {
     val viewModel: MeterViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
+    val settingsModel: SettingsViewModel = koinViewModel()
+    val settingsState by settingsModel.getState().collectAsState()
 
     ViewCommon("Energy meters",
-        persistentListOf(state),
+        persistentListOf(state, settingsState),
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings(imageVector = Icons.AutoMirrored.Filled.ReadMore, onClick = { viewModel.readConsumption(state.values()) }),
+                ButtonSettings(enabled = !settingsState.values().isEmpty(), imageVector = Icons.AutoMirrored.Filled.ReadMore) {
+                    viewModel.readConsumption(state.values())
+                },
                 addButtonSettings({
                     showMeterEditor(null)
                     viewModel.readAll()

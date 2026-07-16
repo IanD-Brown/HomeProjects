@@ -1,28 +1,29 @@
 package io.github.iandbrown.home_energy.repository
 
 import io.github.iandbrown.home_energy.database.Meter
-import io.github.iandbrown.home_energy.database.Usage
-import io.github.iandbrown.home_energy.database.UsageDao
+import io.github.iandbrown.home_energy.database.RawUsage
+import io.github.iandbrown.home_energy.database.RawUsageDao
+import io.github.iandbrown.home_energy.database.SettingDao
 import io.github.iandbrown.home_energy.networking.OctopusApi
-
-private data class PeriodUsage (var total: Double = 0.0, var count: Int = 1)
 
 class MeterRepository(
     private val api: OctopusApi,
-    private val usageDao: UsageDao
+    private val rawUsageDao: RawUsageDao,
+    private val settingDao: SettingDao
 ) {
     suspend fun syncConsumption(meters: List<Meter>) {
-        usageDao.deleteAll()
+        rawUsageDao.deleteAll()
+        val fromYear = settingDao.get()[0].fromYear
         val datePattern = "(\\d{4})(-)(\\d{2})(-)(\\d{2})(T)(\\d{2})(:)(\\d{2})".toRegex()
         for (meter in meters) {
             var url: String? = null
-            val periodUsages = mutableMapOf<Triple<Short, Short, Short>, PeriodUsage>()
+            var counter = 0
 
             println("Fetching consumption for ${meter.name} (${meter.meterPointAdminNumber})")
             do {
-                val response = api.getConsumption(meter, url)
+                val response = api.getConsumption(meter, url, fromYear)
                 response.results.forEach { dto ->
-                    if (dto.consumption > 0.0 && datePattern.matches(dto.intervalStart)) {
+                    if (dto.consumption > 0.0 && datePattern.containsMatchIn(dto.intervalStart)) {
                         val startDateParts = datePattern.matchAt(dto.intervalStart, 0)?.groupValues!!
                         val endDateParts = datePattern.matchAt(dto.intervalEnd, 0)?.groupValues!!
                         val startInstant = toPeriod(startDateParts)
@@ -32,33 +33,25 @@ class MeterRepository(
                         if (count > 1) {
                             println("Multiple intervals ${dto.intervalStart}   $count consumption ${dto.consumption}")
                         }
-                        if (startDateParts[3] == "01" && startDateParts[5] == "01") {
-                            println("Multi Consumption ${dto.intervalStart} ${meter.id} ${dto.consumption}")
+                        val consumption = when (meter.electric) {
+                            true -> dto.consumption
+                            false -> dto.consumption * 40 * 1.02264 / 3.6 // average
                         }
                         for (period in startInstant..endInstant) {
-                            periodUsages.compute(
-                                Triple(startDateParts[3].toShort(), startDateParts[5].toShort(), period.toShort())
-                            ) { _, v ->
-                                val consumption = when (meter.electric) {
-                                    true -> dto.consumption
-                                    false -> dto.consumption * 14.4 / 1.261 // hack convert m3 to kw
-                                }
-                                if (v == null)
-                                    PeriodUsage(consumption, 1)
-                                else
-                                    PeriodUsage(v.total + consumption, v.count + 1)
-                            }
+                            val periodConsumption = consumption / count
+                            val month = startDateParts[3].toShort()
+                            val day = startDateParts[5].toShort()
+                            val year = startDateParts[1].toShort()
+                            rawUsageDao.insert(RawUsage(year, month, day, period.toShort(), meter.id, periodConsumption))
+                            ++counter
                         }
+                    } else if (dto.consumption > 0.0) {
+                        println("Invalid date $dto")
                     }
                 }
                 url = response.next
             } while (url != null)
-            for ((key, value) in periodUsages) {
-                usageDao.insert(
-                    Usage(key.first, key.second, key.third, meter.id, value.total / value.count)
-                )
-            }
-            println("${meter.name} added ${periodUsages.size} usages")
+            println("${meter.name} added $counter usages")
         }
     }
 }

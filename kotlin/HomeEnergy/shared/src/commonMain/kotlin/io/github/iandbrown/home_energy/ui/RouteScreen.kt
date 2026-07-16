@@ -35,7 +35,6 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
         ) {
             items(items = listOf(
                 "Meters" to Route.Meters,
-                "Usage" to Route.Usage,
                 "Settings" to Route.Settings,
                 "Future" to Route.Future
             )) { (name, route) ->

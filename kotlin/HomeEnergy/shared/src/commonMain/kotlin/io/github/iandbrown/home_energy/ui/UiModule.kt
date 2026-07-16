@@ -18,10 +18,10 @@ import org.koin.core.module.dsl.viewModel
 @OptIn(KoinExperimentalAPI::class)
 val uiModule = module {
     viewModel { MeterTariffViewModel(it.get(), get()) }
+    viewModelOf(::RawUsageViewModel)
     viewModelOf(::MeterTariffsViewModel)
     viewModelOf(::MeterViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModelOf(::UsageViewModel)
 
     single {
         HttpClient {
@@ -63,10 +63,6 @@ val uiModule = module {
         val backstack = LocalBackstack.current
         MeterRoute(showMeterEditor = { meter -> backstack.add(Route.MeterEditor(meter)) },
             editTariff = { meter -> backstack.add(Route.MeterTariffList(meter!!)) })
-    }
-
-    navigation<Route.Usage> {
-        UsageList()
     }
 
     navigation<Route.Settings> {
