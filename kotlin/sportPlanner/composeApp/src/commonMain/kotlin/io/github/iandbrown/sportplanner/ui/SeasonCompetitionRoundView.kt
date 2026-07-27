@@ -254,6 +254,7 @@ fun SeasonCompetitionRoundEditScreen(
         bottomBar = {
             BottomBarWithButton(enabled = description.isNotEmpty() && validRound) {
                 viewModel.save(competitionRound, round, description, week, optional)
+                appNavigator.goBack()
             }
         },
         confirm = { description.isNotEmpty() && validRound },
