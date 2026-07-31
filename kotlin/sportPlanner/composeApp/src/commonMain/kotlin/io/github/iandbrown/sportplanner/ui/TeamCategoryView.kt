@@ -34,7 +34,7 @@ class TeamCategoryViewModel(dao: TeamCategoryDao) :
 private const val NAME = "Name"
 private const val MATCH_DAY = "MatchDay"
 
-private enum class Day(val display: String) {
+internal enum class Day(val display: String) {
     MON("Mon"),
     TUES("Tues"),
     WEDS("Weds"),

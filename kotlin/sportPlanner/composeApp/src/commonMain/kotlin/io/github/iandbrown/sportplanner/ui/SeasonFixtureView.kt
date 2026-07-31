@@ -392,10 +392,8 @@ fun FixtureTableScreen(season: Season) {
                         val folder = FileKit.openDirectoryPicker()
                         val sourceFixtureValues = getSourceFixtureValues()
 
-                        associationState.values().forEach {
-                            val associationName = it.name
-                            val fixtureFilter = FixtureFilter(competitionFilter, associationName, "")
-                            multiFileExport(folder, associationName, sourceFixtureValues, fixtureFilter)
+                        for(saturday in listOf(true, false)) {
+                            crossTeamCategoryAssociationExport(saturday, folder, sourceFixtureValues, associationState.values(), competitionFilter)
                         }
 
                         teamCategoryState.values().forEach {
@@ -472,6 +470,67 @@ fun FixtureTableScreen(season: Season) {
         }
     }
 }
+
+// Export the fixtures for each association as a separate file with
+// dates on rows and team categories on columns
+// Forces boys to play on Saturday and girls either Friday or Sunday...
+private fun crossTeamCategoryAssociationExport(saturdayFixtures: Boolean,
+                                               folder: PlatformFile?,
+                                               sourceFixtureValues: SourceFixtureValues,
+                                               associations: List<Association>,
+                                               competitionId: CompetitionId) {
+    val type: String
+    val teamCategoriesToUse: List<TeamCategory>
+    val header: List<String>
+    val prefix: (Int, Int) -> List<Any>
+
+    if (saturdayFixtures) {
+        type = "Boys"
+        teamCategoriesToUse = sourceFixtureValues.teamCategories.filter { it.matchDay == Day.SAT.ordinal.toShort() }
+        header = listOf("Date", "HomeCount") + teamCategoriesToUse.map {it.name}
+        prefix = {week, homeCount -> listOf(DayDate(week).addDays(Day.SAT.ordinal).toString(), homeCount)}
+    } else {
+        type = "Girls"
+        teamCategoriesToUse = sourceFixtureValues.teamCategories.filter { it.matchDay != Day.SAT.ordinal.toShort() }
+        header = listOf("Date", "Alt Date", "HomeCount") + teamCategoriesToUse.map {it.name}
+        prefix = {week, homeCount -> listOf(DayDate(week).addDays(Day.FRI.ordinal).toString(), DayDate(week).addDays(Day.SUN.ordinal).toString(), homeCount)}
+    }
+    val filterTeamCategories = teamCategoriesToUse.map { it.id }.toSet()
+
+    associations.forEach { association ->
+        val fixturesByDate = sourceFixtureValues.allFixtures
+            .filter { it.competitionId == competitionId }
+            .filter { it.homeAssociation == association.name || it.awayAssociation == association.name }
+            .filter { filterTeamCategories.contains(it.teamCategoryId) }
+            .groupBy { it.date }
+            .toSortedMap()
+        val file = PlatformFile(
+            Path(folder?.toKotlinxIoPath().toString()).resolve("${association.name}$type.csv").toFile()
+        )
+        val sink = file.sink(append = false).buffered()
+        sink.use { bufferedSink ->
+            val sb = StringBuilder()
+            var df = DataFrame.emptyOf<Any?>()
+            fixturesByDate.forEach { (date, views) ->
+                val gameMap = views.associateBy { it.teamCategoryId }
+                val homeGameCount = gameMap.count { it.value.homeAssociation == association.name && it.value.homeTeamNumber > 0 && it.value.awayTeamNumber != 0.toShort() }
+                val values = prefix(date, homeGameCount) + teamCategoriesToUse
+                    .map { gameMap[it.id] }
+                    .map {fixture ->  gameDisplay(fixture, sourceFixtureValues.teamCounts) }
+                df = df.concat(dataFrameOf(header)(*values.toTypedArray()))
+            }
+            df.writeCsv(sb)
+            bufferedSink.writeString(sb.toString())
+        }
+    }
+}
+
+private fun gameDisplay(fixture: SeasonFixtureView?, teamCounts: TeamCountMap): String =
+    when(fixture) {
+        null -> ""
+        else -> "${fixture.message} ${teamName(fixture, true, teamCounts)} vs ${teamName(fixture, false, teamCounts)}"
+    }
+
 
 private fun multiFileExport(folder: PlatformFile?,
                             fileName: String,

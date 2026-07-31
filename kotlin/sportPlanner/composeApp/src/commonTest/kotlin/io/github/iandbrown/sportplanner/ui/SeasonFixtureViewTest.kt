@@ -66,10 +66,13 @@ class SeasonFixtureViewTest : BehaviorSpec({
         } returns Unit
         everySuspend { farAssociationDao.get() } returns emptyList()
         every { seasonWeeks.competitionWeeks(competitionId) } returns listOf(
-            DayDate("01/01/2025").value(),
-            DayDate("08/01/2025").value(),
-            DayDate("15/01/2025").value(),
-            DayDate("22/01/2025").value())
+            DayDate("05/01/2025").value(),
+            DayDate("12/01/2025").value(),
+            DayDate("19/01/2025").value(),
+            DayDate("26/01/2025").value(),
+            DayDate("02/02/2025").value(),
+            DayDate("09/02/2025").value(),
+            DayDate("15/02/2025").value())
         every { seasonWeeks.competitions() } returns listOf(competitionId)
 
         When("calcFixtures is called with empty breaks") {
@@ -107,7 +110,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
 
         When("calcFixtures is called with breaks") {
             setSeasonCompTeams(seasonTeamCategoryDao, seasonTeamDao, competitionId, teamCategoryId)
-            every { seasonWeeks.breakWeeks() } returns mapOf(Pair(DayDate("08/01/2025").value(), "MissMe"))
+            every { seasonWeeks.breakWeeks() } returns mapOf(Pair(DayDate("12/01/2025").value(), "MissMe"))
             everySuspend { farAssociationDao.get() } returns emptyList()
             calcFixtures(seasonId,
                 seasonFixtureDao,
@@ -128,7 +131,7 @@ class SeasonFixtureViewTest : BehaviorSpec({
 
             then("it should insert new fixtures") {
                 verifySuspend {
-                    seasonFixtureDao.insert(hasBreak(teamCategoryId, "08/01/2025", "MissMe"))
+                    seasonFixtureDao.insert(hasBreak(teamCategoryId, "12/01/2025", "MissMe"))
                     for (a in 1..4) {
                         for (b in (a + 1)..4) {
                             seasonFixtureDao.insert(hasTeam(a.toShort(), b.toShort()))
@@ -376,5 +379,5 @@ private fun seasonTeamCategoryOf(competitionId: CompetitionId, teamCategoryId: T
     SeasonTeamCategory(seasonId, competitionId, teamCategoryId, games, false)
 
 private fun seasonCompetitionOf(competitionId: CompetitionId): SeasonCompetition =
-    SeasonCompetition(seasonId, competitionId, DayDate("01/01/2025").value(), DayDate("31/01/2025").value()
+    SeasonCompetition(seasonId, competitionId, DayDate("05/01/2025").value(), DayDate("23/02/2025").value()
 )

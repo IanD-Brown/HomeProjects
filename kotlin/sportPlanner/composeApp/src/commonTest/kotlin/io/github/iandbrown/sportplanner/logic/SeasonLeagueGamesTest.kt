@@ -13,7 +13,7 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 
 class SeasonLeagueGamesTest : BehaviorSpec({
-    given("a set of teams for a league") {
+    given("a set of 3 teams for a league") {
         val teams = listOf(
             SeasonTeam(1, 1, 1, 1, 2),
             SeasonTeam(1, 1, 2, 1, 1)
@@ -86,7 +86,7 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             }
         }
 
-        When("the fixtures are scheduled") {
+        When("the fixtures are scheduled playing home and away") {
             val seasonCompetitions = listOf(
                 createSeasonCompView(1, "01/09/2025", "24/11/2025")
             )

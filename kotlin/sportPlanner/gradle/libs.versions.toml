@@ -12,7 +12,7 @@ kotlin = "2.4.10"
 kotlinx-coroutines = "1.11.0"
 # navigation
 navigationCompose = "2.9.2"
-navigation3 = "1.1.4"
+navigation3 = "1.1.5"
 navigationEvent = "1.1.0"
 androidx-savedstate = "1.5.0"
 jetbraindNav3 = "1.1.1"
