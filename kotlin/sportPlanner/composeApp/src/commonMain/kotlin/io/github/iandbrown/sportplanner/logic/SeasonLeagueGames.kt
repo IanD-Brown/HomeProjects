@@ -74,18 +74,7 @@ private class FixtureScheduler(
                 .filter { it.games > 0 }
                 .groupBy { teamCategoryIdToMatchDay[it.teamCategoryId]!! }
 
-            scheduleWeeks(competitionId, seasonCompRoundsByWeek, teamCategoriesByMatchDay, currentHomeFixtureCount, fixtures, seasonId, false)
-            var again = false
-            teamCategoriesByMatchDay.values.forEach { teamCategories ->
-                teamCategories.forEach {
-                    if (plannedGamesByTeamCategoryId[it.teamCategoryId]?.isNotEmpty() == true) {
-                        again = true
-                    }
-                }
-            }
-            if (again) {
-                scheduleWeeks(competitionId, seasonCompRoundsByWeek, teamCategoriesByMatchDay, currentHomeFixtureCount, fixtures, seasonId, true)
-            }
+            scheduleWeeks(competitionId, seasonCompRoundsByWeek, teamCategoriesByMatchDay, currentHomeFixtureCount, fixtures, seasonId)
         }
 
         var missingCount = 0
@@ -117,12 +106,11 @@ private class FixtureScheduler(
         teamCategoriesByMatchDay: Map<Short, List<SeasonTeamCategory>>,
         currentHomeFixtureCount: Map<Pair<Int, AssociationId>, Int>,
         fixtures: MutableList<SeasonFixture>,
-        seasonId: SeasonId,
-        force: Boolean
+        seasonId: SeasonId
     ) {
         for (week in seasonWeeks.competitionWeeks(competitionId)!!) {
             val compRoundsForWeekAndSeason = seasonCompRoundsByWeek[week] ?: emptyList()
-            WeekScheduler(compRoundsForWeekAndSeason, teamCategoriesByMatchDay, force) { day ->
+            WeekScheduler(compRoundsForWeekAndSeason, teamCategoriesByMatchDay) { day ->
                 currentHomeFixtureCount
                     .filter {
                         it.key.first == DayDate(week).addDays(day.toInt())
@@ -136,7 +124,6 @@ private class FixtureScheduler(
     private inner class WeekScheduler(
         val compRoundsForWeekAndSeason: List<SeasonCompRoundView>,
         teamCategoriesByMatchDay: Map<Short, List<SeasonTeamCategory>>,
-        val force: Boolean,
         existingHomeFixtures: (Short) -> Map<AssociationId, Int>
     ) {
         val plannedGames = mutableMapOf<TeamCategoryId, MutableList<PlannedGame>>()
@@ -148,25 +135,27 @@ private class FixtureScheduler(
                 val doneTeamCategories = mutableSetOf<TeamCategoryId>()
                 val homeGameByAssociation = existingHomeFixtures(entry.key).toMutableMap()
 
-                for (teamCategory in teamCategories) {
-                    if (doneTeamCategories.contains(teamCategory.teamCategoryId)) {
-                        continue
-                    }
-                    if (!force && scheduleBreak(teamCategory)) {
-                        doneTeamCategories.add(teamCategory.teamCategoryId)
-                        continue
-                    }
-                    val playingTeams = playingTeamsByTeamCategory.computeIfAbsent(teamCategory.teamCategoryId) {mutableListOf()}
-                    if (plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.isEmpty() == true ||
-                        (force && playingTeams.size.plus(1) >= teamsByCategoryAndCompetition[Pair(teamCategory.teamCategoryId, teamCategory.competitionId)]!!)) {
-                        continue
-                    }
+                for (force in listOf(false, true)) {
+                    for (teamCategory in teamCategories) {
+                        if (doneTeamCategories.contains(teamCategory.teamCategoryId)) {
+                            continue
+                        }
+                        if (!force && scheduleBreak(teamCategory)) {
+                            doneTeamCategories.add(teamCategory.teamCategoryId)
+                            continue
+                        }
+                        val playingTeams = playingTeamsByTeamCategory.computeIfAbsent(teamCategory.teamCategoryId) { mutableListOf() }
+                        if (plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]?.isEmpty() == true ||
+                            (force && playingTeams.size.plus(1) >= teamsByCategoryAndCompetition[Pair(teamCategory.teamCategoryId, teamCategory.competitionId)]!!)) {
+                            continue
+                        }
 
-                    scheduleGames(getOrderedGames(
-                        plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]!!,
-                        gamesToSchedule,
-                        homeGameByAssociation
-                    ), teamCategory, playingTeams, homeGameByAssociation)
+                        scheduleGames(getOrderedGames(
+                                plannedGamesByTeamCategoryId[teamCategory.teamCategoryId]!!,
+                                gamesToSchedule,
+                                homeGameByAssociation
+                            ), teamCategory, playingTeams, force, homeGameByAssociation)
+                    }
                 }
             }
         }
@@ -175,12 +164,12 @@ private class FixtureScheduler(
             plannedGames.values.forEach { gameList -> gameList.forEach { handler(it) } }
         }
 
-        private fun scheduleGames(orderedGames: List<PlannedGame>, teamCategory: SeasonTeamCategory, playingTeams: MutableList<Side>,  homeGameByAssociation: MutableMap<AssociationId, Int>) {
+        private fun scheduleGames(orderedGames: List<PlannedGame>, teamCategory: SeasonTeamCategory, playingTeams: MutableList<Side>, force: Boolean,  homeGameByAssociation: MutableMap<AssociationId, Int>) {
             for (plannedGame in orderedGames) {
                 val homeSide = sideOf(teamCategory.teamCategoryId, plannedGame, Location.HOME)
                 val awaySide = sideOf(teamCategory.teamCategoryId, plannedGame, Location.AWAY)
 
-                if (!playingTeams.contains(homeSide) && !playingTeams.contains(awaySide) && isGamePreference(plannedGame)) {
+                if (!playingTeams.contains(homeSide) && !playingTeams.contains(awaySide) && isGamePreference(plannedGame, force)) {
                     playingTeams.add(homeSide)
                     gamesToSchedule.merge(homeSide, 1, Int::minus)
                     homeGameByAssociation.merge(plannedGame.home.associationId, 1, Int::plus)
@@ -222,7 +211,7 @@ private class FixtureScheduler(
             return false
         }
 
-        private fun isGamePreference(plannedGame: PlannedGame): Boolean {
+        private fun isGamePreference(plannedGame: PlannedGame, force: Boolean): Boolean {
             if (force || (isGamePreference(gamePreferenceKey(plannedGame, Location.HOME), Location.HOME) &&
                         isGamePreference(gamePreferenceKey(plannedGame, Location.AWAY), Location.AWAY))) {
                 gamePreference[gamePreferenceKey(plannedGame, Location.HOME)] = Location.AWAY

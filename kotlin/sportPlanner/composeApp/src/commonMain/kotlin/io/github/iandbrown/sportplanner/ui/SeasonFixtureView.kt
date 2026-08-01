@@ -512,8 +512,8 @@ private fun crossTeamCategoryAssociationExport(saturdayFixtures: Boolean,
             val sb = StringBuilder()
             var df = DataFrame.emptyOf<Any?>()
             fixturesByDate.forEach { (date, views) ->
-                val gameMap = views.associateBy { it.teamCategoryId }
-                val homeGameCount = gameMap.count { it.value.homeAssociation == association.name && it.value.homeTeamNumber > 0 && it.value.awayTeamNumber != 0.toShort() }
+                val gameMap = views.groupBy { it.teamCategoryId }
+                val homeGameCount = gameMap.count { it.value.isNotEmpty() && it.value[0].homeAssociation == association.name && it.value[0].homeTeamNumber > 0 && it.value[0].awayTeamNumber != 0.toShort() }
                 val values = prefix(date, homeGameCount) + teamCategoriesToUse
                     .map { gameMap[it.id] }
                     .map {fixture ->  gameDisplay(fixture, sourceFixtureValues.teamCounts) }
@@ -525,10 +525,16 @@ private fun crossTeamCategoryAssociationExport(saturdayFixtures: Boolean,
     }
 }
 
-private fun gameDisplay(fixture: SeasonFixtureView?, teamCounts: TeamCountMap): String =
-    when(fixture) {
-        null -> ""
-        else -> "${fixture.message} ${teamName(fixture, true, teamCounts)} vs ${teamName(fixture, false, teamCounts)}"
+private fun gameDisplay(fixture: List<SeasonFixtureView>?, teamCounts: TeamCountMap): String =
+    when {
+        fixture.isNullOrEmpty() -> ""
+        fixture.size == 1 -> "${fixture[0].message} ${teamName(fixture[0], true, teamCounts)} vs ${teamName(fixture[0], false, teamCounts)}"
+        else -> {
+            for (game in fixture) {
+                println("${game.teamCategoryName} ${game.message} ${teamName(game, true, teamCounts)} vs ${teamName(game, false, teamCounts)}")
+            }
+            throw IllegalArgumentException("Multiple games ${fixture[0].teamCategoryName}")
+        }
     }
 
 
