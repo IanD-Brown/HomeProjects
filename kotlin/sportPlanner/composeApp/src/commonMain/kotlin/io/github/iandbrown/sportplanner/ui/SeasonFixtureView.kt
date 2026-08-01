@@ -500,7 +500,7 @@ private fun crossTeamCategoryAssociationExport(saturdayFixtures: Boolean,
     associations.forEach { association ->
         val fixturesByDate = sourceFixtureValues.allFixtures
             .filter { it.competitionId == competitionId }
-            .filter { it.homeAssociation == association.name || it.awayAssociation == association.name }
+            .filter { it.homeAssociation.isBlank() || it.homeAssociation == association.name || it.awayAssociation == association.name }
             .filter { filterTeamCategories.contains(it.teamCategoryId) }
             .groupBy { it.date }
             .toSortedMap()
@@ -516,7 +516,7 @@ private fun crossTeamCategoryAssociationExport(saturdayFixtures: Boolean,
                 val homeGameCount = gameMap.count { it.value.isNotEmpty() && it.value[0].homeAssociation == association.name && it.value[0].homeTeamNumber > 0 && it.value[0].awayTeamNumber != 0.toShort() }
                 val values = prefix(date, homeGameCount) + teamCategoriesToUse
                     .map { gameMap[it.id] }
-                    .map {fixture ->  gameDisplay(fixture, sourceFixtureValues.teamCounts) }
+                    .map {fixture -> gameDisplay(fixture, sourceFixtureValues.teamCounts) }
                 df = df.concat(dataFrameOf(header)(*values.toTypedArray()))
             }
             df.writeCsv(sb)
