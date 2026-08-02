@@ -548,7 +548,7 @@ private fun multiFileExport(folder: PlatformFile?,
     val sink = file.sink(append = false).buffered()
     sink.use { bufferedSink ->
         val sb = StringBuilder()
-        export(sourceFixtureValues, fixtureFilter, true, sb)
+        export(sourceFixtureValues, fixtureFilter, false, sb, true)
         bufferedSink.writeString(sb.toString())
     }
 }
@@ -556,9 +556,11 @@ private fun multiFileExport(folder: PlatformFile?,
 private fun export(sourceFixtureValues: SourceFixtureValues,
                    fixtureFilter: FixtureFilter,
                    withTeamCategory: Boolean,
-                   writer: Appendable
+                   writer: Appendable,
+                   addBlank: Boolean = false
 ) {
     var df = DataFrame.emptyOf<Any?>()
+    var previousDate = ""
     getFixtures(sourceFixtureValues, fixtureFilter) { date, teamCategory, message, home, away ->
         df = if (withTeamCategory) {
             df.concat(
@@ -566,10 +568,20 @@ private fun export(sourceFixtureValues: SourceFixtureValues,
                     (date, teamCategory, message, home, away)
             )
         } else {
-            df.concat(
-                dataFrameOf("Date", "Message", "Home", "Away")
-                    (date, message, home, away)
-            )
+            df.concat(if (addBlank && previousDate != date) {
+                previousDate = date
+                dataFrameOf(
+                    "Date" to listOf("", date),
+                    "Message" to listOf("", message),
+                    "Home" to listOf("", home),
+                    "Away" to listOf("", away))
+            } else {
+                dataFrameOf(
+                    "Date" to listOf(date),
+                    "Message" to listOf(message),
+                    "Home" to listOf(home),
+                    "Away" to listOf(away))
+            })
         }
     }
     df.writeCsv(writer)
