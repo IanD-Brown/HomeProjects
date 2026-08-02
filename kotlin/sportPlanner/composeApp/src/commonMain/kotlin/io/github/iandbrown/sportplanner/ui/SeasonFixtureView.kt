@@ -399,7 +399,7 @@ fun FixtureTableScreen(season: Season) {
                         teamCategoryState.values().forEach {
                             val teamCategoryName = it.name
                             val fixtureFilter = FixtureFilter(competitionFilter, "", teamCategoryName)
-                            multiFileExport(folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
+                            teamCategoryExport(it.matchDay == Day.SAT.ordinal.toShort(), folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
                         }
                     }
                 }
@@ -538,17 +538,50 @@ private fun gameDisplay(fixture: List<SeasonFixtureView>?, teamCounts: TeamCount
     }
 
 
-private fun multiFileExport(folder: PlatformFile?,
-                            fileName: String,
-                            sourceFixtureValues: SourceFixtureValues,
-                            fixtureFilter: FixtureFilter) {
+private fun teamCategoryExport(saturdayFixtures: Boolean,
+                               folder: PlatformFile?,
+                               fileName: String,
+                               sourceFixtureValues: SourceFixtureValues,
+                               fixtureFilter: FixtureFilter) {
     val file = PlatformFile(
         Path(folder?.toKotlinxIoPath().toString()).resolve("$fileName.csv").toFile()
     )
     val sink = file.sink(append = false).buffered()
     sink.use { bufferedSink ->
+        val dates: (Int) -> String = if (saturdayFixtures) {
+            {week -> DayDate(week).addDays(Day.SAT.ordinal).toString()}
+        } else {
+            {week -> DayDate(week).addDays(Day.FRI.ordinal).toString()}
+        }
         val sb = StringBuilder()
-        export(sourceFixtureValues, fixtureFilter, false, sb, true)
+        var df = DataFrame.emptyOf<Any?>()
+        sourceFixtureValues.allFixtures
+            .filter { it.competitionId == fixtureFilter.filterCompetition }
+            .filter { it.teamCategoryName == fixtureFilter.filterTeamCategory }
+            .groupBy { it.date }
+            .toSortedMap().forEach { (_, fixtures) ->
+                val dateValues = listOf("") + fixtures.map { dates(it.date) }
+                val messageValues = listOf("") + fixtures.map { it.message }
+                val homeValues = listOf("") + fixtures.map { teamName(it, true, sourceFixtureValues.teamCounts) }
+                val awayValues = listOf("") + fixtures.map { teamName(it, false, sourceFixtureValues.teamCounts) }
+                df = if (saturdayFixtures) {
+                    df.concat(dataFrameOf(
+                        "Date" to dateValues,
+                        "Message" to messageValues,
+                        "Home" to homeValues,
+                        "Away" to awayValues))
+                } else {
+                    val altDateValues = listOf("") + fixtures.map { DayDate(it.date).addDays(Day.SUN.ordinal).toString() }
+                    df.concat(dataFrameOf(
+                        "Date" to dateValues,
+                        "Alt Date" to altDateValues,
+                        "Message" to messageValues,
+                        "Home" to homeValues,
+                        "Away" to awayValues
+                    ))
+                }
+            }
+        df.writeCsv(sb)
         bufferedSink.writeString(sb.toString())
     }
 }
