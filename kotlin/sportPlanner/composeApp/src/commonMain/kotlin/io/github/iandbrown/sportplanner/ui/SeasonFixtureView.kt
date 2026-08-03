@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MultipleStop
 import androidx.compose.material.icons.filled.Summarize
+import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +77,7 @@ import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 import kotlin.io.path.Path
 import kotlin.time.measureTime
+import kotlin.toString
 
 internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 internal typealias TeamCountMap = Map<TeamCountKey, Short>
@@ -402,6 +404,18 @@ fun FixtureTableScreen(season: Season) {
                             teamCategoryExport(it.matchDay == Day.SAT.ordinal.toShort(), folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
                         }
                     }
+                },
+                ButtonSettings(imageVector = Icons.Default.Web) {
+                    coroutineScope.launch {
+                        val folder = FileKit.openDirectoryPicker()
+                        val sourceFixtureValues = getSourceFixtureValues()
+
+                        teamCategoryState.values().forEach {
+                            val teamCategoryName = it.name
+                            val fixtureFilter = FixtureFilter(competitionFilter, "", teamCategoryName)
+                            teamCategoryExportForLeagueRepublic(it.matchDay == Day.SAT.ordinal.toShort(), folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
+                        }
+                    }
                 }
             )
         },
@@ -537,6 +551,43 @@ private fun gameDisplay(fixture: List<SeasonFixtureView>?, teamCounts: TeamCount
         }
     }
 
+private fun teamCategoryExportForLeagueRepublic(saturdayFixtures: Boolean,                               folder: PlatformFile?,
+                                                fileName: String,
+                                                sourceFixtureValues: SourceFixtureValues,
+                                                fixtureFilter: FixtureFilter) {
+    val file = PlatformFile(
+        Path(folder?.toKotlinxIoPath().toString()).resolve("$fileName-LR.csv").toFile()
+    )
+    val sink = file.sink(append = false).buffered()
+    sink.use { bufferedSink ->
+        val dates: (Int) -> String = if (saturdayFixtures) {
+            {week -> DayDate(week).addDays(Day.SAT.ordinal).toString()}
+        } else {
+            {week -> DayDate(week).addDays(Day.FRI.ordinal).toString()}
+        }
+        val sb = StringBuilder()
+        var df = DataFrame.emptyOf<Any?>()
+        sourceFixtureValues.allFixtures
+            .filter { it.competitionId == fixtureFilter.filterCompetition }
+            .filter { it.teamCategoryName == fixtureFilter.filterTeamCategory }
+            .filter { it.homeAssociation.isNotBlank() && it.awayAssociation.isNotBlank() }
+            .forEach {
+                df = df.concat(dataFrameOf(
+                    "Date" to listOf(dates(it.date)),
+                    "Time" to listOf("00:00"),
+                    "Division" to listOf(""),
+                    "Home" to listOf(teamName(it, true, sourceFixtureValues.teamCounts)),
+                    "Away" to listOf(teamName(it, false, sourceFixtureValues.teamCounts)),
+                    "V" to listOf(""),
+                    "P" to listOf(""),
+                    "HS" to listOf(""),
+                    "AS" to listOf("")
+                ))
+            }
+        df.writeCsv(sb)
+        bufferedSink.writeString(sb.toString())
+    }
+}
 
 private fun teamCategoryExport(saturdayFixtures: Boolean,
                                folder: PlatformFile?,
