@@ -28,14 +28,14 @@ internal fun io.github.iandbrown.reconciler.ui.AccountListView(viewModel: io.git
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.AppState.isDarkTheme(): kotlin.Boolean
-  skippable: true
-  restartable: true
+  skippable: false
+  restartable: false
   params:
 
 @Composable
 public fun io.github.iandbrown.reconciler.ui.AppState.switchThemeCallback(): kotlin.Function0<kotlin.Unit>
-  skippable: true
-  restartable: true
+  skippable: false
+  restartable: false
   params:
 
 @Composable
@@ -271,13 +271,13 @@ public fun io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory(vi
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.textFieldColors(): androidx.compose.material3.TextFieldColors
-  skippable: true
-  restartable: true
+  skippable: false
+  restartable: false
   params:
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.textStyle(): androidx.compose.ui.text.TextStyle
-  skippable: true
-  restartable: true
+  skippable: false
+  restartable: false
   params:
 
