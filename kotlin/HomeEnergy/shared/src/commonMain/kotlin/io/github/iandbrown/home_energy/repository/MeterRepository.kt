@@ -37,7 +37,7 @@ class MeterRepository(
                             true -> dto.consumption
                             false -> dto.consumption * 40 * 1.02264 / 3.6 // average
                         }
-                        for (period in startInstant..endInstant) {
+                        for (period in startInstant..<endInstant) {
                             val periodConsumption = consumption / count
                             val month = startDateParts[3].toShort()
                             val day = startDateParts[5].toShort()
