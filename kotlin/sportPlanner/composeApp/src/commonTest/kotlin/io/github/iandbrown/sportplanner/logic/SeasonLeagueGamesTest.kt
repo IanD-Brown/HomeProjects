@@ -4,10 +4,12 @@ import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.SeasonCompRoundView
 import io.github.iandbrown.sportplanner.database.SeasonCompView
+import io.github.iandbrown.sportplanner.database.SeasonFixture
 import io.github.iandbrown.sportplanner.database.SeasonTeam
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategory
 import io.github.iandbrown.sportplanner.database.TeamCategory
 import io.github.iandbrown.sportplanner.database.TeamNumber
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
@@ -112,11 +114,16 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             )
 
             then("the correct number of fixtures should be created") {
+                // home and away for 4 teams plus the cup round
                 scheduledFixtures.size shouldBe 7
             }
 
             then("no fixtures should be scheduled on the cup week") {
                 scheduledFixtures.none { it.date == getDayDateVal("08/09/2025") && (it.homeTeamNumber > 0 || it.awayTeamNumber > 0) } shouldBe true
+            }
+
+            then("No team is playing twice in one day") {
+                assertNoMultipleGamesForTeamOnDay(scheduledFixtures)
             }
         }
 
@@ -144,6 +151,10 @@ class SeasonLeagueGamesTest : BehaviorSpec({
 
             then("a fixture should have the message INCOMPLETE") {
                 scheduledFixtures.filter{it.message == "INCOMPLETE"}.size shouldBe 1
+            }
+
+            then("No team is playing twice in one day") {
+                assertNoMultipleGamesForTeamOnDay(scheduledFixtures)
             }
         }
     }
@@ -223,6 +234,17 @@ class SeasonLeagueGamesTest : BehaviorSpec({
         }
     }
 })
+
+private fun assertNoMultipleGamesForTeamOnDay(scheduledFixtures: List<SeasonFixture>) {
+    val gameCount = mutableMapOf<Triple<AssociationId, TeamNumber, Int>, Int>()
+    scheduledFixtures.filter { it.homeAssociationId != 0.toShort() }.forEach {
+        gameCount.merge(Triple(it.homeAssociationId, it.homeTeamNumber, it.date), 1, Int::plus)
+        gameCount.merge(Triple(it.awayAssociationId, it.awayTeamNumber, it.date), 1, Int::plus)
+    }
+    withClue({ gameCount.filter { it.value > 1 }.toString() }) {
+        gameCount.values.all { it == 1 } shouldBe true
+    }
+}
 
 private fun plannedGameOf(compId: CompetitionId,
                           homeAssoc: AssociationId,

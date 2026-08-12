@@ -29,7 +29,7 @@ fun main() {
     application {
         startKoinCommon(builder())
         Window(onCloseRequest = ::exitApplication, title = "Football season planner") {
-            val fileKitDialogSettings = FileKitDialogSettings(parentWindow = this.window)
+            val fileKitDialogSettings = FileKitDialogSettings()
             App(fileKitDialogSettings)
         }
     }

@@ -28,12 +28,12 @@ sqliteBundled = "2.7.0"
 koin-core = "4.2.2"
 androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
-kotest-version = "6.2.3"
+kotest-version = "6.2.4"
 kover = "0.9.9"
 mockkery = "3.4.2"
 coroutine-test-version = "1.11.0"
 # filekit
-filekit = "0.14.2"
+filekit = "0.15.0"
 # immutable collections
 immutableCollections = "0.5.1"
 # dataframe
@@ -98,6 +98,5 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 androidxRoom = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinSerialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
-kotest-plugin = {id = "io.kotest", version.ref = "kotest-version"}
 kover = {id = "org.jetbrains.kotlinx.kover", version.ref = "kover"}
 mockkery = { id = "dev.mokkery", version.ref = "mockkery" }
