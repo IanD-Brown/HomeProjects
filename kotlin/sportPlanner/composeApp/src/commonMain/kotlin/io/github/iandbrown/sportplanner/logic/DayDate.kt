@@ -33,21 +33,21 @@ class DayDate {
         if (value == 0) {
             return false
         }
-        return LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR).dayOfWeek == java.time.DayOfWeek.MONDAY
+        return toLocalDate().dayOfWeek == java.time.DayOfWeek.MONDAY
     }
 
     fun isSunday() : Boolean {
         if (value == 0) {
             return false
         }
-        return LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR).dayOfWeek == java.time.DayOfWeek.SUNDAY
+        return toLocalDate().dayOfWeek == java.time.DayOfWeek.SUNDAY
     }
 
     fun addDays(days: Int) : DayDate {
         if (value == 0) {
             return this
         }
-        val date = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
+        val date = toLocalDate()
         val changedDate = date.plusDays(days.toLong())
         return DayDate(YEAR_FACTOR * changedDate.year + changedDate.dayOfYear)
     }
@@ -57,7 +57,7 @@ class DayDate {
             return ""
         }
 
-        val date = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
+        val date = toLocalDate()
         return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
     }
 
@@ -68,7 +68,9 @@ class DayDate {
             return LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
         }
 
-        val date = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
+        val date = toLocalDate()
         return date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
     }
+
+    fun toLocalDate(): LocalDate = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
 }

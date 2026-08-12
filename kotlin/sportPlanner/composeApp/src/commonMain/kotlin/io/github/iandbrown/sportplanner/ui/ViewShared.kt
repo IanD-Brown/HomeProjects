@@ -503,7 +503,7 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
                     buttonSetting.navigateFun(appNavigator)
                 }
             } else {
-                IconButton(onClick = { buttonSetting.navigateFun(appNavigator) }) {
+                IconButton(onClick = { buttonSetting.navigateFun(appNavigator) }, enabled = buttonSetting.enabled) {
                     Icon(buttonSetting.imageVector, contentDescription = null)
                 }
             }

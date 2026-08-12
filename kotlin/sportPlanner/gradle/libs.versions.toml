@@ -18,7 +18,7 @@ androidx-savedstate = "1.5.0"
 jetbraindNav3 = "1.1.1"
 # theme prefs
 materialThemePrefs = "1.0.0"
-# json serialize
+# JSON serialize
 kotlin-serialize = "1.11.0"
 # room
 room = "2.8.4"
@@ -58,7 +58,7 @@ immutable-collections = { module = "org.jetbrains.kotlinx:kotlinx-collections-im
 # theme prefs
 material-theme = { module = "io.github.softartdev:theme-material", version.ref = "materialThemePrefs" }
 material-theme-prefs = { module = "io.github.softartdev:theme-material3", version.ref = "materialThemePrefs" }
-# json serialize
+# JSON serialize
 kotlin-serialization-json = {module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlin-serialize"}
 # room
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }

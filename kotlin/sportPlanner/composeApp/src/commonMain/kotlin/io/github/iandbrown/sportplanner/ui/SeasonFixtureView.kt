@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CalendarViewMonth
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MultipleStop
@@ -77,7 +78,6 @@ import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
 import kotlin.io.path.Path
 import kotlin.time.measureTime
-import kotlin.toString
 
 internal typealias TeamCountKey = Triple<TeamCategoryId, AssociationName, CompetitionId>
 internal typealias TeamCountMap = Map<TeamCountKey, Short>
@@ -392,28 +392,73 @@ fun FixtureTableScreen(season: Season) {
                 ButtonSettings(imageVector = Icons.Default.MultipleStop) {
                     coroutineScope.launch {
                         val folder = FileKit.openDirectoryPicker()
-                        val sourceFixtureValues = getSourceFixtureValues()
+                        if (folder != null) {
+                            val sourceFixtureValues = getSourceFixtureValues()
 
-                        for(saturday in listOf(true, false)) {
-                            crossTeamCategoryAssociationExport(saturday, folder, sourceFixtureValues, associationState.values(), competitionFilter)
-                        }
+                            for (saturday in listOf(true, false)) {
+                                crossTeamCategoryAssociationExport(
+                                    saturday,
+                                    folder,
+                                    sourceFixtureValues,
+                                    associationState.values(),
+                                    competitionFilter
+                                )
+                            }
 
-                        teamCategoryState.values().forEach {
-                            val teamCategoryName = it.name
-                            val fixtureFilter = FixtureFilter(competitionFilter, "", teamCategoryName)
-                            teamCategoryExport(it.matchDay == Day.SAT.ordinal.toShort(), folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
+                            teamCategoryState.values().forEach {
+                                val teamCategoryName = it.name
+                                val fixtureFilter =
+                                    FixtureFilter(competitionFilter, "", teamCategoryName)
+                                teamCategoryExport(
+                                    it.matchDay == Day.SAT.ordinal.toShort(),
+                                    folder,
+                                    teamCategoryName,
+                                    sourceFixtureValues,
+                                    fixtureFilter
+                                )
+                            }
                         }
                     }
                 },
                 ButtonSettings(imageVector = Icons.Default.Web) {
                     coroutineScope.launch {
                         val folder = FileKit.openDirectoryPicker()
+                        if (folder != null) {
+                            val sourceFixtureValues = getSourceFixtureValues()
+
+                            teamCategoryState.values().forEach {
+                                val teamCategoryName = it.name
+                                val fixtureFilter =
+                                    FixtureFilter(competitionFilter, "", teamCategoryName)
+                                teamCategoryExportForLeagueRepublic(
+                                    it.matchDay == Day.SAT.ordinal.toShort(),
+                                    folder,
+                                    teamCategoryName,
+                                    sourceFixtureValues,
+                                    fixtureFilter
+                                )
+                            }
+                        }
+                    }
+                },
+                ButtonSettings(enabled = filterAssociation.isNotBlank(), imageVector = Icons.Default.CalendarViewMonth) {
+                    coroutineScope.launch {
+                        val folder = FileKit.openDirectoryPicker()
                         val sourceFixtureValues = getSourceFixtureValues()
 
-                        teamCategoryState.values().forEach {
-                            val teamCategoryName = it.name
-                            val fixtureFilter = FixtureFilter(competitionFilter, "", teamCategoryName)
-                            teamCategoryExportForLeagueRepublic(it.matchDay == Day.SAT.ordinal.toShort(), folder, teamCategoryName, sourceFixtureValues, fixtureFilter)
+                        if (folder != null) {
+                            teamCategoryState.values().forEach {
+                                val teamCategoryName = it.name
+                                val fixtureFilter =
+                                    FixtureFilter(competitionFilter, filterAssociation, teamCategoryName)
+                                spondExport(
+                                    it.matchDay == Day.SAT.ordinal.toShort(),
+                                    folder,
+                                    teamCategoryName,
+                                    sourceFixtureValues,
+                                    fixtureFilter
+                                )
+                            }
                         }
                     }
                 }
@@ -589,14 +634,49 @@ private fun teamCategoryExportForLeagueRepublic(saturdayFixtures: Boolean,      
     }
 }
 
+private fun spondExport(saturdayFixtures: Boolean,
+                        folder: PlatformFile?,
+                        fileName: String,
+                        sourceFixtureValues: SourceFixtureValues,
+                        fixtureFilter: FixtureFilter) {
+    val adjustDate: (Int) -> String
+    val startTime: () -> String
+    when (saturdayFixtures) {
+        true -> {
+            adjustDate = {week -> DayDate(week).addDays(Day.SAT.ordinal).toString()}
+            startTime = {"10:30:00"}
+        }
+        else -> {
+            adjustDate = {week -> DayDate(week).addDays(Day.FRI.ordinal).toString()}
+            startTime = {"18:30:00"}
+        }
+    }
+    childCsvFile(folder, fileName).sink(append = false).buffered().use { bufferedSink ->
+        val sb = StringBuilder()
+        sourceFixtureValues.allFixtures
+            .asSequence()
+            .filter { it.competitionId == fixtureFilter.filterCompetition }
+            .filter { it.teamCategoryName == fixtureFilter.filterTeamCategory }
+            .filter { it.homeAssociation.isNotBlank() && it.awayAssociation.isNotBlank() }
+            .filter { it.homeAssociation == fixtureFilter.filterAssociation || it.awayAssociation == fixtureFilter.filterAssociation }
+            .fold(DataFrame.emptyOf<Any?>()) {df, it ->
+                df.concat(dataFrameOf(
+                    "Date" to listOf(adjustDate(it.date)),
+                    "Time" to listOf(startTime()),
+                    "Home" to listOf(teamName(it, true, sourceFixtureValues.teamCounts)),
+                    "Away" to listOf(teamName(it, false, sourceFixtureValues.teamCounts)),
+                ))
+            }.writeCsv(sb)
+        bufferedSink.writeString(sb.toString())
+    }
+}
+
 private fun teamCategoryExport(saturdayFixtures: Boolean,
                                folder: PlatformFile?,
                                fileName: String,
                                sourceFixtureValues: SourceFixtureValues,
                                fixtureFilter: FixtureFilter) {
-    val file = PlatformFile(
-        Path(folder?.toKotlinxIoPath().toString()).resolve("$fileName.csv").toFile()
-    )
+    val file = childCsvFile(folder, fileName)
     val sink = file.sink(append = false).buffered()
     sink.use { bufferedSink ->
         val dates: (Int) -> String = if (saturdayFixtures) {
@@ -636,6 +716,9 @@ private fun teamCategoryExport(saturdayFixtures: Boolean,
         bufferedSink.writeString(sb.toString())
     }
 }
+
+private fun childCsvFile(folder: PlatformFile?, fileName: String): PlatformFile =
+    PlatformFile(Path(folder?.toKotlinxIoPath().toString()).resolve("$fileName.csv").toFile())
 
 private fun export(sourceFixtureValues: SourceFixtureValues,
                    fixtureFilter: FixtureFilter,
