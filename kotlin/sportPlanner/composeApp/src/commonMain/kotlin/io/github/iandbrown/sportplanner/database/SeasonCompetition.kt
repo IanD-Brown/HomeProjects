@@ -42,6 +42,9 @@ interface SeasonCompetitionDao : BaseSeasonCompReadDao<SeasonCompetition>, BaseW
             "AND competitionId IN (SELECT id FROM Competitions WHERE type = 0)")
     suspend fun getActiveLeagueCompetitions(seasonId: SeasonId) : List<SeasonCompetition>
 
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    suspend fun getBySeason(seasonId: SeasonId) : List<SeasonCompetition>
+
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()
 }

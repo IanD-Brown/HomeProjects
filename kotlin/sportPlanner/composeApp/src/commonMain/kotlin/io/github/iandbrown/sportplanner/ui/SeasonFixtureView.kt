@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -170,6 +171,7 @@ fun FixtureScreen() {
                     clickableIcon(Icons.Filled.GridView, "Show fixtures", onSurface) {
                         appNavigator.navigate(Route.LeagueFixturesTable(season))
                     }
+
                     clickableIcon(Icons.Filled.Calculate, "Calculate fixtures", onSurface) {
                         calculating = true
                         coroutineScope.launch {
@@ -199,31 +201,13 @@ fun SummaryFixtureScreen(season: Season) {
     val seasonTeamCategoryState by seasonTeamCategoryModel.getState().collectAsStateWithLifecycle()
     val farAssociationState by farAssociationViewModel.getState().collectAsStateWithLifecycle()
 
-    SummaryFixtureContent(
-        season = season,
-        state = state,
-        seasonLeagueTeamState = seasonLeagueTeamState,
-        seasonTeamCategoryState = seasonTeamCategoryState,
-        farAssociationState = farAssociationState
-    )
-}
-
-@Composable
-private fun SummaryFixtureContent(
-    season: Season,
-    state: ViewModelState<SeasonFixtureView>,
-    seasonLeagueTeamState: ViewModelState<SeasonLeagueTeamView>,
-    seasonTeamCategoryState: ViewModelState<SeasonTeamCategory>,
-    farAssociationState: ViewModelState<FarAssociationView>
-) {
     var competitionFilter by remember { mutableStateOf(0.toShort()) }
-    var typeFilter by remember { mutableStateOf<SumType?>(null) }
+    var typeFilter by remember { mutableIntStateOf(0) }
 
     ViewCommon(
         "Season fixture Summary",
         "Return to seasons screen",
-        states = persistentListOf(state, seasonLeagueTeamState, seasonTeamCategoryState, farAssociationState),
-        content = { paddingValues ->
+        states = persistentListOf(state, seasonLeagueTeamState, seasonTeamCategoryState, farAssociationState)) { paddingValues ->
             val fixtureSummaryDetails = FixtureSummaryDetails(
                 seasonLeagueTeamState.values(),
                 state
@@ -235,39 +219,37 @@ private fun SummaryFixtureContent(
 
             Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(0.dp), content = {
-                    ViewText("Competition", Modifier.align(Alignment.CenterVertically))
-                    CompetitionFilter(competitionFilter, season.id, Modifier.align(Alignment.CenterVertically)) {
+                    val modifier = Modifier.align(Alignment.CenterVertically)
+                    ViewText("Competition", modifier)
+                    CompetitionFilter(competitionFilter, season.id, modifier) {
                         competitionFilter = it
                     }
-                    SpacedViewText("Summary Type")
-                    val t = listOf("") + SumType.entries.map { it.displayName }
-                    DropdownList(t.toImmutableList(), 0, Modifier.align(Alignment.CenterVertically)) {
-                        typeFilter = when (it) {
-                            0 -> null
-                            else -> SumType.entries[it - 1]
-                        }
+                    SpacedViewText("Summary Type", modifier)
+                    val t = (listOf("") + SumType.entries.map { it.displayName }).toImmutableList()
+                    DropdownList(t, typeFilter, modifier) {
+                        typeFilter = it
                     }
                 })
                 val columns = when (typeFilter) {
-                    null -> fixtureSummaryDetails.teamCategories.size + 2
+                    0 -> fixtureSummaryDetails.teamCategories.size + 2
                     else -> fixtureSummaryDetails.teamCategories.size + 1
                 }
                 LazyVerticalGrid(columns = DoubleFirstGridCells(columns)) {
                     viewTextItems(listOf(""))
-                    if (typeFilter == null) {
+                    if (typeFilter == 0) {
                         viewTextItems(listOf(""))
                     }
                     viewTextItems(fixtureSummaryDetails.teamCategories.toImmutableList())
                     for (team in fixtureSummaryDetails.teams) {
-                        fun sumValue(teamCategory: String, sumType: SumType): String {
-                            return fixtureSummaryDetails.countsByTeamAndCategory[Triple(
+                        fun sumValue(teamCategory: String, sumType: SumType): String =
+                            fixtureSummaryDetails.countsByTeamAndCategory[Triple(
                                 team,
                                 teamCategory,
                                 sumType
                             )]?.toString() ?: "0"
-                        }
+
                         when (typeFilter) {
-                            null -> {
+                            0 -> {
                                 viewTextItems(
                                     listOf(team, "HOME") +
                                             fixtureSummaryDetails.teamCategories.map { sumValue(it, SumType.HOME_TEAM) }
@@ -282,32 +264,35 @@ private fun SummaryFixtureContent(
                                 )
                             }
 
-                            SumType.DISTANT -> {
+                            SumType.DISTANT.ordinal + 1 -> {
+                                if (team in fixtureSummaryDetails.teamsWithDistantGames) {
                                 viewTextItems(
                                     listOf(team) +
                                             fixtureSummaryDetails.teamCategories.map {
                                                 "${sumValue(it, SumType.DISTANT)} (${sumValue(it, SumType.AWAY_TEAM)})"
                                             }
                                 )
+                                }
                             }
 
                             else -> {
                                 viewTextItems(
                                     listOf(team) +
-                                            fixtureSummaryDetails.teamCategories.map { sumValue(it, typeFilter!!) }
+                                            fixtureSummaryDetails.teamCategories.map { sumValue(it, SumType.entries[typeFilter - 1]) }
                                 )
                             }
                         }
                     }
                 }
             }
-        })
+        }
 }
 
 internal class FixtureSummaryDetails {
     val countsByTeamAndCategory = mutableMapOf<Triple<String, String, SumType>, Int>()
     val teamCategories = sortedSetOf<String>()
     val teams = sortedSetOf<String>()
+    val teamsWithDistantGames: Set<String>
 
     constructor(
         seasonLeagueTeams: List<SeasonLeagueTeamView>,
@@ -322,6 +307,7 @@ internal class FixtureSummaryDetails {
             .map { it.teamCategoryId }.toSet()
         val distantAwayFixtures = farAssociations.groupBy { it.homeAssociationName }
             .mapValues { it.value.map { value -> value.awayAssociationName }.toSet() }
+        val hasDistantGame = mutableSetOf<String>()
 
         for (seasonFixture in filteredFixtures) {
             teamCategories += seasonFixture.teamCategoryName
@@ -347,9 +333,11 @@ internal class FixtureSummaryDetails {
                         1,
                         Int::plus
                     )
+                    hasDistantGame += awayTeamName
                 }
             }
         }
+        teamsWithDistantGames = hasDistantGame
     }
 }
 

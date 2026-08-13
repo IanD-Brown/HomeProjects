@@ -34,6 +34,7 @@ import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonBreakDao
 import io.github.iandbrown.sportplanner.database.SeasonCompViewDao
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRoundDao
+import io.github.iandbrown.sportplanner.database.SeasonDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamCategoryDao
 import io.github.iandbrown.sportplanner.database.SeasonTeamDao
 import io.github.iandbrown.sportplanner.database.TeamCategory
@@ -244,7 +245,8 @@ private suspend fun import(
     competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value,
     teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
     associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value,
-    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>(FarAssociationDao::class.java).value
+    farAssociationDao: FarAssociationDao = inject<FarAssociationDao>(FarAssociationDao::class.java).value,
+    seasonDao: SeasonDao = inject<SeasonDao>(SeasonDao::class.java).value
 ) {
     importFromFile(
         "json",
@@ -254,6 +256,7 @@ private suspend fun import(
             teamCategoryDao.deleteAll()
             associationDao.deleteAll()
             farAssociationDao.deleteAll()
+            seasonDao.deleteAll()
             dataFrame
         },
         { row ->

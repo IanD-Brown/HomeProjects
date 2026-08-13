@@ -47,8 +47,7 @@ class DayDate {
         if (value == 0) {
             return this
         }
-        val date = toLocalDate()
-        val changedDate = date.plusDays(days.toLong())
+        val changedDate = toLocalDate().plusDays(days.toLong())
         return DayDate(YEAR_FACTOR * changedDate.year + changedDate.dayOfYear)
     }
 
@@ -57,8 +56,7 @@ class DayDate {
             return ""
         }
 
-        val date = toLocalDate()
-        return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        return toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
     }
 
     fun value() : Int = value
@@ -68,9 +66,20 @@ class DayDate {
             return LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
         }
 
-        val date = toLocalDate()
-        return date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        return toLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
     }
 
-    fun toLocalDate(): LocalDate = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
+    private fun toLocalDate(): LocalDate = LocalDate.ofYearDay(value / YEAR_FACTOR, value % YEAR_FACTOR)
+
+    fun nextYear() : Int {
+        if (value == 0) {
+            return 0
+        }
+        val date = toLocalDate()
+        var changedDate = LocalDate.ofYearDay(1 + value / YEAR_FACTOR, value % YEAR_FACTOR)
+        while (changedDate.dayOfWeek != date.dayOfWeek) {
+            changedDate = changedDate.minusDays(1)
+        }
+        return changedDate.year * YEAR_FACTOR + changedDate.dayOfYear
+    }
 }

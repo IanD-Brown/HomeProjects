@@ -41,4 +41,7 @@ interface SeasonCompViewDao : ConfigReadDao<SeasonCompView> {
 
     @Query("DELETE FROM seasons WHERE id = :seasonId")
     suspend fun deleteSeason(seasonId : Short)
+
+    @Query("DELETE from seasons")
+    suspend fun deleteAllSeasons()
 }

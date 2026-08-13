@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.NextWeek
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Splitscreen
@@ -71,7 +72,7 @@ class SeasonViewModel(dao: SeasonDao) : BaseCRUDViewModel<SeasonDao, Season>(dao
         endDates: SnapshotStateMap<Short, Int>,
         seasonCompetitionDao: SeasonCompetitionDao = inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value
     ) {
-        viewModelScope.launch {
+        runInCoroutine {
             if (season == null) {
                 insert(Season(name = name.trim()))
             } else {
@@ -99,6 +100,58 @@ class SeasonCompViewModel(dao: SeasonCompViewDao) :
         viewModelScope.launch {
             try {
                 dao.deleteSeason(seasonId)
+                readAll()
+            } catch (e: Exception) {
+                handleException(e)
+            }
+        }
+    }
+
+    fun deleteAllSeasons() {
+        viewModelScope.launch {
+            try {
+                dao.deleteAllSeasons()
+            } catch (e: Exception) {
+                handleException(e)
+            }
+        }
+    }
+
+    fun cloneSeason(seasonId: SeasonId) {
+        viewModelScope.launch {
+            val seasonDao = inject<SeasonDao>(SeasonDao::class.java).value
+            val seasonBreakDao = inject<SeasonBreakDao>(SeasonBreakDao::class.java).value
+            val seasonCompetitionDao = inject<SeasonCompetitionDao>(SeasonCompetitionDao::class.java).value
+            val seasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value
+            val seasonTeamCategoryDao = inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value
+            val seasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value
+            try {
+                val newSeasonName = "${seasonDao.get().filter { it.id == seasonId }.map { it.name }[0]} (copy)"
+                seasonDao.insert(Season(name = newSeasonName))
+                val newSeasonId = seasonDao.getSeasonId(newSeasonName)!!
+                seasonBreakDao.get(seasonId).forEach {
+                    val entity = SeasonBreak(seasonId = newSeasonId, name = it.name, week = DayDate(it.week).nextYear())
+                    seasonBreakDao.insert(entity)
+                }
+                seasonCompetitionDao.getBySeason(seasonId).forEach {
+                    val entity = SeasonCompetition(
+                        newSeasonId,
+                        it.competitionId,
+                        DayDate(it.startDate).nextYear(),
+                        DayDate(it.endDate).nextYear())
+                    seasonCompetitionDao.insert(entity)
+                }
+                seasonCompetitionRoundDao.getBySeason(seasonId).forEach {
+                    val entity = SeasonCompetitionRound(newSeasonId, it.competitionId, it.round, it.description,
+                        DayDate(it.week).nextYear(), it.optional)
+                    seasonCompetitionRoundDao.insert(entity)
+                }
+                seasonTeamCategoryDao.getBySeasonId(seasonId).forEach {
+                    seasonTeamCategoryDao.insert(it.copy(seasonId = newSeasonId))
+                }
+                seasonTeamDao.getBySeason(seasonId).forEach {
+                    seasonTeamDao.insert(it.copy(seasonId = newSeasonId))
+                }
                 readAll()
             } catch (e: Exception) {
                 handleException(e)
@@ -136,7 +189,6 @@ data class SeasonCompetitionParam(
 @Composable
 fun SeasonListScreen() {
     val seasonCompViewModel: SeasonCompViewModel = koinViewModel()
-    val seasonViewModel: SeasonViewModel = koinViewModel()
     val seasonCompViewState by seasonCompViewModel.getState().collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
 
@@ -145,89 +197,61 @@ fun SeasonListScreen() {
         onPauseOrDispose { }
     }
 
-    SeasonListContent(
-        state = seasonCompViewState,
-        onExport = {
-            exportButtonSettings(coroutineScope, "seasons") {
-                toDataFrame(
-                    seasonCompViewState.values(),
-                    inject<SeasonBreakDao>(SeasonBreakDao::class.java).value.getAll(),
-                    inject<SeasonTeamDao>(SeasonTeamDao::class.java).value.getAll(),
-                    inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value.getAll(),
-                    inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value.getAll(),
-                    inject<CompetitionDao>(CompetitionDao::class.java).value.get(),
-                    inject<AssociationDao>(AssociationDao::class.java).value.get(),
-                    inject<TeamCategoryDao>(TeamCategoryDao::class.java).value.get(),
-                ).writeJson(it)
-            }
-        },
-        onImport = {
-            ButtonSettings(imageVector = Icons.Default.Upload) {
-                coroutineScope.launch {
-                    tryTransaction({ seasonViewModel.handleException(it) }, {
-                        importFromFile(
-                            "json",
-                            {
-                                val dataFrame = DataFrame.readJson(it)
-                                seasonViewModel.dao.deleteAll()
-                                dataFrame
-                            })
-                        { importRow(it) }
-                    })
-                    seasonCompViewModel.readAll()
-                }
-            }
-        },
-        onAdd = { appNavigator.navigate(Route.SeasonEdit(null)) },
-        onManageBreaks = { appNavigator.navigate(Route.SeasonBreakList(it)) },
-        onEdit = { appNavigator.navigate(Route.SeasonEdit(it)) },
-        onDelete = { seasonCompViewModel.deleteSeason(it) },
-        onManageRounds = { appNavigator.navigate(Route.SeasonCompetitionRoundList(it)) },
-        onManageTeams = { appNavigator.navigate(Route.SeasonTeamCategory(it)) },
-        onManageMatchStructure = { appNavigator.navigate(Route.SeasonTeams(it)) }
-    )
-}
-
-@Composable
-private fun SeasonListContent(
-    state: ViewModelState<SeasonCompView>,
-    onExport: () -> ButtonSettings,
-    onImport: () -> ButtonSettings,
-    onAdd: () -> Unit,
-    onManageBreaks: (Season) -> Unit,
-    onEdit: (Season) -> Unit,
-    onDelete: (SeasonId) -> Unit,
-    onManageRounds: (SeasonCompetitionParam) -> Unit,
-    onManageTeams: (SeasonCompetitionParam) -> Unit,
-    onManageMatchStructure: (SeasonCompetitionParam) -> Unit
-) {
     ViewCommon(
         "Seasons",
         bottomBar = {
             BottomBarWithButtons(
-                onExport(),
-                onImport(),
-                addButtonSettings { onAdd() }
+                exportButtonSettings(coroutineScope, "seasons") {
+                    toDataFrame(
+                        seasonCompViewState.values(),
+                        inject<SeasonBreakDao>(SeasonBreakDao::class.java).value.getAll(),
+                        inject<SeasonTeamDao>(SeasonTeamDao::class.java).value.getAll(),
+                        inject<SeasonTeamCategoryDao>(SeasonTeamCategoryDao::class.java).value.getAll(),
+                        inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value.getAll(),
+                        inject<CompetitionDao>(CompetitionDao::class.java).value.get(),
+                        inject<AssociationDao>(AssociationDao::class.java).value.get(),
+                        inject<TeamCategoryDao>(TeamCategoryDao::class.java).value.get(),
+                    ).writeJson(it)
+                },
+                ButtonSettings(imageVector = Icons.Default.Upload) {
+                    coroutineScope.launch {
+                        tryTransaction({ seasonCompViewModel.handleException(it) }, {
+                            importFromFile(
+                                "json",
+                                {
+                                    val dataFrame = DataFrame.readJson(it)
+                                    seasonCompViewModel.deleteAllSeasons()
+                                    dataFrame
+                                })
+                            { importRow(it) }
+                        })
+                        seasonCompViewModel.readAll()
+                    }
+                },
+                addButtonSettings { appNavigator.navigate(Route.SeasonEdit(null)) }
             )
         },
-        states = persistentListOf(state)
+        states = persistentListOf(seasonCompViewState)
     ) { paddingValues ->
         var currentSeasonId: Short? = null
         val surfaceColor = MaterialTheme.colorScheme.onSurface
-        val items = state.values()
+        val items = seasonCompViewState.values()
 
-        LazyVerticalGrid(WeightedIconGridCells(3, 1, 2), modifier = Modifier.padding(paddingValues)) {
+        LazyVerticalGrid(WeightedIconGridCells(4, 1, 2), modifier = Modifier.padding(paddingValues)) {
             for (seasonCompView in items) {
                 if (seasonCompView.seasonId != currentSeasonId) {
                     viewTextItems(listOf(seasonCompView.seasonName, ""))
 
+                    clickableIcon(Icons.AutoMirrored.Filled.NextWeek, "clone to next season", surfaceColor) {
+                        seasonCompViewModel.cloneSeason(seasonCompView.seasonId)
+                    }
                     clickableIcon(Icons.Default.Splitscreen, "manage season breaks", surfaceColor) {
-                        onManageBreaks(Season(seasonCompView.seasonId, seasonCompView.seasonName))
+                        appNavigator.navigate(Route.SeasonBreakList(Season(seasonCompView.seasonId, seasonCompView.seasonName)))
                     }
                     editButton {
-                        onEdit(Season(seasonCompView.seasonId, seasonCompView.seasonName))
+                        appNavigator.navigate(Route.SeasonEdit(Season(seasonCompView.seasonId, seasonCompView.seasonName)))
                     }
-                    deleteButton { onDelete(seasonCompView.seasonId) }
+                    deleteButton { seasonCompViewModel.deleteSeason(seasonCompView.seasonId) }
 
                     currentSeasonId = seasonCompView.seasonId
                 }
@@ -240,17 +264,21 @@ private fun SeasonListContent(
                     Icon(Blank, "")
                 }
 
+                item {
+                    Icon(Blank, "")
+                }
+
                 if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
                     clickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds", surfaceColor) {
-                        onManageRounds(seasonCompetitionParamOf(seasonCompView))
+                        appNavigator.navigate(Route.SeasonCompetitionRoundList(seasonCompetitionParamOf(seasonCompView)))
                     }
                 } else {
                     clickableIcon(Icons.Default.Accessibility, "manage teams", surfaceColor) {
-                        onManageTeams(seasonCompetitionParamOf(seasonCompView))
+                        appNavigator.navigate(Route.SeasonTeamCategory(seasonCompetitionParamOf(seasonCompView)))
                     }
                 }
                 clickableIcon(Icons.Default._123, "manage match structure", surfaceColor) {
-                    onManageMatchStructure(seasonCompetitionParamOf(seasonCompView))
+                    appNavigator.navigate(Route.SeasonTeams(seasonCompetitionParamOf(seasonCompView)))
                 }
             }
         }

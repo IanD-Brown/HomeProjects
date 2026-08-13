@@ -52,6 +52,9 @@ interface SeasonCompetitionRoundDao : BaseSeasonCompReadDao<SeasonCompetitionRou
             "AND NOT EXISTS (SELECT * FROM SeasonCupFixtures scf WHERE scf.seasonId = scr.seasonId AND scf.competitionId = scr.competitionId AND scf.round = scr.round AND scf.result <> 0)")
     suspend fun getUnstartedRounds(seasonId: SeasonId) : List<SeasonCompetitionRound>
 
+    @Query("SELECT * FROM $table WHERE seasonId = :seasonId")
+    suspend fun getBySeason(seasonId: SeasonId) : List<SeasonCompetitionRound>
+
     @Query("DELETE FROM $table WHERE seasonId = :seasonId AND competitionId = :competitionId")
     suspend fun deleteBySeasonComp(seasonId: SeasonId, competitionId: CompetitionId)
 }

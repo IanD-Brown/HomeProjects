@@ -115,7 +115,9 @@ class SeasonLeagueGamesTest : BehaviorSpec({
 
             then("the correct number of fixtures should be created") {
                 // home and away for 4 teams plus the cup round
-                scheduledFixtures.size shouldBe 7
+                withClue({ scheduledFixtures.size }) {
+                    scheduledFixtures.size shouldBe 7
+                }
             }
 
             then("no fixtures should be scheduled on the cup week") {
@@ -194,24 +196,24 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             val homeGameByAssociation = mutableMapOf<AssociationId, Int>()
 
             gamesToSchedule[side1] = 0
-            gamesToSchedule[side2] = 4
+            gamesToSchedule[side2] = 0
             gamesToSchedule[side3] = 0
             gamesToSchedule[side4] = 0
             homeGameByAssociation[side1.associationId] = 2
-            homeGameByAssociation[side2.associationId] = 2
-            homeGameByAssociation[side3.associationId] = 2
-            homeGameByAssociation[side4.associationId] = 0
+            homeGameByAssociation[side2.associationId] = 1
+            homeGameByAssociation[side3.associationId] = 4
+            homeGameByAssociation[side4.associationId] = 3
 
             val orderedGames = getOrderedGames(plannedGames, gamesToSchedule, homeGameByAssociation)
 
             then("the association having the least home games should be earlier") {
-                orderedGames[0] shouldBe plannedGames[0]
-                orderedGames[1] shouldBe plannedGames[1]
-                orderedGames[2] shouldBe plannedGames[2]
+                orderedGames[0] shouldBe plannedGames[2] // as it is distant
+                orderedGames[1] shouldBe plannedGames[0]
+                orderedGames[2] shouldBe plannedGames[1]
             }
         }
 
-        When("the games to schedule are the different") {
+        When("the games to schedule are different") {
             val gamesToSchedule = mutableMapOf<Side, Int>()
             val homeGameByAssociation = mutableMapOf<AssociationId, Int>()
 
