@@ -38,6 +38,10 @@ import io.github.iandbrown.sportplanner.database.SeasonRoundDao
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.concat
+import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
@@ -215,11 +219,36 @@ internal fun CupFixtureTableScreen(season: Season) {
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
+    val coroutineScope = rememberCoroutineScope()
+
 
     ViewCommon("Cup Fixtures ${season.name}",
         states = persistentListOf(state, competitionState),
         bottomBar = {
             BottomBarWithButtons(
+                exportButtonSettings(coroutineScope, "cupFixtures", "csv") { writer ->
+                    var competitionId: CompetitionId = 0
+                    val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
+                    val fixturesById = state.values().associateBy { it.id }
+                    state.values()
+                        .sortedWith(compareBy({ competitionNameLookup[it.competitionId] ?: "" }, { it.teamCategoryName }))
+                        .map {
+                            var df = DataFrame.emptyOf<Any?>()
+                            if (it.competitionId != competitionId) {
+                                df = df.concat(
+                                    dataFrameOf("Competition" to listOf(competitionNameLookup[it.competitionId] ?: ""))
+                                )
+                                competitionId = it.competitionId
+                            }
+                            df = df.concat(dataFrameOf(
+                                "Team Category" to listOf(it.teamCategoryName),
+                                "Round" to listOf(it.round),
+                                "Home" to listOf(teamDescription(fixturesById, it.homePending, it.homeAssociation, it.homeTeamNumber)),
+                                "Away" to listOf(teamDescription(fixturesById, it.awayPending, it.awayAssociation, it.awayTeamNumber)),
+                            ))
+                            df
+                        }.reduce { acc, dataFrame -> acc.concat(dataFrame) }.writeCsv(writer)
+                },
                 ButtonSettings(buttonText) {
                     if (!isLocked && edits.isNotEmpty()) {
                         viewModel.saveResults(edits)
