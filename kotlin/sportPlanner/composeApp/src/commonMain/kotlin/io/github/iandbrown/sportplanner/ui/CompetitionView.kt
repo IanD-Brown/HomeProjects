@@ -44,7 +44,8 @@ private const val TYPE = "Type"
 
 enum class CompetitionTypes(val display : String) {
     LEAGUE("League"),
-    KNOCK_OUT_CUP("Knockout cup")
+    KNOCK_OUT_CUP("Knockout cup"),
+    EXTERNAL_CUP("External cup")
 }
 
 @Composable

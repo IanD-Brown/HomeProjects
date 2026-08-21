@@ -5,6 +5,8 @@ import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verifySuspend
+import io.github.iandbrown.sportplanner.database.Competition
+import io.github.iandbrown.sportplanner.database.CompetitionDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixture
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureDao
 import io.github.iandbrown.sportplanner.database.SeasonCupFixtureView
@@ -98,18 +100,26 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
         val seasonTeamDao = mock<SeasonTeamDao>()
         val dao = mock<SeasonCupFixtureDao>()
         val teamCategoryDao = mock<TeamCategoryDao>()
+        val competitionDao = mock<CompetitionDao>()
+        val associationOrderMap = mutableMapOf(1.toShort() to AssociationOrdering(0, 0, 0),
+            2.toShort() to AssociationOrdering(0, 0, 0))
+
+        beforeTest {
+            val teamCategory = TeamCategory(teamCategoryId, "U10", 0.toShort())
+            everySuspend { teamCategoryDao.get() } returns listOf(teamCategory)
+            everySuspend { competitionDao.get() } returns listOf(Competition(competitionId, "", CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()))
+            everySuspend { dao.insert(any()) } returns 0L
+        }
 
         should("calculate round 1 fixtures correctly for 4 teams") {
             val round = 1.toShort()
-            val teamCategory = TeamCategory(teamCategoryId, "U10", 0.toShort())
-            val teams = listOf(SeasonTeam(seasonId, competitionId, 1, teamCategoryId, 2), SeasonTeam(seasonId, competitionId, 2, teamCategoryId, 2))
+            val teams = listOf(SeasonTeam(seasonId, competitionId, 1, teamCategoryId, 2),
+                SeasonTeam(seasonId, competitionId, 2, teamCategoryId, 2))
 
             everySuspend { dao.deleteByRound(seasonId, competitionId, round) } returns Unit
-            everySuspend { teamCategoryDao.get() } returns listOf(teamCategory)
             everySuspend { seasonTeamDao.getTeams(seasonId, competitionId, teamCategoryId) } returns teams
-            everySuspend { dao.insert(any()) } returns 0L
 
-            calcCupFixtures(seasonId, competitionId, round, seasonTeamDao, dao, teamCategoryDao)
+            calcCupFixtures(seasonId, competitionId, round, associationOrderMap, seasonTeamDao, dao, teamCategoryDao, competitionDao)
 
             verifySuspend {
                 dao.deleteByRound(seasonId, competitionId, round)
@@ -120,18 +130,15 @@ class SeasonCompetitionRoundViewTest : ShouldSpec({
 
         should("calculate round 2 fixtures correctly based on round 1 results") {
             val round = 2.toShort()
-            val teamCategory = TeamCategory(teamCategoryId, "U10", 0.toShort())
             val round1Fixtures = listOf(
                 SeasonCupFixture(1, seasonId, competitionId, 1.toShort(), teamCategoryId, 1, 0, 1, 1, 0L, 0L, 1.toShort()), // Home win
                 SeasonCupFixture(2, seasonId, competitionId, 1.toShort(), teamCategoryId, 2, 0, 2, 1, 0L, 0L, 2.toShort())  // Away win
             )
 
             everySuspend { dao.deleteByRound(seasonId, competitionId, round) } returns Unit
-            everySuspend { teamCategoryDao.get() } returns listOf(teamCategory)
             everySuspend { dao.getByRound(seasonId, competitionId, teamCategoryId, 1.toShort()) } returns round1Fixtures
-            everySuspend { dao.insert(any()) } returns 0L
 
-            calcCupFixtures(seasonId, competitionId, round, seasonTeamDao, dao, teamCategoryDao)
+            calcCupFixtures(seasonId, competitionId, round, associationOrderMap, seasonTeamDao, dao, teamCategoryDao, competitionDao)
 
             verifySuspend {
                 dao.deleteByRound(seasonId, competitionId, round)

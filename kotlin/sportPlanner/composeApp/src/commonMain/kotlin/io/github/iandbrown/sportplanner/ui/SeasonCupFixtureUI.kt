@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
@@ -315,9 +316,10 @@ internal suspend fun calcSeasonCupFixtures(
     seasonId: SeasonId,
     dao: SeasonCompetitionRoundDao = inject<SeasonCompetitionRoundDao>(SeasonCompetitionRoundDao::class.java).value
 ) {
+    val associationOrderMap = mutableMapOf<AssociationId, AssociationOrdering>()
     println("Calculating fixtures for season $seasonId")
     dao.getUnstartedRounds(seasonId).forEach {
         println("Calculating fixtures for ${it.competitionId} round ${it.round}")
-        calcCupFixtures(seasonId, it.competitionId, it.round)
+        calcCupFixtures(seasonId, it.competitionId, it.round, associationOrderMap)
     }
 }

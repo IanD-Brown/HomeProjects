@@ -268,13 +268,16 @@ fun SeasonListScreen() {
                     Icon(Blank, "")
                 }
 
-                if (seasonCompView.competitionType == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort()) {
-                    clickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds", surfaceColor) {
-                        appNavigator.navigate(Route.SeasonCompetitionRoundList(seasonCompetitionParamOf(seasonCompView)))
+                when (seasonCompView.competitionType) {
+                    CompetitionTypes.LEAGUE.ordinal.toShort() -> {
+                        clickableIcon(Icons.Default.Accessibility, "manage teams", surfaceColor) {
+                            appNavigator.navigate(Route.SeasonTeamCategory(seasonCompetitionParamOf(seasonCompView)))
+                        }
                     }
-                } else {
-                    clickableIcon(Icons.Default.Accessibility, "manage teams", surfaceColor) {
-                        appNavigator.navigate(Route.SeasonTeamCategory(seasonCompetitionParamOf(seasonCompView)))
+                    else -> {
+                        clickableIcon(Icons.Default.Rotate90DegreesCcw, "manage season competition rounds", surfaceColor) {
+                            appNavigator.navigate(Route.SeasonCompetitionRoundList(seasonCompetitionParamOf(seasonCompView)))
+                        }
                     }
                 }
                 clickableIcon(Icons.Default._123, "manage match structure", surfaceColor) {

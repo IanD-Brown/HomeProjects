@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import io.github.iandbrown.sportplanner.database.AssociationDao
 import io.github.iandbrown.sportplanner.database.AssociationId
 import io.github.iandbrown.sportplanner.database.AssociationName
 import io.github.iandbrown.sportplanner.database.Competition
@@ -65,6 +66,9 @@ import org.jetbrains.kotlinx.dataframe.io.writeJson
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.inject
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.random.Random
 import kotlin.time.measureTime
 
@@ -153,7 +157,7 @@ fun SeasonCompetitionRoundListScreen(param: SeasonCompetitionParam) {
                 calculating = true
                 coroutineScope.launch {
                     val timeTaken = measureTime {
-                        calcCupFixtures(param.seasonId, param.competitionId, round)
+                        calcCupFixtures(param.seasonId, param.competitionId, round, mutableMapOf())
                     }
                     println("Cup fixtures calculated in $timeTaken")
                     calculating = false
@@ -457,76 +461,113 @@ fun SeasonCupFixtureScreen(param: SeasonCompetitionParam, competitionRound: Seas
 private fun getRounds(data: List<SeasonCompetitionRound>): Set<Short> =
     data.map { it.round }.toSet()
 
-data class CupFixtureTeams(
+internal data class CupFixtureTeams(
     val homeAssociation: AssociationId,
     val homeTeamNumber: TeamNumber,
     val awayAssociation: AssociationId,
     val awayTeamNumber: TeamNumber
 )
 
+internal data class AssociationOrdering(val homeGameCount: Int, val byeCount: Int, val random: Int) {
+    fun addHome(): AssociationOrdering = AssociationOrdering(homeGameCount + 1, byeCount, random)
+    fun addBye(): AssociationOrdering = AssociationOrdering(homeGameCount, byeCount + 1, random)
+    fun setRandom(random: Int): AssociationOrdering = AssociationOrdering(homeGameCount, byeCount, random)
+}
+
 internal suspend fun calcCupFixtures(
     seasonId: SeasonId,
     competitionId: CompetitionId,
     round: Short,
+    associationOrderMap: MutableMap<AssociationId, AssociationOrdering>,
     seasonTeamDao: SeasonTeamDao = inject<SeasonTeamDao>(SeasonTeamDao::class.java).value,
     dao: SeasonCupFixtureDao = inject<SeasonCupFixtureDao>(SeasonCupFixtureDao::class.java).value,
-    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value
+    teamCategoryDao: TeamCategoryDao = inject<TeamCategoryDao>(TeamCategoryDao::class.java).value,
+    competitionDao: CompetitionDao = inject<CompetitionDao>(CompetitionDao::class.java).value
 ) {
     dao.deleteByRound(seasonId, competitionId, round)
-
-    val teamCategories = teamCategoryDao.get()
-    for (teamCategory in teamCategories) {
-        if (round == 1.toShort()) {
-            val competitionTeams =
-                seasonTeamDao.getTeams(seasonId, competitionId, teamCategory.id)
-                    .flatMap { seasonTeam ->
-                        (0..<seasonTeam.count).map { teamNumber ->
-                            Pair(seasonTeam.associationId, teamNumber.toShort())
-                        }
-                    }.shuffled(Random(System.currentTimeMillis()))
-            val games = calculateGameCount(competitionTeams.size)
-
-            planFixtures(games, competitionTeams)
-                .forEach {
-                    dao.insert(
-                        SeasonCupFixture(
-                            seasonId = seasonId,
-                            competitionId = competitionId,
-                            round = round,
-                            teamCategoryId = teamCategory.id,
-                            homeAssociationId = it.homeAssociation,
-                            homeTeamNumber = it.homeTeamNumber,
-                            awayAssociationId = it.awayAssociation,
-                            awayTeamNumber = it.awayTeamNumber,
-                            result = (if (it.awayAssociation > 0) 0 else 1).toShort()
-                        )
-                    )
-                }
+    if (competitionDao.get().filter { it.id == competitionId }.any { it.type == CompetitionTypes.KNOCK_OUT_CUP.ordinal.toShort() }) {
+        if (associationOrderMap.isEmpty()) {
+            initAssociationOrderMap(associationOrderMap)
         } else {
-            val previousRoundFixtures =
-                dao.getByRound(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
-                    .shuffled(Random(System.currentTimeMillis()))
-            if (previousRoundFixtures.size > 1) {
-            for (i in previousRoundFixtures.indices step 2) {
-                val home = previousRoundFixtures[i]
-                val away = previousRoundFixtures[i + 1]
-                dao.insert(
-                    SeasonCupFixture(
-                        seasonId = seasonId,
-                        competitionId = competitionId,
-                        round = round,
-                        teamCategoryId = teamCategory.id,
-                        homeAssociationId = winningAssociation(home),
-                        homeTeamNumber = winningTeamNumber(home),
-                        awayAssociationId = winningAssociation(away),
-                        awayTeamNumber = winningTeamNumber(away),
-                        homePending = if (home.result == 0.toShort()) home.id else 0L,
-                        awayPending = if (away.result == 0.toShort()) away.id else 0L
-                    )
-                )
+            val random = Random(System.currentTimeMillis())
+            associationOrderMap.forEach { (key, value) ->
+                associationOrderMap[key] = value.setRandom(random.nextInt())
+            }
+
+        }
+        for (teamCategory in teamCategoryDao.get()) {
+            if (round == 1.toShort()) {
+                val competitionTeams =
+                    seasonTeamDao.getTeams(seasonId, competitionId, teamCategory.id)
+                        .flatMap { seasonTeam ->
+                            (0..<seasonTeam.count).map { teamNumber ->
+                                Pair(seasonTeam.associationId, teamNumber.toShort())
+                            }
+                        }.sortedWith(
+                            compareBy<Pair<AssociationId, TeamNumber>> { associationOrderMap[it.first]!!.byeCount }
+                                .thenBy { associationOrderMap[it.first]!!.homeGameCount }
+                                .thenBy { associationOrderMap[it.first]!!.random }
+                        )
+                if (competitionTeams.isEmpty()) {
+                    continue
+                }
+                val games = calculateGameCount(competitionTeams.size)
+
+                planFixtures(games, competitionTeams)
+                    .forEach {
+                        associationOrderMap[it.homeAssociation] = if (it.awayAssociation == 0.toShort()) {
+                           associationOrderMap[it.homeAssociation]!!.addBye()
+                        } else {
+                           associationOrderMap[it.homeAssociation]!!.addHome()
+                        }
+                        dao.insert(
+                            SeasonCupFixture(
+                                seasonId = seasonId,
+                                competitionId = competitionId,
+                                round = round,
+                                teamCategoryId = teamCategory.id,
+                                homeAssociationId = it.homeAssociation,
+                                homeTeamNumber = it.homeTeamNumber,
+                                awayAssociationId = it.awayAssociation,
+                                awayTeamNumber = it.awayTeamNumber,
+                                result = (if (it.awayAssociation > 0) 0 else 1).toShort()
+                            )
+                        )
+                    }
+            } else {
+                val previousRoundFixtures =
+                    dao.getByRound(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
+                        .shuffled(Random(System.currentTimeMillis()))
+                if (previousRoundFixtures.size > 1) {
+                    for (i in previousRoundFixtures.indices step 2) {
+                        val home = previousRoundFixtures[i]
+                        val away = previousRoundFixtures[i + 1]
+                        dao.insert(
+                            SeasonCupFixture(
+                                seasonId = seasonId,
+                                competitionId = competitionId,
+                                round = round,
+                                teamCategoryId = teamCategory.id,
+                                homeAssociationId = winningAssociation(home),
+                                homeTeamNumber = winningTeamNumber(home),
+                                awayAssociationId = winningAssociation(away),
+                                awayTeamNumber = winningTeamNumber(away),
+                                homePending = if (home.result == 0.toShort()) home.id else 0L,
+                                awayPending = if (away.result == 0.toShort()) away.id else 0L
+                            )
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+private suspend fun initAssociationOrderMap(destination: MutableMap<AssociationId, AssociationOrdering>,
+                                    associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value) {
+    val random = Random(System.currentTimeMillis())
+    for (association in associationDao.get()) {
+        destination[association.id] = AssociationOrdering(0, 0, random.nextInt())
     }
 }
 
@@ -542,7 +583,7 @@ private fun winningTeamNumber(fixture: SeasonCupFixture): TeamNumber = when (fix
     else -> if (fixture.awayAssociationId == 0.toShort()) fixture.homeTeamNumber else 0.toShort()
 }
 
-fun planFixtures(
+internal fun planFixtures(
     gameCount: Int,
     teams: List<Pair<AssociationId, TeamNumber>>
 ): List<CupFixtureTeams> {
