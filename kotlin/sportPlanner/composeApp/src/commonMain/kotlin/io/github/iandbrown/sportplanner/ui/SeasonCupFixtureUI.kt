@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.sportplanner.database.AssociationId
+import io.github.iandbrown.sportplanner.database.Competition
 import io.github.iandbrown.sportplanner.database.CompetitionId
 import io.github.iandbrown.sportplanner.database.Season
 import io.github.iandbrown.sportplanner.database.SeasonCompetitionRound
@@ -36,6 +37,7 @@ import io.github.iandbrown.sportplanner.database.SeasonCupSummaryView
 import io.github.iandbrown.sportplanner.database.SeasonCupSummaryViewDao
 import io.github.iandbrown.sportplanner.database.SeasonId
 import io.github.iandbrown.sportplanner.database.SeasonRoundDao
+import io.github.iandbrown.sportplanner.logic.DayDate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
@@ -222,33 +224,12 @@ internal fun CupFixtureTableScreen(season: Season) {
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
     val coroutineScope = rememberCoroutineScope()
 
-
     ViewCommon("Cup Fixtures ${season.name}",
         states = persistentListOf(state, competitionState),
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "cupFixtures", "csv") { writer ->
-                    var competitionId: CompetitionId = 0
-                    val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
-                    val fixturesById = state.values().associateBy { it.id }
-                    state.values()
-                        .sortedWith(compareBy({ competitionNameLookup[it.competitionId] ?: "" }, { it.teamCategoryName }))
-                        .map {
-                            var df = DataFrame.emptyOf<Any?>()
-                            if (it.competitionId != competitionId) {
-                                df = df.concat(
-                                    dataFrameOf("Competition" to listOf(competitionNameLookup[it.competitionId] ?: ""))
-                                )
-                                competitionId = it.competitionId
-                            }
-                            df = df.concat(dataFrameOf(
-                                "Team Category" to listOf(it.teamCategoryName),
-                                "Round" to listOf(it.round),
-                                "Home" to listOf(teamDescription(fixturesById, it.homePending, it.homeAssociation, it.homeTeamNumber)),
-                                "Away" to listOf(teamDescription(fixturesById, it.awayPending, it.awayAssociation, it.awayTeamNumber)),
-                            ))
-                            df
-                        }.reduce { acc, dataFrame -> acc.concat(dataFrame) }.writeCsv(writer)
+                    export(competitionState.values(), state.values(), writer)
                 },
                 ButtonSettings(buttonText) {
                     if (!isLocked && edits.isNotEmpty()) {
@@ -310,6 +291,69 @@ internal fun CupFixtureTableScreen(season: Season) {
             }
         }
     }
+}
+
+private fun export(competitions: List<Competition>, seasonCupFixtures: List<SeasonCupFixtureView>, writer: Appendable) {
+    var competitionId: CompetitionId = 0
+    val competitionNameLookup = competitions.associateBy({ it.id }, { it.name })
+    val fixturesById = seasonCupFixtures.associateBy { it.id }
+    val matchDate: (SeasonCupFixtureView) -> String = {
+        DayDate(it.week).addDays(when (it.matchDay) {
+            Day.SAT.ordinal.toShort() -> Day.SAT.ordinal
+            else -> Day.FRI.ordinal
+        }).toString()
+    }
+    val altMatchDate: (SeasonCupFixtureView) -> String = {
+        when (it.matchDay) {
+            Day.SAT.ordinal.toShort() -> ""
+            else -> DayDate(it.week).addDays(Day.SUN.ordinal).toString()
+        }
+    }
+    seasonCupFixtures
+        .sortedWith(
+            compareBy<SeasonCupFixtureView>
+                { competitionNameLookup[it.competitionId] ?: "" }
+                .thenBy { it.teamCategoryName }
+                .thenBy { it.round }
+        )
+        .map {
+            var df = DataFrame.emptyOf<Any?>()
+            if (it.competitionId != competitionId) {
+                df = df.concat(
+                    dataFrameOf(
+                        "Competition" to listOf(
+                            competitionNameLookup[it.competitionId] ?: ""
+                        )
+                    )
+                )
+                competitionId = it.competitionId
+            }
+            df = df.concat(
+                dataFrameOf(
+                    "Team Category" to listOf(it.teamCategoryName),
+                    "Round" to listOf(it.round),
+                    "Date" to listOf(matchDate(it)),
+                    "Alt Date" to listOf(altMatchDate(it)),
+                    "Home" to listOf(
+                        teamDescription(
+                            fixturesById,
+                            it.homePending,
+                            it.homeAssociation,
+                            it.homeTeamNumber
+                        )
+                    ),
+                    "Away" to listOf(
+                        teamDescription(
+                            fixturesById,
+                            it.awayPending,
+                            it.awayAssociation,
+                            it.awayTeamNumber
+                        )
+                    ),
+                )
+            )
+            df
+        }.reduce { acc, dataFrame -> acc.concat(dataFrame) }.writeCsv(writer)
 }
 
 internal suspend fun calcSeasonCupFixtures(

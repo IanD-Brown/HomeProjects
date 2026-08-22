@@ -19,11 +19,14 @@ private const val viewName = "SeasonCupFixtureView"
             "scf.awayTeamNumber AS awayTeamNumber, " +
             "scf.homePending AS homePending, " +
             "scf.awayPending AS awayPending, " +
-            "scf.result AS result " +
-            "FROM SeasonCupFixtures scf " +
+            "scf.result AS result," +
+            "scr.week," +
+            "tc.matchDay " +
+            "FROM SeasonCupFixtures scf, SeasonCompetitionRounds scr " +
             "LEFT JOIN TeamCategories tc ON tc.id = scf.teamCategoryId " +
             "LEFT JOIN Associations h ON h.id = scf.homeAssociationId " +
-            "LEFT JOIN Associations a ON a.id = scf.awayAssociationId")
+            "LEFT JOIN Associations a ON a.id = scf.awayAssociationId " +
+            "WHERE scr.round = scf.round AND scr.competitionId = scf.competitionId AND scr.seasonId = scf.seasonId")
 data class SeasonCupFixtureView(
     val id : Long,
     val seasonId: SeasonId,
@@ -37,7 +40,9 @@ data class SeasonCupFixtureView(
     val awayTeamNumber: TeamNumber,
     val homePending : Long,
     val awayPending : Long,
-    val result : Short
+    val result : Short,
+    val week : Int = 0,
+    val matchDay : Short = 0
 )
 
 @Dao
