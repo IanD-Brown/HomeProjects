@@ -11,7 +11,6 @@ fun builder(): RoomDatabase.Builder<AppDatabase> =
     Room.databaseBuilder<AppDatabase>(getFilePath())
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
-        .fallbackToDestructiveMigration(true)
         .addCallback(object : RoomDatabase.Callback() {
             override fun onCreate(connection: SQLiteConnection) {
                 super.onCreate(connection)
