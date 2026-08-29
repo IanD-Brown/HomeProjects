@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.3.2"
 android-compileSdk = "37"
 android-minSdk = "34"
 android-targetSdk = "37"
@@ -7,12 +7,12 @@ androidx-activity = "1.13.0"
 jetbrains-androidx-lifecycle = "2.11.0"
 androidx-lifecycle = "2.11.0"
 composeHotReload = "1.2.0"
-composeMultiplatform = "1.11.1"
+composeMultiplatform = "1.12.0"
 kotlin = "2.4.10"
 kotlinx-coroutines = "1.11.0"
 # navigation
 navigationCompose = "2.9.2"
-navigation3 = "1.1.6"
+navigation3 = "1.1.7"
 navigationEvent = "1.1.0"
 androidx-savedstate = "1.5.0"
 jetbraindNav3 = "1.1.1"
@@ -35,7 +35,7 @@ coroutine-test-version = "1.11.0"
 # filekit
 filekit = "0.15.0"
 # immutable collections
-immutableCollections = "0.5.1"
+immutableCollections = "0.5.2"
 # dataframe
 kotlinx-dataframe = "1.0.0-rc01"
 # logging
