@@ -77,6 +77,8 @@ class SeasonCupFixtureViewModel(seasonId: SeasonId, dao: SeasonCupFixtureViewDao
     }
 }
 
+private  var defaultRound = 0
+
 @Composable
 internal fun CupFixtureScreen() {
     val viewModel: SeasonViewModel = koinViewModel()
@@ -226,7 +228,7 @@ internal fun CupFixtureTableScreen(season: Season) {
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
-    var roundFilter by remember { mutableIntStateOf(0) }
+    var roundFilter by remember { mutableIntStateOf(defaultRound) }
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon("Cup Fixtures ${season.name}",
@@ -263,6 +265,7 @@ internal fun CupFixtureTableScreen(season: Season) {
                     modifier = Modifier.align(Alignment.CenterVertically)
                 ) {
                     roundFilter = it
+                    defaultRound = it
                 }
             }
             Row(modifier = Modifier.fillMaxWidth().padding(0.dp)) {
