@@ -31,7 +31,7 @@ fun main() {
     application {
         startKoinCommon(builder(), {source -> PDFConverterJVM(source) })
         Window(onCloseRequest = ::exitApplication, title = "Account reconciler") {
-            val fileKitDialogSettings = FileKitDialogSettings(parentWindow = this.window)
+            val fileKitDialogSettings = FileKitDialogSettings()
             App(fileKitDialogSettings)
         }
     }
