@@ -1,7 +1,10 @@
 package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -14,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -222,6 +226,7 @@ internal fun CupFixtureTableScreen(season: Season) {
     val edits = remember { mutableStateMapOf<Long, Short>() }
     var isLocked by remember { mutableStateOf(true) }
     val buttonText = if (isLocked) "Edit" else if (edits.isNotEmpty()) "Save" else ""
+    var roundFilter by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
 
     ViewCommon("Cup Fixtures ${season.name}",
@@ -229,7 +234,9 @@ internal fun CupFixtureTableScreen(season: Season) {
         bottomBar = {
             BottomBarWithButtons(
                 exportButtonSettings(coroutineScope, "cupFixtures", "csv") { writer ->
-                    export(competitionState.values(), state.values(), writer)
+                    export(competitionState.values(),
+                        state.values().filter { roundFilter == 0 || it.round == roundFilter.toShort() },
+                        writer)
                 },
                 ButtonSettings(buttonText) {
                     if (!isLocked && edits.isNotEmpty()) {
@@ -246,45 +253,73 @@ internal fun CupFixtureTableScreen(season: Season) {
             edits.clear()
         }) { paddingValues ->
         val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
-        LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 1, 1, 1, 1, 1), Modifier.padding(paddingValues)) {
-            val fixturesById = state.values().associateBy { it.id }
-            viewTextItems(listOf("Competition", "Team Category", "Round", "Home", "Away", "Winner"))
-            var competitionId: CompetitionId = 0
-            for (fixture in state.values()
-                .sortedWith(compareBy({ competitionNameLookup[it.competitionId] ?: "" }, { it.teamCategoryName }))) {
-                if (fixture.competitionId != competitionId) {
-                    viewTextItems(listOf(competitionNameLookup[fixture.competitionId] ?: "", "", "", "", "", ""))
-                    competitionId = fixture.competitionId
+        val rounds = state.values().groupBy { it.round }.keys.map { it.toString() }
+        Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(0.dp)) {
+                ViewText("Round Filter", Modifier.align(Alignment.CenterVertically))
+                DropdownList(
+                    (listOf("") + rounds).toImmutableList(),
+                    roundFilter,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    roundFilter = it
                 }
-                viewTextItems(
-                    listOf(
-                        "",
-                        fixture.teamCategoryName,
-                        fixture.round.toString(),
-                        teamDescription(
-                            fixturesById,
-                            fixture.homePending,
-                            fixture.homeAssociation,
-                            fixture.homeTeamNumber
-                        ),
-                        teamDescription(
-                            fixturesById,
-                            fixture.awayPending,
-                            fixture.awayAssociation,
-                            fixture.awayTeamNumber
-                        ),
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(0.dp)) {
+                LazyVerticalGrid(
+                    columns = WeightedIconGridCells(0, 1, 1, 1, 1, 1, 1)
+                ) {
+                    val fixturesById = state.values().associateBy { it.id }
+                    viewTextItems(
+                        listOf("Competition", "Team Category", "Round", "Home", "Away", "Winner")
                     )
-                )
-                item {
-                    DropdownList(
-                        itemList = FixtureResult.entries.map { it.display }.toImmutableList(),
-                        selectedIndex = edits[fixture.id]?.toInt() ?: fixture.result.toInt(),
-                        isLocked = { isLocked || fixture.awayAssociation.isBlank() },
-                    ) {
-                        if (it == 0) {
-                            edits.remove(fixture.id)
-                        } else {
-                            edits[fixture.id] = it.toShort()
+                    var competitionId: CompetitionId = 0
+                    for (fixture in state.values()
+                        .filter { roundFilter == 0 || it.round == roundFilter.toShort() }
+                        .sortedWith(
+                            compareBy(
+                                { competitionNameLookup[it.competitionId] ?: "" },
+                                { it.teamCategoryName })
+                        )) {
+                        if (fixture.competitionId != competitionId) {
+                            viewTextItems(
+                                listOf(competitionNameLookup[fixture.competitionId] ?: "", "", "", "", "", "")
+                            )
+                            competitionId = fixture.competitionId
+                        }
+                        viewTextItems(
+                            listOf(
+                                "",
+                                fixture.teamCategoryName,
+                                fixture.round.toString(),
+                                teamDescription(
+                                    fixturesById,
+                                    fixture.homePending,
+                                    fixture.homeAssociation,
+                                    fixture.homeTeamNumber
+                                ),
+                                teamDescription(
+                                    fixturesById,
+                                    fixture.awayPending,
+                                    fixture.awayAssociation,
+                                    fixture.awayTeamNumber
+                                ),
+                            )
+                        )
+                        item {
+                            DropdownList(
+                                itemList = FixtureResult.entries.map { it.display }
+                                    .toImmutableList(),
+                                selectedIndex = edits[fixture.id]?.toInt()
+                                    ?: fixture.result.toInt(),
+                                isLocked = { isLocked || fixture.awayAssociation.isBlank() },
+                            ) {
+                                if (it == 0) {
+                                    edits.remove(fixture.id)
+                                } else {
+                                    edits[fixture.id] = it.toShort()
+                                }
+                            }
                         }
                     }
                 }
