@@ -381,7 +381,6 @@ internal fun toDataFrame(rows: List<Map<Range, String>>,
                          dateRange: Pair<Int, Int>,
                          logger : Logger? = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)): DataFrame<Any?> {
     val datePattern = "(\\d{1,2})(st |nd |rd |th )([a-zA-Z]{3})".toRegex()
-    val dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy")
     var transactionDate: Long = 0
 
     logger?.debug {"Range $dateRange"}
@@ -405,9 +404,9 @@ internal fun toDataFrame(rows: List<Map<Range, String>>,
         if (datePattern.matches(dateColumn) && (amountIn != null || amountOut != null)) {
             val dateParts = datePattern.matchEntire(dateColumn)?.groupValues!!
             val dayNumber = dateParts[1].toInt().toString().padStart(2, '0')
-            var date  = LocalDate.parse("$dayNumber-${dateParts[3]}-${dateRange.first}", dateFormatter)
+            var date  = LocalDate.of(dateRange.first, monthNumber(dateParts[3]), dayNumber.toInt())
             if (date.toEpochDay() < transactionDate) {
-                date  = LocalDate.parse("$dayNumber-${dateParts[3]}-${dateRange.second}", dateFormatter)
+                date  = LocalDate.of(dateRange.second, monthNumber(dateParts[3]), dayNumber.toInt())
             }
             transactionDate = date.toEpochDay()
             val amount = (amountIn ?: 0.0) - (amountOut ?: 0.0)
@@ -421,6 +420,23 @@ internal fun toDataFrame(rows: List<Map<Range, String>>,
     }
     return df
 }
+
+private fun monthNumber(month: String) =
+    when (month) {
+        "Jan" -> 1
+        "Feb" -> 2
+        "Mar" -> 3
+        "Apr" -> 4
+        "May" -> 5
+        "Jun" -> 6
+        "Jul" -> 7
+        "Aug" -> 8
+        "Sep" -> 9
+        "Oct" -> 10
+        "Nov" -> 11
+        "Dec" -> 12
+        else -> 0
+    }
 
 private fun getRange(content: String, row: Map<Range, String>) : Range
     = row.filter { it.value == content }.keys.first()
