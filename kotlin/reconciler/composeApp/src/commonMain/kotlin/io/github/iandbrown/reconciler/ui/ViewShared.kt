@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -58,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -244,13 +246,8 @@ internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    cursorColor = MaterialTheme.colorScheme.onSurface,
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
     focusedIndicatorColor = Color.Transparent,
-    unfocusedIndicatorColor = Color.Transparent
+    unfocusedIndicatorColor = Color.Transparent,
 )
 
 @Composable
@@ -542,4 +539,21 @@ internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit, block
     } catch (e: Exception) {
         exceptionHandler(e)
     }
+}
+
+@Composable
+internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
+    TextField(
+        value = value,
+        onValueChange = {
+            try {
+                onValueChange(it)
+            } catch (_: NumberFormatException) {
+            }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        colors = textFieldColors(),
+        textStyle = textStyle()
+    )
 }

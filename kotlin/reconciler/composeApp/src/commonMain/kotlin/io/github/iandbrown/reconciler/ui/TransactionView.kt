@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -206,7 +207,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
             }
         ) { paddingValues ->
             Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
                     ViewText("Account Group")
                     Spacer(modifier = Modifier.size(16.dp))
                     val value = accountGroupState.values()
@@ -330,46 +331,49 @@ internal fun EditTransaction(item: TransactionListView) {
         confirm = { editorState == EditorState.VALID },
         confirmAction = {save(Transaction(item.id, item.account, item.date, description, amount, item.category), split)},
         states = persistentListOf()) { paddingValues ->
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 1, 4, 1, 1), Modifier.padding(paddingValues)) {
             viewTextItems(values = listOf("Date", "Account", "Description", "Amount", "Category"))
-            item { ViewText(DayDate.of(item.date).toString())}
-            item { ViewText(item.accountName)}
+            viewTextItems(listOf(DayDate.of(item.date).toString(), item.accountName), textModifier)
             item { ViewTextField(description) {
                 description = it.trim()
                 setEditorState()
             }}
-            item { ViewTextField(String.format(Locale.UK, "%.2f", amount), onValueChange = { newValue ->
-                // Filter to allow only digits and one decimal point
-                val filtered = newValue.filter { it.isDigit() || it == '.' }
-                // Ensure only one decimal point exists
-                if (filtered.count { it == '.' } <= 1) {
-                    try {
-                        amount = newValue.toDouble()
-                        setEditorState()
-                    } catch (_: NumberFormatException) {}
+            item { NumericField(String.format(Locale.UK, "%.2f", amount)) {
+                val newValue = validAmount(it)
+                if (newValue != null) {
+                    amount = newValue
+                    setEditorState()
                 }
-            })}
-            item { ViewText(item.categoryName) }
+            } }
+            item { ViewText(item.categoryName, textModifier) }
             if (split != null) {
-                item { ViewText(DayDate.of(item.date).toString())}
-                item { ViewText(item.accountName)}
+                viewTextItems(listOf(DayDate.of(item.date).toString(), item.accountName), textModifier)
                 item { ViewTextField(split!!.description) {
                     split = Transaction(account = item.account, date = item.date, description = it.trim(), amount = split!!.amount)
                     setEditorState()
                 }}
-                item { ViewTextField(String.format(Locale.UK, "%.2f", split!!.amount), onValueChange = { newValue ->
-                    // Filter to allow only digits and one decimal point
-                    val filtered = newValue.filter { it.isDigit() || it == '.' }
-                    // Ensure only one decimal point exists
-                    if (filtered.count { it == '.' } <= 1) {
-                        split = Transaction(account = item.account, date = item.date, description = split!!.description, amount = newValue.toDouble())
+                item { NumericField(String.format(Locale.UK, "%.2f", split!!.amount)) {
+                    val newValue = validAmount(it)
+                    if (newValue != null) {
+                        split = Transaction(account = item.account, date = item.date, description = split!!.description, amount = newValue)
                         setEditorState()
                     }
-                })}
+                }}
                 item {  }
             }
         }
     }
+}
+
+private fun validAmount(newValue: String) : Double? {
+    // Filter to allow only digits and one decimal point
+    val filtered = newValue.filter { it.isDigit() || it == '.' || it == '-' }
+    // Ensure only one decimal point exists and negative can only be at the start
+    if (filtered.count { it == '-' } <= 1 && filtered.count { it == '.' } <= 1 && (filtered.count {it == '-'} == 0 || filtered[0] == '-')) {
+        return filtered.toDouble()
+    }
+    return null
 }
 
 private fun save(transaction: Transaction, split: Transaction?, viewModel : TransactionViewModel = inject<TransactionViewModel>().value) {
@@ -416,7 +420,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
             val months = getMonths(displayTransactions, filterConfig.minDate)
 
             Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
                     ViewText("Account Group")
                     Spacer(modifier = Modifier.size(16.dp))
                     val value = accountGroupState.values()
@@ -495,7 +499,7 @@ fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinI
             val viewCategories = transactionCategories.values().filter { !it.filter }
 
             Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
                     ViewText("Account Group")
                     Spacer(modifier = Modifier.size(16.dp))
                     val value = accountGroupState.values()

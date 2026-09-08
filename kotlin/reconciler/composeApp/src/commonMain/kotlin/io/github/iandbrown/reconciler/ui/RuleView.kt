@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
@@ -84,7 +85,7 @@ fun RuleListView(viewModel: RuleViewModel = koinInject(),
         states = persistentListOf(state.value, categoryState.value, accountGroupState.value)) { paddingValues ->
         val categoryLookup = categoryState.values().associateBy( { it.id }, {it.name} )
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
                 val value = accountGroupState.values()

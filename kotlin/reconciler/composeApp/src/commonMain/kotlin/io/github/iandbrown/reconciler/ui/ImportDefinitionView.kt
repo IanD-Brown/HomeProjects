@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
@@ -310,7 +311,7 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
             .filter { it.importDefinitionId == importDefinitionListView.importDefinitionId }
             .associateBy { it.accountId }
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
                 ViewText("Name")
                 ViewTextField(name) {name = it}
                 ViewText("Type")

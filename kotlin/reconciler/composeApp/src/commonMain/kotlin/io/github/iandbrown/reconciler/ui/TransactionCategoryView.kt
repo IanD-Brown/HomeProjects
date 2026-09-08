@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.iandbrown.reconciler.database.AccountGroupDao
@@ -61,7 +62,7 @@ internal fun TransactionCategoryListView(viewModel: TransactionCategoryViewModel
         },
         states = persistentListOf(state.value, accountGroupState.value)) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
                 ViewText("Account Group")
                 Spacer(modifier = Modifier.size(16.dp))
                 val value = accountGroupState.values()
