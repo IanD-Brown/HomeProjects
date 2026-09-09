@@ -62,9 +62,14 @@ import org.koin.compose.koinInject
 import java.util.Locale
 import kotlin.math.round
 
-private data class FilterConfig(val minDate: DayDate, val maxDate: DayDate?, val account: Int?, val category: Int?, val matchDistance: Int?)
+private data class FilterConfig(val minDate: DayDate,
+                                val maxDate: DayDate?,
+                                val account: Int?,
+                                val category: Int?,
+                                val matchDistance: Int?,
+                                val description: Regex?)
 
-private var baseFilterConfig = FilterConfig(DayDate.ofCurrentYearStart(), null, null, null, null)
+private var baseFilterConfig = FilterConfig(DayDate.ofCurrentYearStart(), null, null, null, null, null)
 
 class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionListViewDao>().value) :
     BaseReadViewModel<TransactionListViewDao, TransactionListView>(dao) {
@@ -95,24 +100,23 @@ private fun FilterConfigEditor(fullFilter: Boolean,
             var account by remember { mutableStateOf(baseFilterConfig.account) }
             var category by remember { mutableStateOf(baseFilterConfig.category) }
             var matchDistance by remember { mutableStateOf(baseFilterConfig.matchDistance) }
+            var description by remember { mutableStateOf(baseFilterConfig.description?.toString()) }
+            val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
             Column(modifier = Modifier.padding(16.dp)) {
-                Row {
-                    ViewText("Minimum date")
-                    DatePickerView(
+                LazyVerticalGrid(columns = GridCells.Fixed(2)) {
+                    viewTextItems(values = listOf("Minimum date"), textModifier)
+                    item { DatePickerView(
                         minDate.value(),
                         Modifier.padding(0.dp),
-                        { true }) { minDate = DayDate.of(it) }
-                }
-                Row {
-                    ViewText("Maximum date")
-                    DatePickerView(maxDate?.value() ?: 0, Modifier.padding(0.dp), { true }) {
-                            maxDate = if (it > 0) DayDate.of(it) else null
-                        }
-                }
-                if (fullFilter) {
-                    Row {
-                        ViewText("Account")
-                        when (accounts.value) {
+                        { true }) { minDate = DayDate.of(it) }}
+                    viewTextItems(values = listOf("Maximum date"), textModifier)
+                    item { DatePickerView(
+                        maxDate?.value() ?: 0,
+                        Modifier.padding(0.dp),
+                        { true }) { maxDate = if (it > 0) DayDate.of(it) else null }}
+                    if (fullFilter) {
+                        viewTextItems(values = listOf("Account"), textModifier)
+                        item { when (accounts.value) {
                             is ViewModelState.Success -> {
                                 val accountValues = accounts.values()
                                 DropdownList(
@@ -128,16 +132,16 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                             else -> {
                                 ViewText("")
                             }
-                        }
-                    }
-                    Row {
-                        ViewText("Transaction category")
-                        when (transactionCategories.value) {
+                        } }
+                        viewTextItems(values = listOf("Transaction category"), textModifier)
+                        item { when (transactionCategories.value) {
                             is ViewModelState.Success -> {
-                                val transactionCategoryValues = transactionCategories.values().sortedBy { it.name }
+                                val transactionCategoryValues =
+                                    transactionCategories.values().sortedBy { it.name }
                                 DropdownList(
                                     (listOf("") + transactionCategoryValues.map { it.name }).toImmutableList(),
-                                    if (category == null) 0 else 1 + transactionCategoryValues.map { it.id }.indexOf(category)
+                                    if (category == null) 0 else 1 + transactionCategoryValues.map { it.id }
+                                        .indexOf(category)
                                 ) {
                                     category = when (it) {
                                         0 -> null
@@ -145,16 +149,20 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                                     }
                                 }
                             }
-                            else -> {ViewText("")}
-                        }
-                    }
-                    Row {
-                        ViewText("Match distance")
-                        ViewTextField(matchDistance?.toString() ?: "0") {
+
+                            else -> {
+                                ViewText("")
+                            }
+                        } }
+                        viewTextItems(values = listOf("Match distance"), textModifier)
+                        item { NumericField(matchDistance?.toString() ?: "0") {
                             val i = it.toIntOrNull()
                             if (i != null) {
                                 matchDistance = if (i > 0) i else null
                             }
+                        } }
+                        gridEntry("Description", description ?: "", textModifier) {
+                            description = it
                         }
                     }
                 }
@@ -162,7 +170,9 @@ private fun FilterConfigEditor(fullFilter: Boolean,
 
                 Row(horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
-                    Button(onClick = { onConfirm(FilterConfig(minDate, maxDate, account, category, matchDistance)) }) { Text("OK") }
+                    Button(onClick = {
+                        onConfirm(FilterConfig(minDate, maxDate, account, category, matchDistance, description?.toRegex()))
+                    }) { Text("OK") }
                 }
             }
         }
@@ -264,6 +274,7 @@ private fun filterTransaction(state: List<TransactionListView>,
         .filter { it.date >= baseFilterConfig.minDate.value()  && (baseFilterConfig.maxDate == null || it.date <= baseFilterConfig.maxDate!!.value())}
         .filter { !fullFilter || baseFilterConfig.account == null || it.account == baseFilterConfig.account }
         .filter { !fullFilter || baseFilterConfig.category == null || it.category == baseFilterConfig.category }
+        .filter { !fullFilter || baseFilterConfig.description == null || baseFilterConfig.description!!.containsMatchIn(it.description) }
         .toMutableList()
 
     if (fullFilter && (baseFilterConfig.matchDistance ?: 0) > 0) {
@@ -418,6 +429,7 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                 .filter { it.category in includeCategories }
             val byMonth = displayTransactions.groupBy { DayDate.of(it.date).startOfMonth().value() }
             val months = getMonths(displayTransactions, filterConfig.minDate)
+            val average = displayTransactions.sumOf { it.amount } / months.size
 
             Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = CenterVertically) {
@@ -450,6 +462,9 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                             formatedNumber("%.0f", transactionsForMonth?.filter { it.account == account.id }?.size?.toDouble())
                         }
                     }
+                    viewTextItems(values = listOf("Average"))
+                    formatedNumber("%.2f", average)
+                    viewTextItems(values = listOf("", ""))
                 }
             }
         }

@@ -9,7 +9,7 @@ public fun io.github.iandbrown.reconciler.App(fileKitDialogSettings: io.github.v
   skippable: false
   restartable: true
   params:
-    - fileKitDialogSettings: UNSTABLE (has mutable properties or unstable members)
+    - fileKitDialogSettings: UNSTABLE (cross-module type without @Stable/@Immutable)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.AccountGroupListView(viewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
@@ -52,7 +52,7 @@ internal fun io.github.iandbrown.reconciler.ui.BottomBarWithButtons(buttonSettin
   skippable: false
   restartable: true
   params:
-    - buttonSettings: UNSTABLE (has mutable properties or unstable members)
+    - buttonSettings: UNSTABLE (cross-module type without @Stable/@Immutable)
 
 @Composable
 private fun io.github.iandbrown.reconciler.ui.CreateTopBar(title: kotlin.String, description: kotlin.String, confirm: kotlin.Function0<kotlin.Boolean>, confirmAction: kotlin.Function0<kotlin.Unit>, actions: @[Composable] @[ExtensionFunctionType] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.foundation.layout.RowScope, kotlin.Unit>): kotlin.Unit
@@ -179,6 +179,14 @@ public fun io.github.iandbrown.reconciler.ui.ImportDefinitionList(viewModel: io.
   params:
     - viewModel: RUNTIME (requires runtime check)
     - accountViewModel: RUNTIME (requires runtime check)
+
+@Composable
+internal fun io.github.iandbrown.reconciler.ui.NumericField(value: kotlin.String, onValueChange: kotlin.Function1<kotlin.String, kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - value: STABLE (String is immutable)
+    - onValueChange: STABLE (function type)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.OutlinedTextButton(value: kotlin.String, modifier: androidx.compose.ui.Modifier, enabled: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit

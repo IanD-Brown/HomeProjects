@@ -424,8 +424,8 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     }
 }
 
-internal fun LazyGridScope.gridEntry(title : String, value : String, onValueChange: (String) -> Unit) {
-    item { ViewText(title) }
+internal fun LazyGridScope.gridEntry(title : String, value : String, textModifier: Modifier = Modifier, onValueChange: (String) -> Unit) {
+    item { ViewText(title, textModifier) }
     item { ViewTextField(value = value, onValueChange = onValueChange) }
 }
 
