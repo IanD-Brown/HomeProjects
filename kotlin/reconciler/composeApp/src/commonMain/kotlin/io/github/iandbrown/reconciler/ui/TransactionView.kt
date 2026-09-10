@@ -568,6 +568,6 @@ internal suspend fun toTransaction(row: DataRow<Any?>,
         account = accountDao.getByName(row["Account"] as String)!!,
         date = DayDate.of(row["Date"] as String, TO_STRING_PATTERN).value(),
         description = row["Description"] as String,
-        amount = (row["Amount"] as Float).toDouble(),
+        amount = (row["Amount"] as String).toDouble(),
         category = categoryDao.getByName(row["Category"] as String)
     )
