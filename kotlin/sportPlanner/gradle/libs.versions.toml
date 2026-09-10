@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.2"
+agp = "9.4.0"
 android-compileSdk = "37"
 android-minSdk = "34"
 android-targetSdk = "37"
@@ -21,16 +21,16 @@ materialThemePrefs = "1.0.0"
 # JSON serialize
 kotlin-serialize = "1.11.0"
 # room
-room = "2.8.4"
+room = "2.8.5"
 ksp = "2.3.9"
-sqliteBundled = "2.7.0"
+sqliteBundled = "2.7.1"
 # koin
 koin-core = "4.2.2"
 androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
 kotest-version = "6.2.4"
 kover = "0.9.9"
-mockkery = "3.4.2"
+mockkery = "3.5.0"
 coroutine-test-version = "1.11.0"
 # filekit
 filekit = "0.15.0"
