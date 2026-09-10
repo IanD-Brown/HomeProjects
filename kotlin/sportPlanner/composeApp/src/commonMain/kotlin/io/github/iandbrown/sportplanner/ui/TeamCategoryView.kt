@@ -154,8 +154,7 @@ private fun TeamCategoryEditContent(
         states = persistentListOf(state)
     ) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText(value = "Name") }
-            item { ReadonlyViewText(value = "Match Day") }
+            viewTextItems(listOf("Name", "Match Day"))
             item { ViewTextField(value = name, onValueChange = { name = it }) }
             item {
                 DropdownList(

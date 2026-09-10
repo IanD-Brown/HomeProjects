@@ -492,7 +492,7 @@ private fun SeasonEditContent(
         description = "Return to seasons",
         bottomBar = {
             Row {
-                ReadonlyViewText("", Modifier.weight(4f))
+                ViewText("", Modifier.weight(4f))
                 OutlinedTextButton(OK, Modifier.weight(1f), name.isNotBlank()) {
                     onSave(name, competitionList, startDates, endDates)
                 }
@@ -503,19 +503,16 @@ private fun SeasonEditContent(
         states = persistentListOf(competitionState, seasonCompetitionState)
     ) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Name:") }
+            viewTextItems(listOf("Name"))
             item {
                 ViewTextField(value = name, onValueChange = {
                     name = it
                     dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                 })
             }
-            item { ReadonlyViewText("") }
-            item { ReadonlyViewText("Competition") }
-            item { ReadonlyViewText("Start") }
-            item { ReadonlyViewText("End") }
+            viewTextItems(listOf("", "Competition", "Start", "End"))
             for (competition in competitionList) {
-                item { ReadonlyViewText(competition.name) }
+                viewTextItems(listOf(competition.name))
                 item {
                     DatePickerView(
                         current = startDates[competition.id] ?: 0,

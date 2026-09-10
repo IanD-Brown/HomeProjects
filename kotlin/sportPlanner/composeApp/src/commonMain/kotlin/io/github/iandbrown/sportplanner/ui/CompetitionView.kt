@@ -159,8 +159,7 @@ private fun CompetitionEditContent(
         states = persistentListOf()
     ) { paddingValues ->
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText(value = "Name") }
-            item { ReadonlyViewText(value = "Type") }
+            viewTextItems(listOf("Name", "Type"))
             item { ViewTextField(value = name, onValueChange = { name = it }) }
             item {
                 DropdownList(

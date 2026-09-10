@@ -1,20 +1,27 @@
 package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -42,21 +49,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -94,14 +105,15 @@ import org.jetbrains.kotlinx.dataframe.io.readJson
 import org.koin.java.KoinJavaComponent.inject
 import java.io.InputStream
 
-val fontSize = 16.sp
-const val OK = "OK"
+internal val fontSize = 16.sp
+internal val textFieldHeight = 28.dp
+internal const val OK = "OK"
 
-var appFileKitDialogSettings: FileKitDialogSettings? = null
-lateinit var appNavigator: Navigator
+internal var appFileKitDialogSettings: FileKitDialogSettings? = null
+internal lateinit var appNavigator: Navigator
 
 @Composable
-fun ViewCommon(
+internal fun ViewCommon(
     title: String,
     description: String = "Return to home screen",
     bottomBar: @Composable () -> Unit = {},
@@ -189,90 +201,126 @@ private fun CreateTopBar(
 }
 
 @Composable
-fun ViewText(value: String, modifier: Modifier = Modifier) {
+internal fun ViewText(value: String, modifier: Modifier = Modifier) {
     Text(
         text = value,
         fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
+        modifier = modifier.height(textFieldHeight).padding(horizontal = 4.dp)
     )
+}
+@Composable
+internal fun SingleLineTextField(value: String,
+                        onValueChange: (String) -> Unit,
+                        modifier: Modifier,
+                        label: @Composable (() -> Unit)? = null,
+                        trailingIcon: @Composable (() -> Unit)? = null,
+                        isError: Boolean = false,
+) {
+    val colors = textFieldColors()
+    val textStyle = textStyle()
+    val interactionSource =  remember { MutableInteractionSource() }
+    // If color is not provided via the text style, use content color as a default
+    val textColor =
+        textStyle.color.takeOrElse {
+            val focused = interactionSource.collectIsFocusedAsState().value
+            when {
+                isError -> colors.errorTextColor
+                focused -> colors.focusedTextColor
+                else -> colors.unfocusedTextColor
+            }
+        }
+    val mergedTextStyle = textStyle.merge(TextStyle(color = textColor))
+
+    CompositionLocalProvider(LocalTextSelectionColors provides colors.textSelectionColors) {
+        BasicTextField(
+            value = value,
+            modifier =
+                modifier
+                    .defaultMinSize(
+                        minWidth = TextFieldDefaults.MinWidth,
+                        minHeight = TextFieldDefaults.MinHeight,
+                    ),
+            onValueChange = onValueChange,
+            textStyle = mergedTextStyle,
+            cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
+            interactionSource = interactionSource,
+            singleLine = true,
+            maxLines = 1,
+            minLines = 1,
+            decorationBox =
+                @Composable { innerTextField ->
+                    // places leading icon, text field with label and placeholder, trailing icon
+                    TextFieldDefaults.DecorationBox(
+                        value = value,
+                        visualTransformation = VisualTransformation.None,
+                        innerTextField = innerTextField,
+                        label = label,
+                        trailingIcon = trailingIcon,
+                        singleLine = true,
+                        enabled = true,
+                        isError = isError,
+                        interactionSource = interactionSource,
+                        colors = colors,
+                        // Remove default vertical padding
+                        contentPadding = PaddingValues(vertical = 2.dp)
+                    )
+                },
+        )
+    }
 }
 
 @Composable
-fun ReadonlyViewText(value: String, modifier: Modifier = Modifier) {
-    TextField(
-        value = value,
-        readOnly = true,
-        onValueChange = {},
-        singleLine = true,
-        colors = textFieldColors(),
-        textStyle = textStyle(),
-        modifier = modifier
-    )
-}
-
-@Composable
-fun ViewTextField(
+internal fun ViewTextField(
     value: String,
     modifier: Modifier = Modifier,
     isError: () -> Boolean = { false },
     onValueChange: (String) -> Unit
 ) {
-    TextField(
+    SingleLineTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
-        singleLine = true,
-        colors = textFieldColors(),
-        textStyle = textStyle(),
-        isError = isError()
+        modifier = modifier.height(textFieldHeight).padding(horizontal = 4.dp),
+        isError = isError(),
     )
 }
 
 @Composable
-fun ViewTextField(
+internal fun ViewTextField(
     value: String,
     modifier: Modifier = Modifier,
     trailingIcon: @Composable (() -> Unit)? = null,
     label: String? = null,
     onValueChange: (String) -> Unit
 ) {
-    TextField(
+    SingleLineTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
-        singleLine = true,
+        modifier = modifier.height(textFieldHeight).padding(horizontal = 4.dp),
         label = label?.let { { ViewText(it) } },
         trailingIcon = trailingIcon,
-        colors = textFieldColors(),
-        textStyle = textStyle()
     )
 }
 
 @Composable
-fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
+internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    cursorColor = MaterialTheme.colorScheme.onSurface,
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,
     unfocusedIndicatorColor = Color.Transparent
 )
 
 @Composable
-fun SpacedViewText(value: String, modifier: Modifier = Modifier) {
+internal fun SpacedViewText(value: String, modifier: Modifier = Modifier) {
     Spacer(modifier = Modifier.size(16.dp))
     ViewText(value, modifier)
 }
 
 @Composable
-fun DropdownList(
+internal fun DropdownList(
     itemList: ImmutableList<String>,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
@@ -295,13 +343,13 @@ fun DropdownList(
                 .clickable { expanded = !expanded },
         ) {
             ViewTextField(
-                value = selectedText,
-                label = label,
+                selectedText,
                 trailingIcon = {
                     Icon(
                         icon, "contentDescription",
                         Modifier.clickable { expanded = !expanded })
-                }
+                },
+                label = label
             ) {}
             if (expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
@@ -322,7 +370,7 @@ fun DropdownList(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerView(current: Int, modifier: Modifier, isSelectable: (Long) -> Boolean, onItemClick: (Int) -> Unit) {
+internal fun DatePickerView(current: Int, modifier: Modifier, isSelectable: (Long) -> Boolean, onItemClick: (Int) -> Unit) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     ViewTextField(
@@ -365,7 +413,7 @@ fun DatePickerView(current: Int, modifier: Modifier, isSelectable: (Long) -> Boo
     }
 }
 
-fun isMondayIn(seasonCompetition: SeasonCompetition, utcMs: Long): Boolean =
+internal fun isMondayIn(seasonCompetition: SeasonCompetition, utcMs: Long): Boolean =
     DayDate.isMondayIn(IntRange(seasonCompetition.startDate, seasonCompetition.endDate), DayDate(utcMs).value())
 
 internal fun LazyGridScope.editButton(onClick: () -> Unit) =
@@ -382,7 +430,7 @@ internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick: () -
 }
 
 @Composable
-fun ClickableIcon(
+internal fun ClickableIcon(
     imageVector: ImageVector,
     contentDescription: String?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
@@ -402,7 +450,7 @@ internal fun LazyGridScope.clickableIcon(
 }
 
 @Composable
-fun ClickableIconOld(
+internal fun ClickableIconOld(
     imageVector: ImageVector,
     contentDescription: String?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
@@ -470,7 +518,7 @@ class DoubleFirstGridCells(val columns: Int) : GridCells {
 }
 
 @Composable
-fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     OutlinedButton(
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
@@ -491,7 +539,7 @@ internal fun addButtonSettings(onClick: (Navigator) -> Unit): ButtonSettings =
     ButtonSettings(imageVector = Icons.Default.Add, navigateFun = onClick)
 
 @Composable
-fun BottomBarWithButton(value: String = OK, enabled: Boolean = true, onClick: (Navigator) -> Unit) =
+internal fun BottomBarWithButton(value: String = OK, enabled: Boolean = true, onClick: (Navigator) -> Unit) =
     BottomBarWithButtons(ButtonSettings(value, enabled, navigateFun = onClick))
 
 @Composable
@@ -576,9 +624,9 @@ internal suspend fun importFromFile(
     }
 }
 
-internal fun LazyGridScope.viewTextItems(values: List<String>) {
+internal fun LazyGridScope.viewTextItems(values: List<String>, modifier: Modifier = Modifier) {
     items(items = values) {
-        ViewText(it)
+        ViewText(it, modifier)
     }
 }
 
@@ -597,3 +645,7 @@ internal suspend fun tryTransaction(
         exceptionHandler(e)
     }
 }
+
+@Composable
+internal fun CenteredRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) =
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = CenterVertically, content = content)

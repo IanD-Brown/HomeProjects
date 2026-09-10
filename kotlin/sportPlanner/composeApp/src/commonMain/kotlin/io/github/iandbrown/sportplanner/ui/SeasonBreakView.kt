@@ -148,8 +148,7 @@ private fun SeasonBreakEditContent(
     ) { paddingValues ->
         val range = buildDateRange(seasonCompetitionState.values().filter { it.seasonId == season.id })
         LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Name") }
-            item { ReadonlyViewText("Week") }
+            viewTextItems(listOf("Name", "Week"))
             item { ViewTextField(name) { name = it } }
             item {
                 DatePickerView(

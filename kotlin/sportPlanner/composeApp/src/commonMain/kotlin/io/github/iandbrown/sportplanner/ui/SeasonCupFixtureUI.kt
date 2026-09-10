@@ -256,13 +256,14 @@ internal fun CupFixtureTableScreen(season: Season) {
         }) { paddingValues ->
         val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
         val rounds = state.values().groupBy { it.round }.keys.map { it.toString() }
+
         Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
-            Row(modifier = Modifier.fillMaxWidth().padding(0.dp)) {
-                ViewText("Round Filter", Modifier.align(Alignment.CenterVertically))
+            CenteredRow {
+                ViewText("Round Filter")
                 DropdownList(
                     (listOf("") + rounds).toImmutableList(),
                     roundFilter,
-                    modifier = Modifier.align(Alignment.CenterVertically)
+                    Modifier.align(Alignment.CenterVertically)
                 ) {
                     roundFilter = it
                     defaultRound = it
@@ -306,16 +307,15 @@ internal fun CupFixtureTableScreen(season: Season) {
                                     fixture.awayPending,
                                     fixture.awayAssociation,
                                     fixture.awayTeamNumber
-                                ),
+                                )
                             )
                         )
                         item {
                             DropdownList(
-                                itemList = FixtureResult.entries.map { it.display }
+                                FixtureResult.entries.map { it.display }
                                     .toImmutableList(),
-                                selectedIndex = edits[fixture.id]?.toInt()
-                                    ?: fixture.result.toInt(),
-                                isLocked = { isLocked || fixture.awayAssociation.isBlank() },
+                                edits[fixture.id]?.toInt() ?: fixture.result.toInt(),
+                                 isLocked = { isLocked || fixture.awayAssociation.isBlank() },
                             ) {
                                 if (it == 0) {
                                     edits.remove(fixture.id)

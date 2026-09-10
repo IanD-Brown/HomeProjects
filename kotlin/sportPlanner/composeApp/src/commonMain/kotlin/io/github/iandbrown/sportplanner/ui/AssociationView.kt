@@ -1,6 +1,5 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -142,8 +141,9 @@ private fun AssociationEditContent(
         confirmAction = { onConfirmSave(name) },
         states = persistentListOf(state)
     ) { paddingValues ->
-        Row(modifier = Modifier.padding(paddingValues), content = {
-            ViewTextField(value = name, label = "Name :") { name = it }
+        CenteredRow(modifier = Modifier.padding(paddingValues), content = {
+            ViewText("Name:")
+            ViewTextField(value = name) { name = it }
         })
     }
 }
