@@ -1,5 +1,6 @@
 package io.github.iandbrown.sportplanner.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -11,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.iandbrown.sportplanner.database.Competition
@@ -158,9 +160,9 @@ private fun CompetitionEditContent(
         confirmAction = { onConfirmSave(name, type) },
         states = persistentListOf()
     ) { paddingValues ->
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText(value = "Name") }
-            item { ReadonlyViewText(value = "Type") }
+            viewTextItems(listOf("Name", "Type"), textModifier)
             item { ViewTextField(value = name, onValueChange = { name = it }) }
             item {
                 DropdownList(

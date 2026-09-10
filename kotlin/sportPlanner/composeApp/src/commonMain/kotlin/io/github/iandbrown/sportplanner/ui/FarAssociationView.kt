@@ -1,7 +1,6 @@
 package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -191,8 +190,8 @@ private fun FarAssociationEditContent(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             val sortedAssociations = associationState.values().sortedBy { it.name }
-            Row {
-                ReadonlyViewText("Home Association")
+            CenteredRow {
+                ViewText("Home Association")
                 if (farAssociation != null) {
                     SpacedViewText(farAssociation.homeAssociationName)
                 } else {
@@ -205,8 +204,8 @@ private fun FarAssociationEditContent(
                     }
                 }
             }
-            Row {
-                ReadonlyViewText("Away Association")
+            CenteredRow {
+                ViewText("Away Association")
                 if (homeAssociation > 0) {
                     // Logic to filter possible away associations
                     val associationsInState = state.values()

@@ -1,6 +1,6 @@
 package io.github.iandbrown.sportplanner.ui
 
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.iandbrown.sportplanner.database.Association
@@ -116,8 +117,8 @@ private fun SeasonTeamContent(
         "Season ${param.seasonName} Competition ${param.competitionName} Teams",
         description = "Return to Seasons screen",
         bottomBar = {
-            Row {
-                ReadonlyViewText("", Modifier.weight(4f))
+            CenteredRow {
+                ViewText("", Modifier.weight(4f))
                 OutlinedTextButton("By Category", Modifier.weight(1.3f), isLocked) {
                     onNavigateByCategory()
                 }
@@ -138,22 +139,20 @@ private fun SeasonTeamContent(
             values[Pair(seasonTeam.associationId, seasonTeam.teamCategoryId)] = seasonTeam.count
         }
 
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(
             columns = DoubleFirstGridCells(teamCategoryList.size + 1),
             modifier = Modifier.padding(paddingValues).fillMaxWidth()
         ) {
-            item { ReadonlyViewText("") }
-            for (teamCategory in teamCategoryList) {
-                item { ReadonlyViewText(teamCategory.name) }
-            }
+            viewTextItems(listOf("") + teamCategoryList.map { it.name })
             for (association in associationList) {
-                item { ReadonlyViewText(association.name) }
+                viewTextItems(listOf(association.name), textModifier)
                 for (team in teamCategoryList) {
                     item {
                         val key = Pair(association.id, team.id)
                         val value = if (edits.contains(key)) edits[key] else values.getOrDefault(key, 0)
                         if (isLocked) {
-                            ReadonlyViewText(value?.toString() ?: "")
+                            ViewText(value?.toString() ?: "")
                         } else {
                             ViewTextField(
                                 value = value.toString(),
@@ -234,12 +233,12 @@ private fun SeasonTeamByCategoryContent(
             teamCategoryList,
             associationsCount,
             state.values().filter { it.seasonId == param.seasonId && it.competitionId == param.competitionId })
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
 
         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Team Category") }
-            item { ReadonlyViewText("Team Count") }
+            viewTextItems(listOf("Team Category", "Team Count"), textModifier)
             for (teamCategory in teamCategoryList) {
-                item { ReadonlyViewText(teamCategory.name) }
+                viewTextItems(listOf(teamCategory.name), textModifier)
                 item {
                     val key = teamCategory.id
                     val value = if (edits.contains(key)) {
@@ -250,7 +249,7 @@ private fun SeasonTeamByCategoryContent(
                         ""
                     }
                     if (isLocked) {
-                        ReadonlyViewText(value)
+                        ViewText(value, textModifier)
                     } else {
                         ViewTextField(
                             value = value,

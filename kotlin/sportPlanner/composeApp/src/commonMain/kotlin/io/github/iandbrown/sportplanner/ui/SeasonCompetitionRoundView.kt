@@ -268,11 +268,10 @@ fun SeasonCompetitionRoundEditScreen(
         },
         states = persistentListOf(state, seasonCompetitionState)
     ) { paddingValues ->
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(columns = GridCells.Fixed(4), Modifier.padding(paddingValues)) {
             viewTextItems(listOf("Round", "Description", "Week", "Optional"))
-            item {
-                ReadonlyViewText(value = round.toString())
-            }
+            viewTextItems(listOf(round.toString()), textModifier)
             item { ViewTextField(description) { description = it } }
             item {
                 DatePickerView(week,
@@ -427,7 +426,7 @@ fun SeasonCupFixtureScreen(param: SeasonCompetitionParam, competitionRound: Seas
     ) { paddingValues ->
         val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }
         val columns = if (withTeamCategory) 4 else 3
-
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
             item(span = { GridItemSpan(columns) }) {
                 DropdownList(
@@ -443,14 +442,15 @@ fun SeasonCupFixtureScreen(param: SeasonCompetitionParam, competitionRound: Seas
             getFixtures {
                     teamCategoryName, home, away, result, fixtureId, blankAwayAssociation ->
                 if (withTeamCategory) {
-                    item { ViewText(teamCategoryName) }
+                    viewTextItems(listOf(teamCategoryName), textModifier)
                 }
-                viewTextItems(listOf(home, away))
+                viewTextItems(listOf(home, away), textModifier)
                 item {
                     DropdownList(
-                        itemList = FixtureResult.entries.map { it.display }.toImmutableList(),
-                        selectedIndex = edits[fixtureId]?.toInt() ?: result.toInt(),
-                        isLocked = { isLocked || blankAwayAssociation || result != 0.toShort() },
+                        FixtureResult.entries.map { it.display }.toImmutableList(),
+                        edits[fixtureId]?.toInt() ?: result.toInt(),
+                        textModifier,
+                        { isLocked || blankAwayAssociation || result != 0.toShort() },
                     ) { edits[fixtureId] = it.toShort() }
                 }
             }

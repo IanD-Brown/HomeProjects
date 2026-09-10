@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -200,19 +202,6 @@ fun ViewText(value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ReadonlyViewText(value: String, modifier: Modifier = Modifier) {
-    TextField(
-        value = value,
-        readOnly = true,
-        onValueChange = {},
-        singleLine = true,
-        colors = textFieldColors(),
-        textStyle = textStyle(),
-        modifier = modifier
-    )
-}
-
-@Composable
 fun ViewTextField(
     value: String,
     modifier: Modifier = Modifier,
@@ -256,11 +245,6 @@ fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    cursorColor = MaterialTheme.colorScheme.onSurface,
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
     focusedIndicatorColor = Color.Transparent,
     unfocusedIndicatorColor = Color.Transparent
 )
@@ -295,13 +279,13 @@ fun DropdownList(
                 .clickable { expanded = !expanded },
         ) {
             ViewTextField(
-                value = selectedText,
-                label = label,
+                selectedText,
                 trailingIcon = {
                     Icon(
                         icon, "contentDescription",
                         Modifier.clickable { expanded = !expanded })
-                }
+                },
+                label = label
             ) {}
             if (expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
@@ -576,9 +560,9 @@ internal suspend fun importFromFile(
     }
 }
 
-internal fun LazyGridScope.viewTextItems(values: List<String>) {
+internal fun LazyGridScope.viewTextItems(values: List<String>, modifier: Modifier = Modifier) {
     items(items = values) {
-        ViewText(it)
+        ViewText(it, modifier)
     }
 }
 
@@ -597,3 +581,7 @@ internal suspend fun tryTransaction(
         exceptionHandler(e)
     }
 }
+
+@Composable
+internal fun CenteredRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) =
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = CenterVertically, content = content)

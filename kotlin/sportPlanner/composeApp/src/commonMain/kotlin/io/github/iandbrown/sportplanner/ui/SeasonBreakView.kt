@@ -1,5 +1,6 @@
 package io.github.iandbrown.sportplanner.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -147,9 +148,9 @@ private fun SeasonBreakEditContent(
         states = persistentListOf(seasonCompetitionState)
     ) { paddingValues ->
         val range = buildDateRange(seasonCompetitionState.values().filter { it.seasonId == season.id })
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Name") }
-            item { ReadonlyViewText("Week") }
+            viewTextItems(listOf("Name", "Week"), textModifier)
             item { ViewTextField(name) { name = it } }
             item {
                 DatePickerView(

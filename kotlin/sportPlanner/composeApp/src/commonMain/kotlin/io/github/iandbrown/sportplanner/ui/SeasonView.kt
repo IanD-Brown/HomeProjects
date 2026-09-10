@@ -1,6 +1,7 @@
 package io.github.iandbrown.sportplanner.ui
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -22,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -492,7 +494,7 @@ private fun SeasonEditContent(
         description = "Return to seasons",
         bottomBar = {
             Row {
-                ReadonlyViewText("", Modifier.weight(4f))
+                ViewText("", Modifier.weight(4f))
                 OutlinedTextButton(OK, Modifier.weight(1f), name.isNotBlank()) {
                     onSave(name, competitionList, startDates, endDates)
                 }
@@ -502,20 +504,18 @@ private fun SeasonEditContent(
         confirmAction = { onConfirmSave(name, competitionList, startDates, endDates) },
         states = persistentListOf(competitionState, seasonCompetitionState)
     ) { paddingValues ->
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(paddingValues)) {
-            item { ReadonlyViewText("Name:") }
+            viewTextItems(listOf("Name"), textModifier)
             item {
                 ViewTextField(value = name, onValueChange = {
                     name = it
                     dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                 })
             }
-            item { ReadonlyViewText("") }
-            item { ReadonlyViewText("Competition") }
-            item { ReadonlyViewText("Start") }
-            item { ReadonlyViewText("End") }
+            viewTextItems(listOf("", "Competition", "Start", "End"), textModifier)
             for (competition in competitionList) {
-                item { ReadonlyViewText(competition.name) }
+                viewTextItems(listOf(competition.name), textModifier)
                 item {
                     DatePickerView(
                         current = startDates[competition.id] ?: 0,

@@ -256,13 +256,15 @@ internal fun CupFixtureTableScreen(season: Season) {
         }) { paddingValues ->
         val competitionNameLookup = competitionState.values().associateBy({ it.id }, { it.name })
         val rounds = state.values().groupBy { it.round }.keys.map { it.toString() }
+        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
+
         Column(modifier = Modifier.fillMaxWidth().padding(paddingValues)) {
-            Row(modifier = Modifier.fillMaxWidth().padding(0.dp)) {
-                ViewText("Round Filter", Modifier.align(Alignment.CenterVertically))
+            CenteredRow {
+                ViewText("Round Filter")
                 DropdownList(
                     (listOf("") + rounds).toImmutableList(),
                     roundFilter,
-                    modifier = Modifier.align(Alignment.CenterVertically)
+                    Modifier.align(Alignment.CenterVertically)
                 ) {
                     roundFilter = it
                     defaultRound = it
@@ -274,7 +276,8 @@ internal fun CupFixtureTableScreen(season: Season) {
                 ) {
                     val fixturesById = state.values().associateBy { it.id }
                     viewTextItems(
-                        listOf("Competition", "Team Category", "Round", "Home", "Away", "Winner")
+                        listOf("Competition", "Team Category", "Round", "Home", "Away", "Winner"),
+                        textModifier
                     )
                     var competitionId: CompetitionId = 0
                     for (fixture in state.values()
@@ -286,7 +289,8 @@ internal fun CupFixtureTableScreen(season: Season) {
                         )) {
                         if (fixture.competitionId != competitionId) {
                             viewTextItems(
-                                listOf(competitionNameLookup[fixture.competitionId] ?: "", "", "", "", "", "")
+                                listOf(competitionNameLookup[fixture.competitionId] ?: "", "", "", "", "", ""),
+                                textModifier
                             )
                             competitionId = fixture.competitionId
                         }
@@ -306,16 +310,16 @@ internal fun CupFixtureTableScreen(season: Season) {
                                     fixture.awayPending,
                                     fixture.awayAssociation,
                                     fixture.awayTeamNumber
-                                ),
-                            )
+                                )
+                            ),
+                            textModifier
                         )
                         item {
                             DropdownList(
-                                itemList = FixtureResult.entries.map { it.display }
+                                FixtureResult.entries.map { it.display }
                                     .toImmutableList(),
-                                selectedIndex = edits[fixture.id]?.toInt()
-                                    ?: fixture.result.toInt(),
-                                isLocked = { isLocked || fixture.awayAssociation.isBlank() },
+                                edits[fixture.id]?.toInt() ?: fixture.result.toInt(),
+                                 isLocked = { isLocked || fixture.awayAssociation.isBlank() },
                             ) {
                                 if (it == 0) {
                                     edits.remove(fixture.id)

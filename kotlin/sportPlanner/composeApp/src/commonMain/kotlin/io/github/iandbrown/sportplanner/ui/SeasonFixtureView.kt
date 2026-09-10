@@ -465,11 +465,11 @@ fun FixtureTableScreen(season: Season) {
                     competitionFilter = it
                 }
             })
-            Row(modifier = Modifier.fillMaxWidth()) {
+            CenteredRow {
                 val associationList = listOf("") + associationState.values().map { it.name }.sorted()
                 val teamCategoryList = listOf("") + teamCategoryState.values().map { it.name }.sorted()
                 val modifier = Modifier.align(Alignment.CenterVertically).weight(1f)
-                ReadonlyViewText("Filter Team Category", modifier)
+                ViewText("Filter Team Category", modifier)
                 DropdownList(
                     teamCategoryList.toImmutableList(),
                     teamCategoryList.indexOf(filterTeamCategory),
@@ -477,7 +477,7 @@ fun FixtureTableScreen(season: Season) {
                 ) {
                     filterTeamCategory = teamCategoryList[it]
                 }
-                ReadonlyViewText("Filter Association", modifier)
+                ViewText("Filter Association", modifier)
                 DropdownList(
                     associationList.toImmutableList(),
                     associationList.indexOf(filterAssociation),
@@ -812,23 +812,16 @@ private fun FixtureDateContent(
                     dateByAssociation[date]?.set(home, (dateByAssociation[date]!![home]!! + 1).toShort())
                 }
             }
+            val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
             LazyVerticalGrid(columns = GridCells.Fixed(columns), Modifier.padding(paddingValues)) {
-                item { ReadonlyViewText("Date") }
-                item { ReadonlyViewText("Match total") }
-                for (association in associationState.values()) {
-                    item { ReadonlyViewText("${association.name}(H)") }
-                }
+                viewTextItems(listOf("Date", "Match total") +
+                        teamCategoryState.values().map { "${it.name}(H)" },
+                    textModifier)
                 for (date in dateList) {
                     if (dateTotal[date]!! > 0) {
-                        item { ReadonlyViewText(date) }
-                        item {
-                            ReadonlyViewText(dateTotal[date].toString())
-                        }
-                        for (association in associationState.values()) {
-                            item {
-                                ReadonlyViewText("${dateByAssociation[date]?.get(association.name) ?: 0}")
-                            }
-                        }
+                        viewTextItems(listOf(date, "${dateTotal[date]}") +
+                                associationState.values().map { "${dateByAssociation[date]?.get(it.name) ?: 0}" },
+                            textModifier)
                     }
                 }
             }
