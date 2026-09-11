@@ -1,6 +1,7 @@
 package io.github.iandbrown.home_energy.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReadMore
@@ -135,7 +136,8 @@ internal fun MeterEditorRoute(meter: Meter? = null, done: () -> Unit) {
                     onCheckedChange = {
                         electric = it
                         setEditorState()
-                    }
+                    },
+                    Modifier.height(textFieldHeight)
                 )
             }
             EditorRow("Standing charge") {

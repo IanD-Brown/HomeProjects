@@ -69,7 +69,7 @@ internal class ReadDelegate<ENTITY>(val viewModelScope: CoroutineScope, val read
     }
 }
 
-fun logException(className: String, exception: Exception, context: String) {
+internal fun logException(className: String, exception: Exception, context: String) {
     val logger = LoggerFactory.get(className)
     logger.error(exception) { "$context ${exception.message}" }
 }

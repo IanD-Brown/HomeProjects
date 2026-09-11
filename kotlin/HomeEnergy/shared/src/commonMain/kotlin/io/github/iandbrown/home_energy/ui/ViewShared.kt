@@ -1,13 +1,17 @@
 package io.github.iandbrown.home_energy.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
@@ -15,7 +19,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -36,11 +42,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,9 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -62,12 +71,13 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 private val fontSize = 16.sp
-const val OK = "OK"
+internal val textFieldHeight = 28.dp
+internal const val OK = "OK"
 
 internal enum class EditorState {CLEAN, VALID, DIRTY}
 
 @Composable
-fun ViewCommon(
+internal fun ViewCommon(
     title: String,
     states: ImmutableList<ViewModelState<*>> = persistentListOf(),
     description: String = "Return to home screen",
@@ -84,7 +94,7 @@ fun ViewCommon(
         ) {paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 for (error in errors) {
-                    ReadonlyViewText(error.message)
+                    ViewText(error.message)
                 }
             }
         }
@@ -150,6 +160,68 @@ private fun CreateTopBar(
     }
 }
 
+
+@Composable
+private fun SingleLineTextField(value: String,
+                                onValueChange: (String) -> Unit,
+                                modifier: Modifier,
+                                label: @Composable (() -> Unit)? = null,
+                                trailingIcon: @Composable (() -> Unit)? = null,
+                                isError: Boolean = false,
+                                keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+                                readOnly : Boolean = false
+) {
+    val colors = textFieldColors()
+    val textStyle = textStyle()
+    val interactionSource =  remember { MutableInteractionSource() }
+    // If color is not provided via the text style, use content color as a default
+    val textColor =
+        textStyle.color.takeOrElse {
+            val focused = interactionSource.collectIsFocusedAsState().value
+            when {
+                isError -> colors.errorTextColor
+                focused -> colors.focusedTextColor
+                else -> colors.unfocusedTextColor
+            }
+        }
+    val mergedTextStyle = textStyle.merge(TextStyle(color = textColor))
+
+    CompositionLocalProvider(LocalTextSelectionColors provides colors.textSelectionColors) {
+        BasicTextField(
+            value,
+            onValueChange,
+            modifier.defaultMinSize(TextFieldDefaults.MinWidth)
+                .height(textFieldHeight)
+                .padding(horizontal = 4.dp),
+            readOnly = readOnly,
+            textStyle = mergedTextStyle,
+            keyboardOptions = keyboardOptions,
+            cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
+            interactionSource = interactionSource,
+            singleLine = true,
+            maxLines = 1,
+            minLines = 1,
+            decorationBox =
+                @Composable { innerTextField ->
+                    // places leading icon, text field with label and placeholder, trailing icon
+                    TextFieldDefaults.DecorationBox(
+                        value,
+                        innerTextField = innerTextField,
+                        enabled = true,
+                        singleLine = true,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        isError = isError,
+                        label = label,
+                        trailingIcon = trailingIcon,
+                        colors = colors,
+                        // Remove default vertical padding
+                        contentPadding = PaddingValues(4.dp, 2.dp, bottom = 2.dp)
+                    )
+                },
+        )
+    }
+}
 @Composable
 internal fun ViewText(value : String, modifier: Modifier = Modifier) {
     Text(
@@ -157,71 +229,36 @@ internal fun ViewText(value : String, modifier: Modifier = Modifier) {
         fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
+        modifier = modifier.height(textFieldHeight).padding(start = 4.dp)
     )
 }
 
 @Composable
-fun ReadonlyViewText(value : String, modifier: Modifier = Modifier) {
-    TextField(
-        value = value,
-        readOnly = true,
-        onValueChange = {},
-        singleLine = true,
-        colors = textFieldColors(),
-        textStyle = textStyle(),
-        modifier = modifier
-    )
-}
-
-@Composable
-fun ViewTextField(
+internal fun ViewTextField(
     value: String,
     modifier: Modifier = Modifier,
     trailingIcon: @Composable (() -> Unit)? = null,
     label: String? = null,
+    readOnly : Boolean = false,
     onValueChange: (String) -> Unit
-) {
+)  =
     when (label) {
-        null -> TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier,
-            singleLine = true,
-            trailingIcon = trailingIcon,
-            colors = textFieldColors(),
-            textStyle = textStyle()
-        )
-        else -> TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier,
-            singleLine = true,
-            label = {ReadonlyViewText(label) },
-            trailingIcon = trailingIcon,
-            colors = textFieldColors(),
-            textStyle = textStyle()
-        )
+        null -> SingleLineTextField(value, onValueChange, modifier, trailingIcon = trailingIcon, readOnly = readOnly)
+        else -> SingleLineTextField(value, onValueChange, modifier, { ViewText(label) }, trailingIcon, readOnly = readOnly)
     }
-}
 
 @Composable
-fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
+internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    cursorColor = MaterialTheme.colorScheme.onSurface,
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,
-    unfocusedIndicatorColor = Color.Transparent
+    unfocusedIndicatorColor = Color.Transparent,
 )
 
 @Composable
-fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     OutlinedButton(enabled = enabled,
         shape = MaterialTheme.shapes.small,
         modifier = modifier.padding(6.dp),
@@ -257,11 +294,6 @@ internal fun DropdownList(
             contentAlignment = Alignment.CenterStart,
             modifier = modifier
                 .fillMaxWidth().padding(0.dp)
-                .clickable {
-                    if (!isLocked()) {
-                        expanded = !expanded
-                    }
-                },
         ) {
             ViewTextField(
                 value = selectedText,
@@ -272,7 +304,8 @@ internal fun DropdownList(
                             icon, "contentDescription",
                             Modifier.clickable { expanded = !expanded })
                     }
-                }
+                },
+                readOnly = true
             ) {}
             if (!isLocked() && expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
@@ -291,7 +324,7 @@ internal fun DropdownList(
     }
 }
 
-class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
+internal class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
     GridCells {
     override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
         // Define the total available width after accounting for spacing
@@ -317,7 +350,7 @@ internal fun addButtonSettings(onClick : () -> Unit, enabled: Boolean = true) : 
     ButtonSettings(imageVector = Icons.Default.Add, enabled = enabled, onClick = onClick)
 
 @Composable
-fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
+internal fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
     BottomBarWithButtons(ButtonSettings(value, enabled, onClick = onClick))
 
 @Composable
@@ -338,7 +371,7 @@ internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
 }
 
 @Composable
-fun ClickableIcon(
+internal fun ClickableIcon(
     imageVector: ImageVector,
     contentDescription: String?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
@@ -368,31 +401,29 @@ internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () 
 }
 internal fun LazyGridScope.viewTextItems(values: List<String>) {
     items(items = values) {
-        ReadonlyViewText(it)
+        ViewText(it)
     }
 }
 
 @Composable
 internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
-    TextField(
-        value = value,
-        onValueChange = {
+    SingleLineTextField(
+        value,
+        {
             try {
                 onValueChange(it)
             } catch (_: NumberFormatException) {
             }
         },
-        singleLine = true,
+        Modifier,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        colors = textFieldColors(),
-        textStyle = textStyle()
     )
 }
 
 @Composable
 internal fun EditorRow(title: String, content: @Composable () -> Unit) {
     Row {
-        ReadonlyViewText(title)
+        ViewText(title)
         content()
     }
 }
