@@ -1,12 +1,12 @@
 [versions]
-agp = "9.3.2"
+agp = "9.4.0"
 android-compileSdk = "37"
 android-minSdk = "36"
 android-targetSdk = "37"
 androidx-activity = "1.13.0"
 androidx-lifecycle = "2.11.0"
 composeMultiplatform = "1.11.1" # 1.12.0 runtime error
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 material3 = "1.11.0-alpha07"
 # http client
 ktorVersion ="3.5.2"
@@ -15,24 +15,24 @@ materialThemePrefs = "1.0.0"
 # json serialize
 kotlin-serialize = "1.11.0"
 # room
-room = "2.8.4"
+room = "2.8.5"
 ksp = "2.3.9"
-sqliteBundled = "2.7.0"
+sqliteBundled = "2.7.1"
 # koin
 koin-core = "4.2.2"
-koin-plugin = "1.0.1" # 1.1.0 compile error
+koin-plugin = "1.2.1"
 androidx-startup = "1.2.0"
 # logging
 kmp-logger = "2.0.0"
 # Corresponding Navigation 3 and supporting libraries
 nav3 = "1.1.1"
-adaptive = "1.3.0-beta02"
+adaptive = "1.3.0-rc01"
 lifecycle = "2.11.0"
 # immutable collections
 immutableCollections = "0.5.2"
 kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
-kotzilla = "2.3.5"
+kotzilla = "2.3.6"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
