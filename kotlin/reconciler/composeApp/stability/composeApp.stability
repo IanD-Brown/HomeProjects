@@ -5,7 +5,7 @@
 //   ./gradlew :composeApp:stabilityDump
 
 @Composable
-public fun io.github.iandbrown.reconciler.App(fileKitDialogSettings: io.github.vinceglb.filekit.dialogs.FileKitDialogSettings): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.App(fileKitDialogSettings: io.github.vinceglb.filekit.dialogs.FileKitDialogSettings): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -167,13 +167,13 @@ private fun io.github.iandbrown.reconciler.ui.FilterConfigEditor(fullFilter: kot
     - accountViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.HomeScreen(): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.HomeScreen(): kotlin.Unit
   skippable: true
   restartable: true
   params:
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ImportDefinitionList(viewModel: io.github.iandbrown.reconciler.ui.ImportDefinitionListViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ImportDefinitionList(viewModel: io.github.iandbrown.reconciler.ui.ImportDefinitionListViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -199,13 +199,27 @@ internal fun io.github.iandbrown.reconciler.ui.OutlinedTextButton(value: kotlin.
     - onClick: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.RuleListView(viewModel: io.github.iandbrown.reconciler.ui.RuleViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.RuleListView(viewModel: io.github.iandbrown.reconciler.ui.RuleViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
     - viewModel: RUNTIME (requires runtime check)
     - transCategoryViewModel: RUNTIME (requires runtime check)
     - accountGroupViewModel: RUNTIME (requires runtime check)
+
+@Composable
+private fun io.github.iandbrown.reconciler.ui.SingleLineTextField(value: kotlin.String, onValueChange: kotlin.Function1<kotlin.String, kotlin.Unit>, modifier: androidx.compose.ui.Modifier, label: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, trailingIcon: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, isError: kotlin.Boolean, keyboardOptions: androidx.compose.foundation.text.KeyboardOptions, readOnly: kotlin.Boolean): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - value: STABLE (String is immutable)
+    - onValueChange: STABLE (function type)
+    - modifier: STABLE (marked @Stable or @Immutable)
+    - label: STABLE (composable function type)
+    - trailingIcon: STABLE (composable function type)
+    - isError: STABLE (primitive type)
+    - keyboardOptions: STABLE (marked @Stable or @Immutable)
+    - readOnly: STABLE (primitive type)
 
 @Composable
 internal fun io.github.iandbrown.reconciler.ui.TransactionCategoryListView(viewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
@@ -216,7 +230,7 @@ internal fun io.github.iandbrown.reconciler.ui.TransactionCategoryListView(viewM
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewAllTransaction(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewAllTransaction(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -240,7 +254,7 @@ internal fun io.github.iandbrown.reconciler.ui.ViewCommon(title: kotlin.String, 
     - content: STABLE (composable function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewSpendingSummary(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewSpendingSummary(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountViewModel: io.github.iandbrown.reconciler.ui.AccountViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:
@@ -250,15 +264,16 @@ public fun io.github.iandbrown.reconciler.ui.ViewSpendingSummary(viewModel: io.g
     - accountGroupViewModel: RUNTIME (requires runtime check)
 
 @Composable
-internal fun io.github.iandbrown.reconciler.ui.ViewText(value: kotlin.String, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewText(value: kotlin.String, modifier: androidx.compose.ui.Modifier, textAlign: androidx.compose.ui.text.style.TextAlign?): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - value: STABLE (String is immutable)
     - modifier: STABLE (marked @Stable or @Immutable)
+    - textAlign: STABLE (known stable type)
 
 @Composable
-internal fun io.github.iandbrown.reconciler.ui.ViewTextField(value: kotlin.String, modifier: androidx.compose.ui.Modifier, trailingIcon: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, label: kotlin.String?, onValueChange: kotlin.Function1<kotlin.String, kotlin.Unit>): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewTextField(value: kotlin.String, modifier: androidx.compose.ui.Modifier, trailingIcon: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, label: kotlin.String?, readOnly: kotlin.Boolean, onValueChange: kotlin.Function1<kotlin.String, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -266,10 +281,11 @@ internal fun io.github.iandbrown.reconciler.ui.ViewTextField(value: kotlin.Strin
     - modifier: STABLE (marked @Stable or @Immutable)
     - trailingIcon: STABLE (composable function type)
     - label: STABLE (class with no mutable properties)
+    - readOnly: STABLE (primitive type)
     - onValueChange: STABLE (function type)
 
 @Composable
-public fun io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
+internal fun io.github.iandbrown.reconciler.ui.ViewTransactionSummaryByCategory(viewModel: io.github.iandbrown.reconciler.ui.TransactionListViewModel, transCategoryViewModel: io.github.iandbrown.reconciler.ui.TransactionCategoryViewModel, accountGroupViewModel: io.github.iandbrown.reconciler.ui.AccountGroupViewModel): kotlin.Unit
   skippable: false
   restartable: true
   params:

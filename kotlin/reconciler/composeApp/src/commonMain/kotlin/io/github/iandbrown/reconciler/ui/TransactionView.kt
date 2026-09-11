@@ -71,7 +71,7 @@ private data class FilterConfig(val minDate: DayDate,
 
 private var baseFilterConfig = FilterConfig(DayDate.ofCurrentYearStart(), null, null, null, null, null)
 
-class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionListViewDao>().value) :
+internal class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionListViewDao>().value) :
     BaseReadViewModel<TransactionListViewDao, TransactionListView>(dao) {
     fun delete(item: TransactionListView) {
         viewModelScope.launch {
@@ -81,7 +81,7 @@ class TransactionListViewModel(dao: TransactionListViewDao = inject<TransactionL
     }
 }
 
-class TransactionViewModel(dao: TransactionDao = inject<TransactionDao>().value) :
+internal class TransactionViewModel(dao: TransactionDao = inject<TransactionDao>().value) :
     BaseConfigCRUDViewModel<TransactionDao, Transaction>(dao)
 
 @Suppress("ParamsComparedByRef")
@@ -101,21 +101,20 @@ private fun FilterConfigEditor(fullFilter: Boolean,
             var category by remember { mutableStateOf(baseFilterConfig.category) }
             var matchDistance by remember { mutableStateOf(baseFilterConfig.matchDistance) }
             var description by remember { mutableStateOf(baseFilterConfig.description?.toString()) }
-            val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
             Column(modifier = Modifier.padding(16.dp)) {
                 LazyVerticalGrid(columns = GridCells.Fixed(2)) {
-                    viewTextItems(values = listOf("Minimum date"), textModifier)
+                    viewTextItems(values = listOf("Minimum date"))
                     item { DatePickerView(
                         minDate.value(),
                         Modifier.padding(0.dp),
                         { true }) { minDate = DayDate.of(it) }}
-                    viewTextItems(values = listOf("Maximum date"), textModifier)
+                    viewTextItems(values = listOf("Maximum date"))
                     item { DatePickerView(
                         maxDate?.value() ?: 0,
                         Modifier.padding(0.dp),
                         { true }) { maxDate = if (it > 0) DayDate.of(it) else null }}
                     if (fullFilter) {
-                        viewTextItems(values = listOf("Account"), textModifier)
+                        viewTextItems(values = listOf("Account"))
                         item { when (accounts.value) {
                             is ViewModelState.Success -> {
                                 val accountValues = accounts.values()
@@ -133,7 +132,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                                 ViewText("")
                             }
                         } }
-                        viewTextItems(values = listOf("Transaction category"), textModifier)
+                        viewTextItems(values = listOf("Transaction category"))
                         item { when (transactionCategories.value) {
                             is ViewModelState.Success -> {
                                 val transactionCategoryValues =
@@ -154,14 +153,14 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                                 ViewText("")
                             }
                         } }
-                        viewTextItems(values = listOf("Match distance"), textModifier)
+                        viewTextItems(values = listOf("Match distance"))
                         item { NumericField(matchDistance?.toString() ?: "0") {
                             val i = it.toIntOrNull()
                             if (i != null) {
                                 matchDistance = if (i > 0) i else null
                             }
                         } }
-                        gridEntry("Description", description ?: "", textModifier) {
+                        gridEntry("Description", description ?: "") {
                             description = it
                         }
                     }
@@ -182,7 +181,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
+internal fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                        transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                        accountViewModel:AccountViewModel = koinInject(),
                        accountGroupViewModel: AccountGroupViewModel = koinInject()) {
@@ -241,7 +240,7 @@ fun ViewAllTransaction(viewModel: TransactionListViewModel = koinInject(),
                                 transaction.accountName,
                                 transaction.description)
                         )
-                        formatedNumber("%.2f", transaction.amount)
+                        formatedNumber("%.2f", transaction.amount, TextAlign.Start)
                         viewTextItems(values = listOf(transaction.categoryName))
                         item { EditButton { navController -> navController.navigate(transaction) } }
                         item { DeleteButton { viewModel.delete(transaction) } }
@@ -342,10 +341,9 @@ internal fun EditTransaction(item: TransactionListView) {
         confirm = { editorState == EditorState.VALID },
         confirmAction = {save(Transaction(item.id, item.account, item.date, description, amount, item.category), split)},
         states = persistentListOf()) { paddingValues ->
-        val textModifier = Modifier.fillMaxSize().padding(vertical = textStyle().fontSize.value.dp)
         LazyVerticalGrid(columns = WeightedIconGridCells(0, 1, 1, 4, 1, 1), Modifier.padding(paddingValues)) {
             viewTextItems(values = listOf("Date", "Account", "Description", "Amount", "Category"))
-            viewTextItems(listOf(DayDate.of(item.date).toString(), item.accountName), textModifier)
+            viewTextItems(listOf(DayDate.of(item.date).toString(), item.accountName))
             item { ViewTextField(description) {
                 description = it.trim()
                 setEditorState()
@@ -357,9 +355,9 @@ internal fun EditTransaction(item: TransactionListView) {
                     setEditorState()
                 }
             } }
-            item { ViewText(item.categoryName, textModifier) }
+            item { ViewText(item.categoryName) }
             if (split != null) {
-                viewTextItems(listOf(DayDate.of(item.date).toString(), item.accountName), textModifier)
+                viewTextItems(listOf(DayDate.of(item.date).toString(), item.accountName))
                 item { ViewTextField(split!!.description) {
                     split = Transaction(account = item.account, date = item.date, description = it.trim(), amount = split!!.amount)
                     setEditorState()
@@ -397,7 +395,7 @@ private fun save(transaction: Transaction, split: Transaction?, viewModel : Tran
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
+internal fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                         transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                         accountViewModel:AccountViewModel = koinInject(),
                         accountGroupViewModel: AccountGroupViewModel = koinInject()) {
@@ -445,13 +443,12 @@ fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInject(),
                 }
 
                 val data = accounts.values()
-                val weights = (listOf(1, 2) + data.map { 4 }).toIntArray()
+                val weights = (listOf(2, 2) + data.map { 4 }).toIntArray()
                 LazyVerticalGrid(columns = WeightedIconGridCells(0, *weights)) {
                     viewTextItems(values = listOf("Month"))
                     viewTextItems(
-                        listOf("Total") + data.map {"${it.name} transactions" },
-                        Modifier.padding(end = 16.dp),
-                        TextAlign.End
+                        listOf("Total") + data.map {"${it.name} trans" },
+                        textAlign = TextAlign.End
                     )
                     for (month in months) {
                         viewTextItems(values = listOf(month.toString().substring(3)))
@@ -484,7 +481,7 @@ private fun getMonths(transactions: List<TransactionListView>, minDate: DayDate)
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinInject(),
+internal fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewModel = koinInject(),
                                      transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                                      accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState()

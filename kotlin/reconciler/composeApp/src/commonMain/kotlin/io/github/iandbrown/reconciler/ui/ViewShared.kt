@@ -1,21 +1,27 @@
 package io.github.iandbrown.reconciler.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -44,12 +50,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,9 +63,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -100,6 +109,7 @@ import java.io.InputStream
 import java.util.Locale
 
 internal val fontSize = 16.sp
+internal val textFieldHeight = 28.dp
 internal const val OK = "OK"
 
 internal var appFileKitDialogSettings : FileKitDialogSettings? = null
@@ -199,14 +209,77 @@ private fun closeConfirmDialog(navController: NavController, confirmAction : () 
 }
 
 @Composable
-internal fun ViewText(value : String, modifier: Modifier = Modifier) {
+internal fun ViewText(value : String, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
     Text(
         text = value,
         fontSize = fontSize,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
+        modifier = modifier.height(textFieldHeight).padding(start = 4.dp),
+        textAlign = textAlign
     )
+}
+
+
+@Composable
+private fun SingleLineTextField(value: String,
+                                onValueChange: (String) -> Unit,
+                                modifier: Modifier,
+                                label: @Composable (() -> Unit)? = null,
+                                trailingIcon: @Composable (() -> Unit)? = null,
+                                isError: Boolean = false,
+                                keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+                                readOnly : Boolean = false
+) {
+    val colors = textFieldColors()
+    val textStyle = textStyle()
+    val interactionSource =  remember { MutableInteractionSource() }
+    // If color is not provided via the text style, use content color as a default
+    val textColor =
+        textStyle.color.takeOrElse {
+            val focused = interactionSource.collectIsFocusedAsState().value
+            when {
+                isError -> colors.errorTextColor
+                focused -> colors.focusedTextColor
+                else -> colors.unfocusedTextColor
+            }
+        }
+    val mergedTextStyle = textStyle.merge(TextStyle(color = textColor))
+
+    CompositionLocalProvider(LocalTextSelectionColors provides colors.textSelectionColors) {
+        BasicTextField(
+            value,
+            onValueChange,
+            modifier.defaultMinSize(TextFieldDefaults.MinWidth)
+                .height(textFieldHeight).padding(horizontal = 4.dp),
+            readOnly = readOnly,
+            textStyle = mergedTextStyle,
+            keyboardOptions = keyboardOptions,
+            cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
+            interactionSource = interactionSource,
+            singleLine = true,
+            maxLines = 1,
+            minLines = 1,
+            decorationBox =
+                @Composable { innerTextField ->
+                    // places leading icon, text field with label and placeholder, trailing icon
+                    TextFieldDefaults.DecorationBox(
+                        value,
+                        innerTextField = innerTextField,
+                        enabled = true,
+                        singleLine = true,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        isError = isError,
+                        label = label,
+                        trailingIcon = trailingIcon,
+                        colors = colors,
+                        // Remove default vertical padding
+                        contentPadding = PaddingValues(4.dp, 2.dp, bottom = 2.dp)
+                    )
+                },
+        )
+    }
 }
 
 @Composable
@@ -215,30 +288,12 @@ internal fun ViewTextField(
     modifier: Modifier = Modifier,
     trailingIcon: @Composable (() -> Unit)? = null,
     label: String? = null,
-    onValueChange: (String) -> Unit
-) {
+    readOnly: Boolean = false,
+    onValueChange: (String) -> Unit) =
     when (label) {
-        null -> TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier,
-            singleLine = true,
-            trailingIcon = trailingIcon,
-            colors = textFieldColors(),
-            textStyle = textStyle()
-        )
-        else -> TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier,
-            singleLine = true,
-            label = { ViewText(label) },
-            trailingIcon = trailingIcon,
-            colors = textFieldColors(),
-            textStyle = textStyle()
-        )
+        null -> SingleLineTextField(value, onValueChange, modifier, trailingIcon = trailingIcon, readOnly = readOnly)
+        else -> SingleLineTextField(value, onValueChange, modifier, { ViewText(label) }, trailingIcon, readOnly = readOnly)
     }
-}
 
 @Composable
 internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
@@ -278,11 +333,6 @@ internal fun DropdownList(
             contentAlignment = Alignment.CenterStart,
             modifier = modifier
                 .fillMaxWidth().padding(0.dp)
-                .clickable {
-                    if (!isLocked()) {
-                        expanded = !expanded
-                    }
-                },
         ) {
             ViewTextField(
                 value = selectedText,
@@ -293,7 +343,8 @@ internal fun DropdownList(
                             icon, "contentDescription",
                             Modifier.clickable { expanded = !expanded })
                     }
-                }
+                },
+                readOnly = true
             ) {}
             if (!isLocked() && expanded) {
                 DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
@@ -327,7 +378,8 @@ internal fun DatePickerView(current: Int, modifier : Modifier, isSelectable : (L
                     contentDescription = "Select date"
                 )
             }
-        }
+        },
+        readOnly = true
     ) {}
 
     if (showDatePicker) {
@@ -429,9 +481,11 @@ internal fun LazyGridScope.gridEntry(title : String, value : String, textModifie
     item { ViewTextField(value = value, onValueChange = onValueChange) }
 }
 
-internal fun LazyGridScope.gridEntry(title : String, value : Boolean, onValueChange: (Boolean) -> Unit) {
-    item { ViewText(title) }
-    item { Checkbox(value, onValueChange) }
+internal fun LazyGridScope.gridEntry(value: Boolean, title: String? = null, enabled: Boolean = true, onValueChange: (Boolean) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item { Checkbox(value, onValueChange, Modifier.height(textFieldHeight), enabled) }
 }
 
 internal fun LazyGridScope.gridEntry(title: String, itemList: ImmutableList<String>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
@@ -439,22 +493,13 @@ internal fun LazyGridScope.gridEntry(title: String, itemList: ImmutableList<Stri
     item { DropdownList(itemList, selectedIndex, onItemClick = onItemClick) }
 }
 
-internal fun LazyGridScope.formatedNumber(format : String, value : Double?) {
-    item {
-        Text(
-            text = String.format(Locale.UK, format, value ?: 0.0),
-            modifier = Modifier.padding(end = 16.dp),
-            fontSize = fontSize,
-            textAlign = TextAlign.End,
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 1,
-         )
-    }
+internal fun LazyGridScope.formatedNumber(format : String, value : Double?, textAlign : TextAlign = TextAlign.End) {
+    item { ViewText(String.format(Locale.UK, format, value ?: 0.0), textAlign = textAlign) }
 }
 
 internal fun LazyGridScope.viewTextItems(values: List<String>, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
     items(items = values) {
-        Text(text = it, modifier = modifier, fontSize = fontSize, textAlign = textAlign, overflow = TextOverflow.Ellipsis, maxLines = 1)
+        ViewText(it, modifier, textAlign = textAlign)
     }
 }
 
@@ -543,17 +588,15 @@ internal suspend fun tryTransaction(exceptionHandler: (Exception) -> Unit, block
 
 @Composable
 internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
-    TextField(
-        value = value,
-        onValueChange = {
+    SingleLineTextField(
+        value,
+        {
             try {
                 onValueChange(it)
             } catch (_: NumberFormatException) {
             }
         },
-        singleLine = true,
+        Modifier,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        colors = textFieldColors(),
-        textStyle = textStyle()
     )
 }

@@ -37,7 +37,7 @@ private const val NAME = "name"
 private const val FILTER = "filter"
 private const val IS_SPENDING = "isSpending"
 
-class TransactionCategoryViewModel :
+internal class TransactionCategoryViewModel :
     BaseConfigCRUDViewModel<TransactionCategoryDao, TransactionCategory>(inject<TransactionCategoryDao>().value)
 
 @Suppress("ParamsComparedByRef")
@@ -137,12 +137,12 @@ internal fun EditTransactionCategory(
                 setEditorState()
             }
 
-            gridEntry("Filter", filter) {
+            gridEntry(filter, "Filter") {
                 filter = it
                 setEditorState()
             }
 
-            gridEntry("Is Spending", isSpending) {
+            gridEntry(isSpending, "Is Spending") {
                 isSpending = it
                 setEditorState()
             }

@@ -36,7 +36,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 
-class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().value) {
+internal class RuleViewModel : BaseConfigCRUDViewModel<RuleDao, Rule>(inject<RuleDao>().value) {
     fun getDao() : RuleDao = dao
 }
 
@@ -46,7 +46,7 @@ internal const val ACCOUNT_GROUP = "AccountGroup"
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun RuleListView(viewModel: RuleViewModel = koinInject(),
+internal fun RuleListView(viewModel: RuleViewModel = koinInject(),
                  transCategoryViewModel:TransactionCategoryViewModel = koinInject(),
                  accountGroupViewModel: AccountGroupViewModel = koinInject()) {
     val state = viewModel.uiState.collectAsState()

@@ -30,7 +30,7 @@ import org.koin.compose.koinInject
 
 private const val NAME = "name"
 
-class AccountGroupViewModel : BaseConfigCRUDViewModel<AccountGroupDao, AccountGroup>(inject<AccountGroupDao>().value)
+internal class AccountGroupViewModel : BaseConfigCRUDViewModel<AccountGroupDao, AccountGroup>(inject<AccountGroupDao>().value)
 
 @Suppress("ParamsComparedByRef")
 @Composable

@@ -54,7 +54,7 @@ enum class Editors(val displayName: String, val showOnHome: Boolean = true) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+internal fun HomeScreen() {
     val coroutineScope = rememberCoroutineScope()
     val exceptionState = remember {mutableStateOf<Exception?>(null)}
 

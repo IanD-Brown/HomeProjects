@@ -64,7 +64,7 @@ open class BaseReadViewModel<DAO : BaseReadDao<ENTITY>, ENTITY>(val dao: DAO) : 
     }
 }
 
-fun logException(className: String, exception: Exception, context: String) {
+internal fun logException(className: String, exception: Exception, context: String) {
     val logger = LoggerFactory.get(className)
     logger.error(exception) { "$context ${exception.message}" }
 }

@@ -88,10 +88,10 @@ data class Range(val from: Float, val to: Float)
 
 data class RectArea(val left: Float, val right: Float, val top: Float, val bottom: Float)
 
-fun getSortedItems(items: Map<RectArea, String>): List<Pair<RectArea, String>> =
+internal fun getSortedItems(items: Map<RectArea, String>): List<Pair<RectArea, String>> =
     items.map { Pair(it.key, it.value) }.sortedBy { it.first.top }
 
-fun calcRows(sortedItems: List<Pair<RectArea, String>>) : List<Range> {
+internal fun calcRows(sortedItems: List<Pair<RectArea, String>>) : List<Range> {
     var top: Float = Float.MAX_VALUE
     var bottom: Float = Float.NEGATIVE_INFINITY
     val rows = mutableListOf<Range>()
@@ -115,7 +115,7 @@ fun calcRows(sortedItems: List<Pair<RectArea, String>>) : List<Range> {
     return rows
 }
 
-fun rowContent(rowRanges: List<Range>,
+internal fun rowContent(rowRanges: List<Range>,
                         sortedItems: List<Pair<RectArea, String>>,
                         rowFilter: (Set<String>) -> Boolean) : List<Map<Range, String>> {
     val logger = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)

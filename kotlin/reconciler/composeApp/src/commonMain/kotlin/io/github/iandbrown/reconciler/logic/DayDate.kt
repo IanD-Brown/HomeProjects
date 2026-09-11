@@ -14,7 +14,7 @@ private const val YEAR_FACTOR = 500
 
 internal const val TO_STRING_PATTERN = "dd/MM/yy"
 
-class DayDate private constructor(private val value: Int) {
+internal class DayDate private constructor(private val value: Int) {
 
     companion object {
         fun of(dayDate: Int) = DayDate(dayDate)

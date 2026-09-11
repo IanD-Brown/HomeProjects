@@ -27,7 +27,7 @@ import org.koin.compose.koinInject
 
 private const val NAME = "name"
 
-class AccountViewModel : BaseConfigCRUDViewModel<AccountDao, Account>(inject<AccountDao>().value)
+internal class AccountViewModel : BaseConfigCRUDViewModel<AccountDao, Account>(inject<AccountDao>().value)
 
 @Suppress("ParamsComparedByRef")
 @Composable

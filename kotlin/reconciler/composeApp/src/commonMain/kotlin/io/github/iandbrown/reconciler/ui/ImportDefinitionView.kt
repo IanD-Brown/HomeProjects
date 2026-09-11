@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -98,7 +97,7 @@ private enum class ImportTypes(val displayName: String) {
     CURRENT("Santander current PDF")
 }
 
-class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
+internal class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
     suspend fun save(importId: Int, name: String, type: Int, importDefinitions: (Int) -> List<AccountImportDefinition>) : Boolean {
         try {
             dao.save(importId, name, type, importDefinitions)
@@ -110,7 +109,7 @@ class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, I
     }
 }
 
-class ImportDefinitionListViewModel : BaseReadViewModel<ImportDefinitionListViewDao, ImportDefinitionListView>(inject<ImportDefinitionListViewDao>().value) {
+internal class ImportDefinitionListViewModel : BaseReadViewModel<ImportDefinitionListViewDao, ImportDefinitionListView>(inject<ImportDefinitionListViewDao>().value) {
     fun delete(item: ImportDefinitionListView, importDefinitionDao: ImportDefinitionDao = inject<ImportDefinitionDao>().value) {
         viewModelScope.launch {
             importDefinitionDao.deleteById(item.importDefinitionId)
@@ -126,7 +125,7 @@ class ImportDefinitionListViewModel : BaseReadViewModel<ImportDefinitionListView
 
 @Suppress("ParamsComparedByRef")
 @Composable
-fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<ImportDefinitionListViewModel>(),
+internal fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<ImportDefinitionListViewModel>(),
                          accountViewModel: AccountViewModel = koinInject<AccountViewModel>()) {
     val state = viewModel.uiState.collectAsState()
     val accountState = accountViewModel.uiState.collectAsState()
@@ -175,11 +174,11 @@ fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koinInject<I
                         val item = accountValues[Pair(item.importDefinitionId, account.id)]
                         item { ViewText("  * ${account.name}") }
                         if (item != null) {
-                            item { Checkbox(item.active, {}, enabled = false) }
+                            gridEntry(item.active, null, false) {}
                             viewTextItems(values = listOf(item.sheetName, item.dateColumn, item.descriptionColumn, item.amountInColumn, item.amountOutColumn))
                             item(span = { GridItemSpan(3) }) { }
                         } else {
-                            item { Checkbox(false, {}, enabled = false) }
+                            gridEntry(false, null, false) {}
                             item(span = { GridItemSpan(8) }) { }
                         }
                     }
@@ -241,20 +240,18 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
     }
 
     fun LazyGridScope.gridEntry(edits: MutableMap<Int, Boolean>, listView: ImportDefinitionListView, activeField: Boolean) {
-        item {
-            Checkbox(checked =
-                (if (edits.containsKey(listView.accountId)) {
-                    edits[listView.accountId]!!
-                } else if (activeField) {
-                    listView.active
-                } else {
-                    listView.clear
-                }),
-                onCheckedChange = {
-                    edits[listView.accountId] = it
-                    setValid()
-                })
-            }
+        gridEntry(
+            if (edits.containsKey(listView.accountId)) {
+                edits[listView.accountId]!!
+            } else if (activeField) {
+                listView.active
+            } else {
+                listView.clear
+            },
+            null) {
+            edits[listView.accountId] = it
+            setValid()
+        }
     }
 
     fun LazyGridScope.gridEntry(edits: MutableMap<Int, String>, listView: ImportDefinitionListView, field: StringField) {
