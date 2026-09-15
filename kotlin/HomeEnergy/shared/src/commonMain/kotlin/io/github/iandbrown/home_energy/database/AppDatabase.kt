@@ -1,9 +1,10 @@
 package io.github.iandbrown.home_energy.database
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-private const val version = 2
+private const val version = 3
 private const val majorVersion = 1
 
 @Database(entities = [
@@ -15,6 +16,7 @@ private const val majorVersion = 1
     views = [],
     version = version,
     autoMigrations = [
+        AutoMigration(from = 2, to = 3),
     ])
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getMeterDao(): MeterDao

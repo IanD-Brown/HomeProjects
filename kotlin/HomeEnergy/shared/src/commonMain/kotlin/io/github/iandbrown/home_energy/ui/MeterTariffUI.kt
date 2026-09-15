@@ -1,7 +1,8 @@
 package io.github.iandbrown.home_energy.ui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,9 +64,10 @@ internal fun MeterTariffListScreen(
                 addButtonSettings(onAddTariff)
             )
         }) { padding ->
-        TrailingIconLazyVerticalGrid(padding, 3, 2) {
-            viewTextItems(listOf("From", "To", "Rate", "", ""))
+        TrailingIconLazyVerticalGrid(padding, 4, 2) {
+            viewTextItems(listOf("Active", "From", "To", "Rate", "", ""))
             state.values().forEach {
+                gridEntry(it.activeAccount, null, false) {}
                 viewTextItems(
                     listOf(
                         asHoursAndMinutes(it.fromHour, it.fromPeriod),
@@ -114,6 +116,7 @@ internal fun MeterTariffEditorScreen(
     var toPeriod by remember { mutableIntStateOf(meterTariff?.toPeriod?.toInt() ?: 0) }
     var tariff by remember { mutableDoubleStateOf(meterTariff?.tariff ?: 0.0) }
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
+    var activeTariff by remember { mutableStateOf(meterTariff?.activeAccount ?: true) }
 
     fun setEditorState() {
         editorState = if ((meterTariff == null && fromHour == 0 && fromPeriod == 0 && toHour == 0 && toPeriod == 0 && tariff == 0.0) ||
@@ -134,41 +137,35 @@ internal fun MeterTariffEditorScreen(
         description = "Return to Meter tariffs screen",
         bottomBar = {
             BottomBarWithButton(enabled = editorState == EditorState.VALID) {
-                onSave(MeterTariff(meterId, fromHour.toShort(), fromPeriod.toShort(), toHour.toShort(), toPeriod.toShort(), tariff, meterTariff?.id ?: 0))
+                onSave(MeterTariff(meterId, fromHour.toShort(), fromPeriod.toShort(), toHour.toShort(), toPeriod.toShort(), tariff, activeTariff, meterTariff?.id ?: 0))
             }
         },
         confirm = { editorState == EditorState.VALID },
-        confirmAction = { onSave(MeterTariff(meterId, fromHour.toShort(), fromPeriod.toShort(), toHour.toShort(), toPeriod.toShort(), tariff, meterTariff?.id ?: 0)) }) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            EditorRow("From Hour") {
-                DropdownList(hours, fromHour) {
-                    fromHour = it
-                    setEditorState()
-                }
+        confirmAction = { onSave(MeterTariff(meterId, fromHour.toShort(), fromPeriod.toShort(), toHour.toShort(), toPeriod.toShort(), tariff, activeTariff, meterTariff?.id ?: 0)) }) { padding ->
+        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(padding)) {
+            gridEntry(hours, fromHour, "From Hour") {
+                fromHour = it
+                setEditorState()
             }
-            EditorRow("From Period") {
-                DropdownList(persistentListOf("00", "30"), fromPeriod) {
-                    fromPeriod = it
-                    setEditorState()
-                }
+            gridEntry(persistentListOf("00", "30"), fromPeriod, "From Period") {
+                fromPeriod = it
+                setEditorState()
             }
-            EditorRow("To Hour") {
-                DropdownList(hours, toHour) {
-                    toHour = it
-                    setEditorState()
-                }
+            gridEntry(hours, toHour, "To Hour") {
+                toHour = it
+                setEditorState()
             }
-            EditorRow("To Period") {
-                DropdownList(persistentListOf("00", "30"), toPeriod) {
-                    toPeriod = it
-                    setEditorState()
-                }
+            gridEntry(persistentListOf("00", "30"), toPeriod, "To Period") {
+                toPeriod = it
+                setEditorState()
             }
-            EditorRow("Tariff") {
-                NumericField(tariff.toString()) {
-                    tariff = it.toDouble()
-                    setEditorState()
-                }
+            gridEntry(tariff, "Tariff") {
+                tariff = it.toDouble()
+                setEditorState()
+            }
+            gridEntry(activeTariff, "Active tariff", meterTariff == null) {
+                activeTariff = it
+                setEditorState()
             }
         }
     }

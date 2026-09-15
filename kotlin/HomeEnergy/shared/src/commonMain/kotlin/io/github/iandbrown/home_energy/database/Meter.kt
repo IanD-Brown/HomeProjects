@@ -17,7 +17,8 @@ data class Meter(
     val electric : Boolean,
     val standingCharge : Double,
     @PrimaryKey(autoGenerate = true) val id : Int = 0,
-    @ColumnInfo(defaultValue = "") val name: String
+    @ColumnInfo(defaultValue = "") val name: String,
+    @ColumnInfo(defaultValue = "0.0") val compareStandingCharge: Double = 0.0
     )
 
 @Dao

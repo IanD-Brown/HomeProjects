@@ -1,5 +1,6 @@
 package io.github.iandbrown.home_energy.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -17,8 +18,8 @@ data class MeterTariff(
     val toHour: Short,
     val toPeriod: Short,
     val tariff: Double,
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0)
+    @ColumnInfo(defaultValue = "1") val activeAccount: Boolean = true,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0)
 
 @Dao
 interface MeterTariffDao : BaseReadDao<MeterTariff>, BaseWriteDao<MeterTariff> {

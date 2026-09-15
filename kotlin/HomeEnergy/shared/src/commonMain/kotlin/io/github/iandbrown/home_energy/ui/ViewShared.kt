@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -436,5 +437,41 @@ internal fun TrailingIconLazyVerticalGrid(paddingValues: PaddingValues,
     LazyVerticalGrid(modifier = Modifier.padding(paddingValues),
         columns = TrailingIconGridCells(dataColumnCount, trailingIconCount)) {
         content()
+    }
+}
+
+
+internal fun LazyGridScope.gridEntry(value : String, title : String? = null, onValueChange: (String) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item { ViewTextField(value = value, onValueChange = onValueChange) }
+}
+
+internal fun LazyGridScope.gridEntry(value: Boolean, title: String? = null, enabled: Boolean = true, onValueChange: (Boolean) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item { Checkbox(value, onValueChange, Modifier.height(textFieldHeight), enabled) }
+}
+
+internal fun LazyGridScope.gridEntry(value: Double, title: String? = null, enabled: Boolean = true, onValueChange: (String) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item { NumericField(value.toString(), onValueChange = onValueChange) }
+}
+
+
+internal fun LazyGridScope.gridEntry(itemList: ImmutableList<String>, selectedIndex: Int, title: String?, onItemClick: (Int) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item {
+        DropdownList(
+            itemList,
+            selectedIndex,
+            onItemClick = onItemClick
+        )
     }
 }

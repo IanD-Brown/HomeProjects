@@ -1,5 +1,6 @@
 package io.github.iandbrown.home_energy.ui
 
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -114,10 +115,18 @@ internal fun FutureScreen() {
         persistentListOf(usageState, settingsState, meterState, tariffState),) { paddingValues ->
         val setting = settingsState.values()[0]
         var balance = setting.initialBalance
-        val monthlyStatistics = MonthlyStatistics(usageState.values(), tariffState.values())
+        val monthlyStatistics = MonthlyStatistics(usageState.values(), tariffState.values().filter { it.activeAccount })
         var grandTotal = 0.0
+        var compareGrandTotal = 0.0
         val meterTotalKWh = mutableMapOf<MeterId, Double>()
         val meterTotalBill = mutableMapOf<MeterId, Double>()
+        val compareTariffs = tariffState.values().filter { !it.activeAccount }
+        val compareStatistics = if (compareTariffs.isNotEmpty()) {
+            MonthlyStatistics(usageState.values(), compareTariffs)
+        } else {
+            null
+        }
+        val meterTotalCompareBill = mutableMapOf<MeterId, Double>()
 
         TrailingIconLazyVerticalGrid(paddingValues, 3 + meterState.values().size, 0) {
             viewTextItems(listOf("Month"))
@@ -131,6 +140,7 @@ internal fun FutureScreen() {
                 viewTextItems(listOf("${MONTHS[month.toInt()]} $year"))
                 // add in standing charge and sum
                 var total = 0.0
+                var compareTotal = 0.0
                 meterState.values()
                     .forEach {
                         val meterMonth = MeterMonth(it.id.toShort(), (month + 1).toShort())
@@ -140,19 +150,31 @@ internal fun FutureScreen() {
                         total += monthlyBill
                         meterTotalKWh.merge(it.id.toShort(), monthlyKWh, Double::plus)
                         meterTotalBill.merge(it.id.toShort(), monthlyBill, Double::plus)
+                        if (compareStatistics != null) {
+                            val compareMonthlyBill = compareStatistics.getMonthlyBill(meterMonth, year, it.compareStandingCharge)
+                            meterTotalCompareBill.merge(it.id.toShort(), compareMonthlyBill, Double::plus)
+                            compareTotal += compareMonthlyBill
+                        }
                     }
 
                 viewTextItems(listOf(billValue(total), billValue(balance)))
                 balance += total + setting.directDebitAmount
                 grandTotal += total
+                compareGrandTotal += compareTotal
             }
 
-            viewTextItems(listOf("kWh") + meterState.values().map { billValue(meterTotalKWh[it.id.toShort()] ?: 0.0)})
-            viewTextItems(listOf("", ""))
+            item(span = { GridItemSpan(3 + meterState.values().size) }) {ViewText("")}
 
             viewTextItems(listOf("Total"))
-            viewTextItems(meterState.values().map { billValue(meterTotalBill[it.id.toShort()] ?: 0.0)})
+            viewTextItems(meterState.values().map { billValue(meterTotalBill[it.id.toShort()] ?: 0.0, meterTotalKWh[it.id.toShort()] ?: 0.0)})
             viewTextItems(listOf(billValue(grandTotal), ""))
+
+            if (compareStatistics != null) {
+                item(span = { GridItemSpan(3 + meterState.values().size) }) {ViewText("")}
+                viewTextItems(listOf("Compare"))
+                viewTextItems(meterState.values().map { billValue(meterTotalCompareBill[it.id.toShort()] ?: 0.0) })
+                viewTextItems(listOf(billValue(compareGrandTotal), ""))
+            }
         }
     }
 }
@@ -161,5 +183,5 @@ private fun billValue(amount: Double, kWh: Double? = null) : String {
     if (kWh != null) {
         return "£${String.format(Locale.UK, "%.2f", amount)}(${String.format(Locale.UK, "%.2f", kWh)})"
     }
-    return String.format(Locale.UK, "%.2f", amount)
+    return String.format(Locale.UK, "£% .2f", amount)
 }
