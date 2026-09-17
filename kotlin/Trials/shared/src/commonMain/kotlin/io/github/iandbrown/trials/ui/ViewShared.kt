@@ -1,0 +1,520 @@
+package io.github.iandbrown.trials.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChipDefaults.IconSize
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
+import androidx.room.RoomDatabase
+import androidx.room.TransactionScope
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
+import io.github.iandbrown.trials.database.AppDatabase
+import io.github.iandbrown.trials.database.BaseReadDao
+import io.github.iandbrown.trials.database.BaseWriteDao
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.launch
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.io.readExcel
+import org.koin.java.KoinJavaComponent.inject
+import java.io.InputStream
+
+private val fontSize = 16.sp
+private val textFieldHeight = 28.dp
+const val OK = "OK"
+
+internal enum class EditorState {CLEAN, VALID, DIRTY}
+
+@Composable
+fun ViewCommon(
+    title: String,
+    states: ImmutableList<ViewModelState<*>> = persistentListOf(),
+    description: String = "Return to home screen",
+    bottomBar: @Composable () -> Unit = {},
+    confirm: () -> Boolean = { false },
+    confirmAction: () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit
+) {
+    val errors = states.filterIsInstance<ViewModelState.Error>()
+    if (errors.isNotEmpty()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+        ) {paddingValues ->
+            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                for (error in errors) {
+                    ViewText(error.message)
+                }
+            }
+        }
+    } else if (states.filter { it !is ViewModelState.Error }.any { it !is ViewModelState.Success }) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CircularProgressIndicator(modifier = Modifier.size(30.dp).align(Alignment.Center))
+        }
+    } else {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { CreateTopBar(title, description, confirm, confirmAction) },
+            bottomBar = bottomBar,
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun CreateTopBar(
+    title: String,
+    description: String,
+    confirm: () -> Boolean,
+    confirmAction: () -> Unit
+) {
+    var isDialogOpen by remember { mutableStateOf(false) }
+    val navState = rememberNavigationEventState(NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = navState,
+        isBackEnabled = confirm(),
+        onBackCompleted = {}
+    )
+
+    fun closeConfirmDialog(confirmAction : () -> Unit) : Boolean {
+        confirmAction()
+        return false
+    }
+
+    TopAppBar(title = { Text(title) }, navigationIcon = {
+        IconButton(onClick = {
+            if (confirm()) {
+                isDialogOpen = true
+            }
+        }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
+        }
+    })
+    if (isDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {},
+            dismissButton = {
+                Button(onClick = { isDialogOpen = closeConfirmDialog {} }) {
+                    Text("Discard changes")
+                }
+            },
+            confirmButton = {
+                Button(onClick = {isDialogOpen = closeConfirmDialog(confirmAction) }) {
+                    Text("Save")
+                }
+            },
+            title = { Text("Data has been changed") },
+        )
+    }
+}
+
+@Composable
+private fun SingleLineTextField(value: String,
+                                onValueChange: (String) -> Unit,
+                                modifier: Modifier,
+                                label: @Composable (() -> Unit)? = null,
+                                trailingIcon: @Composable (() -> Unit)? = null,
+                                isError: Boolean = false,
+                                keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+                                readOnly : Boolean = false
+) {
+    val colors = textFieldColors()
+    val textStyle = textStyle()
+    val interactionSource =  remember { MutableInteractionSource() }
+    // If color is not provided via the text style, use content color as a default
+    val textColor =
+        textStyle.color.takeOrElse {
+            val focused = interactionSource.collectIsFocusedAsState().value
+            when {
+                isError -> colors.errorTextColor
+                focused -> colors.focusedTextColor
+                else -> colors.unfocusedTextColor
+            }
+        }
+    val mergedTextStyle = textStyle.merge(TextStyle(color = textColor))
+
+    CompositionLocalProvider(LocalTextSelectionColors provides colors.textSelectionColors) {
+        BasicTextField(
+            value,
+            onValueChange,
+            modifier.defaultMinSize(TextFieldDefaults.MinWidth)
+                .height(textFieldHeight)
+                .padding(horizontal = 4.dp),
+            readOnly = readOnly,
+            textStyle = mergedTextStyle,
+            keyboardOptions = keyboardOptions,
+            cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
+            interactionSource = interactionSource,
+            singleLine = true,
+            maxLines = 1,
+            minLines = 1,
+            decorationBox =
+                @Composable { innerTextField ->
+                    // places leading icon, text field with label and placeholder, trailing icon
+                    TextFieldDefaults.DecorationBox(
+                        value,
+                        innerTextField = innerTextField,
+                        enabled = true,
+                        singleLine = true,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        isError = isError,
+                        label = label,
+                        trailingIcon = trailingIcon,
+                        colors = colors,
+                        // Remove default vertical padding
+                        contentPadding = PaddingValues(4.dp, 2.dp, bottom = 2.dp)
+                    )
+                },
+        )
+    }
+}
+@Composable
+internal fun ViewText(value : String, modifier: Modifier = Modifier) =
+    Text(
+        text = value,
+        fontSize = fontSize,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier.height(textFieldHeight).padding(start = 4.dp)
+    )
+
+@Composable
+fun ViewTextField(
+    value: String,
+    modifier: Modifier = Modifier,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    label: String? = null,
+    readOnly : Boolean = false,
+    onValueChange: (String) -> Unit
+)  =
+    when (label) {
+        null -> SingleLineTextField(value, onValueChange, modifier, trailingIcon = trailingIcon, readOnly = readOnly)
+        else -> SingleLineTextField(value, onValueChange, modifier, { ViewText(label) }, trailingIcon, readOnly = readOnly)
+    }
+@Composable
+fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
+    focusedIndicatorColor = Color.Transparent,
+    unfocusedIndicatorColor = Color.Transparent,
+)
+
+@Composable
+fun OutlinedTextButton(value: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    OutlinedButton(enabled = enabled,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier.padding(6.dp),
+        onClick = onClick)
+    { Text(value, fontSize = fontSize, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+}
+
+@Composable
+internal fun DropdownList(
+    itemList: ImmutableList<String>,
+    selectedIndex: Int,
+    modifier: Modifier = Modifier,
+    isLocked: () -> Boolean = { false },
+    label: String? = null,
+    onItemClick: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedText = if (itemList.isNotEmpty() && selectedIndex >= 0) itemList[selectedIndex] else ""
+
+    if (!isLocked() && itemList.isNotEmpty() && selectedIndex < 0) {
+        onItemClick(0)
+    }
+
+    if (isLocked() || itemList.size <= 1) {
+        ViewText(selectedText, modifier)
+    } else {
+        // Up Icon when expanded and down icon when collapsed
+        val icon = if (expanded)
+            Icons.Filled.KeyboardArrowUp
+        else
+            Icons.Filled.KeyboardArrowDown
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = modifier
+                .fillMaxWidth().padding(0.dp)
+                .clickable {
+                    if (!isLocked()) {
+                        expanded = !expanded
+                    }
+                },
+        ) {
+            ViewTextField(
+                value = selectedText,
+                label = label,
+                trailingIcon = {
+                    if (!isLocked()) {
+                        Icon(
+                            icon, "contentDescription",
+                            Modifier.clickable { expanded = !expanded })
+                    }
+                },
+                readOnly = true
+            ) {}
+            if (!isLocked() && expanded) {
+                DropdownMenu(expanded = true, onDismissRequest = { expanded = false }) {
+                    itemList.forEach { label ->
+                        DropdownMenuItem(
+                            text = { ViewText(label) },
+                            onClick = {
+                                onItemClick(itemList.indexOf(label))
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int) :
+    GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        // Define the total available width after accounting for spacing
+        val columnCount = dataColumnCount + trailingIconCount
+        val totalSpacing = spacing * (columnCount - 1)
+        val iconSize = (IconSize + 16.dp).roundToPx()
+        val usableWidth = availableSize - (totalSpacing + trailingIconCount * iconSize)
+        return mutableListOf<Int>().apply {
+            repeat(dataColumnCount) {
+                add(usableWidth / dataColumnCount)
+            }
+        }.apply {
+            repeat(trailingIconCount) {
+                add(iconSize)
+            }
+        }
+    }
+}
+
+internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val onClick : () -> Unit)
+
+internal fun addButtonSettings(onClick : () -> Unit, enabled: Boolean = true) : ButtonSettings =
+    ButtonSettings(imageVector = Icons.Default.Add, enabled = enabled, onClick = onClick)
+
+@Composable
+fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : () -> Unit) =
+    BottomBarWithButtons(ButtonSettings(value, enabled, onClick = onClick))
+
+@Composable
+internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
+    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+        for (buttonSetting in buttonSettings) {
+            if (buttonSetting.imageVector == null) {
+                OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
+                    buttonSetting.onClick()
+                }
+            } else {
+                IconButton(onClick = { buttonSetting.onClick() }) {
+                    Icon(buttonSetting.imageVector, contentDescription = null)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClickableIcon(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Icon(imageVector, contentDescription, Modifier.clickable(onClick = { onClick() }), tint)
+}
+
+internal fun LazyGridScope.clickableIcon(imageVector: ImageVector,
+                                         contentDescription: String?,
+                                         color: Color,
+                                         route : () -> Unit) {
+    item { ClickableIcon(imageVector, contentDescription, color, route) }
+}
+
+internal fun LazyGridScope.editButton(route : () -> Unit) =
+    clickableIcon(Icons.Default.Edit, "edit", Color.Green, route)
+
+internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () -> Unit) {
+    item {
+        if (disabled) {
+            Icon(Icons.Default.Delete, "delete", tint = Color(0x99990000))
+        } else {
+            Icon(Icons.Default.Delete, "delete", Modifier.clickable(onClick = onClick), Color.Red)
+        }
+    }
+}
+internal fun LazyGridScope.viewTextItems(values: List<String>) {
+    items(items = values) {
+        ViewText(it)
+    }
+}
+
+@Composable
+internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
+    TextField(
+        value = value,
+        onValueChange = {
+            try {
+                onValueChange(it)
+            } catch (_: NumberFormatException) {
+            }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        colors = textFieldColors(),
+        textStyle = textStyle()
+    )
+}
+
+@Composable
+internal fun EditorRow(title: String, content: @Composable () -> Unit) {
+    Row {
+        ViewText(title)
+        content()
+    }
+}
+
+@Composable
+internal fun TrailingIconLazyVerticalGrid(paddingValues: PaddingValues,
+                                          dataColumnCount: Int,
+                                          trailingIconCount: Int,
+                                          content: LazyGridScope.() -> Unit) {
+    LazyVerticalGrid(modifier = Modifier.padding(paddingValues),
+        columns = TrailingIconGridCells(dataColumnCount, trailingIconCount)) {
+        content()
+    }
+}
+
+internal fun <DAO, ENTITY, VIEW_MODEL> importButtonSettings(
+    viewModel: VIEW_MODEL,
+    rowHandler: suspend (DataRow<Any?>) -> ENTITY
+): ButtonSettings
+        where ENTITY : Any,
+              DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>,
+              VIEW_MODEL : CRUDViewModel<DAO, ENTITY> =
+    ButtonSettings(imageVector = Icons.Default.Upload) {
+        viewModel.viewModelScope.launch {
+            tryTransaction({ exception -> viewModel.handleException(exception) }, {
+                importFromFile(
+                    "xlsx",
+                    { inputStream ->
+                        val dataFrame = DataFrame.readExcel(inputStream)
+                        viewModel.dao.deleteAll()
+                        dataFrame
+                    }, { row -> viewModel.dao.insert(rowHandler(row)) })
+            })
+            viewModel.readAll()
+        }
+    }
+
+internal suspend fun importFromFile(
+    extension: String = "csv",
+    beginImporting: suspend (InputStream) -> DataFrame<Any?>,
+    rowHandler: suspend (DataRow<Any?>) -> Unit
+) {
+    val dataFile =
+        FileKit.openFilePicker(FileKitType.File(listOf(extension)), mode = FileKitMode.Single)
+    if (dataFile != null && dataFile.exists()) {
+        val df = beginImporting(dataFile.readBytes().inputStream())
+        for (row in df) {
+            if (row[0] != null) {
+                rowHandler(row)
+            }
+        }
+    }
+}
+
+internal suspend fun <R> RoomDatabase.inTransaction(block: suspend TransactionScope<R>.() -> R) {
+    useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
+}
+
+internal suspend fun tryTransaction(
+    exceptionHandler: (Exception) -> Unit,
+    block: suspend () -> Unit,
+    db: AppDatabase = inject<AppDatabase>(AppDatabase::class.java).value
+) {
+    try {
+        db.inTransaction { block() }
+    } catch (e: Exception) {
+        exceptionHandler(e)
+    }
+}

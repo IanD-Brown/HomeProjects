@@ -1,0 +1,43 @@
+package io.github.iandbrown.trials
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import dev.shivathapaa.logger.api.LogLevel
+import dev.shivathapaa.logger.api.LoggerFactory
+import dev.shivathapaa.logger.core.LoggerConfig
+import dev.shivathapaa.logger.sink.DefaultLogSink
+import io.github.iandbrown.trials.di.initKoin
+import io.github.iandbrown.trials.utils.LogFormatter
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext.getOrNull
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        if (getOrNull() == null) {
+            LoggerFactory.install(
+                LoggerConfig.Builder()
+                    .minLevel(LogLevel.DEBUG)
+                    .addSink(DefaultLogSink(LogFormatter()))
+                    .build())
+            initKoin {
+                androidContext(this@MainActivity)
+            }
+        }
+
+        setContent {
+            App()
+        }
+    }
+}
+
+@Preview
+@Composable
+fun AppAndroidPreview() {
+    App()
+}

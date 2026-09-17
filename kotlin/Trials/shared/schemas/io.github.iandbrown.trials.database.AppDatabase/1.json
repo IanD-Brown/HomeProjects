@@ -1,0 +1,157 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "14b7e7345bd6ec2d6debc091c1ff1f75",
+    "entities": [
+      {
+        "tableName": "Nominations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`emailAddress` TEXT NOT NULL, `firstNameOfChild` TEXT NOT NULL, `surnameOfChild` TEXT NOT NULL, `childDateOfBirth` INTEGER NOT NULL, `gender` TEXT NOT NULL, `whichSchoolDoesYourChildAttend` TEXT NOT NULL, `whichYearGroupIsYourChildinNow` TEXT NOT NULL, `primaryPosition` TEXT NOT NULL, `secondaryPosition` TEXT NOT NULL, `foot` TEXT NOT NULL, `doesYourChildPlayForATeamOnTheWeekend` TEXT NOT NULL, `whatTypeOfTeamDoTheyPlayFor` TEXT NOT NULL, `teamTheyPlayFor` TEXT NOT NULL, `firstNameOfParentOrCarer` TEXT NOT NULL, `surnameOfParentOrCarer` TEXT NOT NULL, `parentOrCarerMobileNumber` TEXT NOT NULL, `parentOrCarerEmail` TEXT NOT NULL, `confirmEmail` TEXT NOT NULL, `medicalConditions` TEXT NOT NULL, `iWishMyChildToAttendTrials` TEXT NOT NULL, `consentToTheTakingOfPhotographs` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "emailAddress",
+            "columnName": "emailAddress",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstNameOfChild",
+            "columnName": "firstNameOfChild",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surnameOfChild",
+            "columnName": "surnameOfChild",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "childDateOfBirth",
+            "columnName": "childDateOfBirth",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gender",
+            "columnName": "gender",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whichSchoolDoesYourChildAttend",
+            "columnName": "whichSchoolDoesYourChildAttend",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whichYearGroupIsYourChildinNow",
+            "columnName": "whichYearGroupIsYourChildinNow",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryPosition",
+            "columnName": "primaryPosition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryPosition",
+            "columnName": "secondaryPosition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "foot",
+            "columnName": "foot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "doesYourChildPlayForATeamOnTheWeekend",
+            "columnName": "doesYourChildPlayForATeamOnTheWeekend",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whatTypeOfTeamDoTheyPlayFor",
+            "columnName": "whatTypeOfTeamDoTheyPlayFor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamTheyPlayFor",
+            "columnName": "teamTheyPlayFor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstNameOfParentOrCarer",
+            "columnName": "firstNameOfParentOrCarer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surnameOfParentOrCarer",
+            "columnName": "surnameOfParentOrCarer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentOrCarerMobileNumber",
+            "columnName": "parentOrCarerMobileNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentOrCarerEmail",
+            "columnName": "parentOrCarerEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confirmEmail",
+            "columnName": "confirmEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "medicalConditions",
+            "columnName": "medicalConditions",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iWishMyChildToAttendTrials",
+            "columnName": "iWishMyChildToAttendTrials",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consentToTheTakingOfPhotographs",
+            "columnName": "consentToTheTakingOfPhotographs",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '14b7e7345bd6ec2d6debc091c1ff1f75')"
+    ]
+  }
+}
