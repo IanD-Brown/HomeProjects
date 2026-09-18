@@ -35,21 +35,26 @@ internal class RawUsageViewModel(val dao: RawUsageDao) : ViewModel() {
 
 internal data class MeterMonth(val meterId: MeterId, val month: Month)
 
-private data class MeterMonthUsage(val kiloWatts: Double, val pounds: Double, val dayCount: Int) {
-    operator fun plus(other: MeterMonthUsage) = MeterMonthUsage(
-        kiloWatts + other.kiloWatts,
-        pounds + other.pounds,
-        dayCount + other.dayCount)
+private data class InterimKey(val meterId: MeterId, val year : Short, val month : Short)
 
-    fun add(kwn: Double, cost: Double, days: Int = 0) = MeterMonthUsage(kiloWatts + kwn, pounds + cost, dayCount + days)
+private data class InterimMeterMonthUsage(val meterId: MeterId = 0, val year : Short = 0, val month : Short = 0, val kwh: Double = 0.0, val cost: Double = 0.0) {
+    fun plus(rawUsage: RawUsage, cost: Double) : InterimMeterMonthUsage {
+        return InterimMeterMonthUsage(rawUsage.meterId.toShort(), rawUsage.year, rawUsage.month, kwh + rawUsage.averageConsumption, cost + cost)
+    }
+}
 
-    fun averageKwh() = kiloWatts / dayCount
+private class ValuePair(val kwh: Double, val cost: Double, val count: Int = 1) {
+    fun plus(k: Double, c: Double) : ValuePair = ValuePair(kwh + k, cost + c)
 
-    fun averagePounds() = pounds / dayCount
+    fun acc(other: ValuePair) : ValuePair = ValuePair(kwh + other.kwh, cost + other.cost, other.count + 1)
+
+    fun averageKwh() = kwh / count
+
+    fun averagePounds() = cost / count
 }
 
 internal class MonthlyStatistics {
-    private val meterMonthUsage: Map<MeterMonth, MeterMonthUsage>
+    private val meterMonthUsage: Map<MeterMonth, ValuePair>
 
     constructor(rawUsage: List<RawUsage>, allMeterTariffs: List<MeterTariff>) {
         val periodToPriceByMeter = mutableMapOf<DayPeriod, MutableMap<MeterId, Double>>()
@@ -59,44 +64,30 @@ internal class MonthlyStatistics {
                 priceMap[it.meterId.toShort()] = it.tariff
             }
         }
-        val usageByMeterMonth = mutableMapOf<MeterMonth, MeterMonthUsage>()
-        var currentMeterId : MeterId? = null
-        var currentMonth : Month? = null
-        var currentDay: Short? = null
-        var currentMeterMonthUsage: MeterMonthUsage? = null
-        rawUsage
-            .sortedWith(compareBy<RawUsage>{it.meterId}.thenBy { it.year }.thenBy { it.month }.thenBy { it.day })
-            .forEach {
-                if (it.meterId.toShort() != currentMeterId || it.month != currentMonth) {
-                    if (currentMeterMonthUsage != null && currentMeterId != null) {
-                        usageByMeterMonth.merge(MeterMonth(currentMeterId, currentMonth!!), currentMeterMonthUsage, MeterMonthUsage::plus)
-                    }
-                    currentMeterId = it.meterId.toShort()
-                    currentMonth = it.month
-                    currentMeterMonthUsage = MeterMonthUsage(0.0, 0.0, 0)
-                }
-                val cost = it.averageConsumption * (periodToPriceByMeter[it.period]?.get(currentMeterId) ?: 0.0)
-                if (it.day != currentDay) {
-                    currentDay = it.day
-                    currentMeterMonthUsage = currentMeterMonthUsage!!.add(it.averageConsumption, cost, 1)
-                } else {
-                    currentMeterMonthUsage = currentMeterMonthUsage!!.add(it.averageConsumption, cost)
+        val interim = rawUsage
+            .groupBy { InterimKey(it.meterId.toShort(), it.year, it.month) }
+            .mapValues { (_, items) ->
+                items.fold(ValuePair(0.0, 0.0)) {acc, rawUsage ->
+                    acc.plus(rawUsage.averageConsumption,
+                        rawUsage.averageConsumption * (periodToPriceByMeter[rawUsage.period]?.get(rawUsage.meterId.toShort()) ?: 0.0))
                 }
             }
-        meterMonthUsage = usageByMeterMonth
+        meterMonthUsage = interim.keys.groupBy { MeterMonth(it.meterId, it.month) }
+            .mapValues { (key, items) ->
+                items.map { interim[it]!! }
+                .reduce { acc, item -> item.acc(acc) }
+            }
     }
 
     private fun toDayPeriod(hour: Short, period: Short) = hour * 2 + period
 
-    fun getMonthlyKWh(meterMonth: MeterMonth, year: Int) : Double {
-        val days = YearMonth(year, meterMonth.month.toInt()).numberOfDays
-
-        return (meterMonthUsage[meterMonth]?.averageKwh()?.times(days) ?: 0.0)
+    fun getMonthlyKWh(meterMonth: MeterMonth) : Double {
+        return (meterMonthUsage[meterMonth]?.averageKwh() ?: 0.0)
     }
 
     fun getMonthlyBill(meterMonth: MeterMonth, year: Int, standingCharge: Double) : Double {
         val days = YearMonth(year, meterMonth.month.toInt()).numberOfDays
-        return (meterMonthUsage[meterMonth]?.averagePounds()?.times(days) ?: 0.0) + standingCharge * days
+        return (meterMonthUsage[meterMonth]?.averagePounds() ?: 0.0) + standingCharge * days
     }
 }
 
@@ -145,7 +136,7 @@ internal fun FutureScreen() {
                     .forEach {
                         val meterMonth = MeterMonth(it.id.toShort(), (month + 1).toShort())
                         val monthlyBill = monthlyStatistics.getMonthlyBill(meterMonth, year, it.standingCharge)
-                        val monthlyKWh = monthlyStatistics.getMonthlyKWh(meterMonth, year)
+                        val monthlyKWh = monthlyStatistics.getMonthlyKWh(meterMonth)
                         viewTextItems(listOf(billValue(monthlyBill, monthlyKWh)))
                         total += monthlyBill
                         meterTotalKWh.merge(it.id.toShort(), monthlyKWh, Double::plus)
