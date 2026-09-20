@@ -1,11 +1,11 @@
 [versions]
-agp = "9.4.0"
+agp = "9.4.1"
 android-compileSdk = "37"
 android-minSdk = "36"
 android-targetSdk = "37"
 androidx-activity = "1.13.0"
 androidx-lifecycle = "2.11.0"
-composeMultiplatform = "1.12.0"
+composeMultiplatform = "1.11.1" # 1.12.0 runtime error showing settings editor
 kotlin = "2.4.20"
 material3 = "1.11.0-alpha07"
 # http client

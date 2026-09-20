@@ -75,9 +75,10 @@ class MonthlyStatisticsTest {
     @Test
     fun testUsageInMultipleYearsForSameMonth() {
         val rawUsages = listOf(
-            RawUsage(2023, 6, 3, 1, 3, 30.0),
-            RawUsage(2024, 6, 3, 1, 3, 30.0),
-            RawUsage(2025, 6, 3, 1, 3, 30.0)
+            RawUsage(2023, 6, 3, 1, 3, 15.0),
+            RawUsage(2024, 6, 3, 1, 3, 12.0),
+            RawUsage(2024, 6, 3, 2, 3, 38.0),
+            RawUsage(2025, 6, 3, 1, 3, 25.0)
         )
         val stats = MonthlyStatistics(rawUsages, emptyList())
 
