@@ -424,7 +424,7 @@ internal fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInjec
             val includeCategories =
                 transactionCategories.values().filter { it.isSpending }.map { it.id }.toSet()
             val displayTransactions = filterTransaction(state.values(), false, accountGroup, transactionCategories.values())
-                .filter { it.category in includeCategories }
+                .filter { it.category == null || it.category in includeCategories }
             val byMonth = displayTransactions.groupBy { DayDate.of(it.date).startOfMonth().value() }
             val months = getMonths(displayTransactions, filterConfig.minDate)
             val average = displayTransactions.sumOf { it.amount } / months.size
@@ -442,7 +442,7 @@ internal fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInjec
                     }
                 }
 
-                val data = accounts.values()
+                val data = accounts.values().filter { it.accountGroup == accountGroup }
                 val weights = (listOf(2, 2) + data.map { 4 }).toIntArray()
                 LazyVerticalGrid(columns = WeightedIconGridCells(0, *weights)) {
                     viewTextItems(values = listOf("Month"))
