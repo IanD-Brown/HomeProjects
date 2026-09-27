@@ -210,8 +210,9 @@ internal fun ViewText(value: String, modifier: Modifier = Modifier) {
         modifier = modifier.height(textFieldHeight).padding(horizontal = 4.dp)
     )
 }
+
 @Composable
-internal fun SingleLineTextField(value: String,
+private fun SingleLineTextField(value: String,
                         onValueChange: (String) -> Unit,
                         modifier: Modifier,
                         label: @Composable (() -> Unit)? = null,
@@ -237,11 +238,7 @@ internal fun SingleLineTextField(value: String,
         BasicTextField(
             value = value,
             modifier =
-                modifier
-                    .defaultMinSize(
-                        minWidth = TextFieldDefaults.MinWidth,
-                        minHeight = TextFieldDefaults.MinHeight,
-                    ),
+                modifier.defaultMinSize(TextFieldDefaults.MinWidth, TextFieldDefaults.MinHeight),
             onValueChange = onValueChange,
             textStyle = mergedTextStyle,
             cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
