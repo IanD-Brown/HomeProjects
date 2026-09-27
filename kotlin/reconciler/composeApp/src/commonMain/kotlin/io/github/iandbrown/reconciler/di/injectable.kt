@@ -51,7 +51,7 @@ fun startKoinCommon(databaseBuilder: RoomDatabase.Builder<AppDatabase>,
     val platformModule = module {
         // Database
         single<AppDatabase> { databaseBuilder.build() }
-        single<AbstractPDFConverter> { (source: ByteArray) -> pdfConverterBuilder(source) }
+        factory<AbstractPDFConverter> { (source: ByteArray) -> pdfConverterBuilder(source) }
     }
     koinApp = startKoin {
         modules(injectableModules, platformModule)

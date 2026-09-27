@@ -94,7 +94,8 @@ private const val FILE_TYPE = "FileType"
 private enum class ImportTypes(val displayName: String) {
     EXCEL("Excel"),
     CREDIT("Santander credit HTML"),
-    CURRENT("Santander current PDF")
+    CURRENT("Santander current PDF"),
+    CHASE("Chase deposit PDF")
 }
 
 internal class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
@@ -346,6 +347,7 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
             ImportTypes.EXCEL -> listOf("xlsx", "xls")
             ImportTypes.CREDIT -> listOf("html")
             ImportTypes.CURRENT -> listOf("pdf")
+            ImportTypes.CHASE -> listOf("pdf")
         }
         val importFile = FileKit.openFilePicker(FileKitType.File(extensions), mode = FileKitMode.Single)
         if (importFile != null && importFile.exists()) {
@@ -358,11 +360,70 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
                     ImportTypes.CREDIT -> readHtml(importFile, importDefinition)
                     ImportTypes.CURRENT -> readPdf(importFile, importDefinition)
                     ImportTypes.EXCEL -> readExcel(importFile, importDefinition)
+                    ImportTypes.CHASE -> readChase(importFile, importDefinition)
                 }
                 performDataFrame(df, ruleCategoryMap, importDefinition)
             }
         }
     })
+}
+
+private suspend fun readChase(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {
+    val sourceBytes = importFile.readBytes()
+    val converter: AbstractPDFConverter = koinApp.koin.get { parametersOf(sourceBytes)}
+    val rows = converter.rowContent { it.size >= 4 }
+
+    return toDataFrame(rows, importDefinition)
+}
+
+internal fun toDataFrame(rows: List<Map<Range, String>>,
+                         importDefinition: ImportDefinitionListView,
+                         logger : Logger? = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)): DataFrame<Any?> {
+    val datePattern = "(\\d{1,2})( )([a-zA-Z]{3})( )(\\d{4})".toRegex()
+    val amountPattern = """([+\-])(£)(\d+\.\d{2})""".toRegex()
+
+    val headerRow = rows.firstOrNull { row -> row.values.toSet().containsAll(
+        listOf(importDefinition.dateColumn,
+            importDefinition.descriptionColumn,
+            importDefinition.amountInColumn)) }
+    logger?.debug {"HeaderRow $headerRow"}
+    val dateRange = getRange(importDefinition.dateColumn, headerRow!!)
+    val descriptionRange = getRange(importDefinition.descriptionColumn, headerRow)
+    val amountRange = getRange(importDefinition.amountInColumn, headerRow)
+    logger?.debug { "HeaderRanges   $dateRange\n   $descriptionRange\n   $amountRange" }
+    var df = DataFrame.emptyOf<Any?>()
+    for (row in rows.filter { it.size >= 4 }) {
+        val dateColumn = getByPosition(dateRange, row, true)
+        val amountField = getByRange(amountRange, row).replace(Regex(","), "")
+        val amount = when {
+            (amountPattern.matches(amountField)) -> {
+                amountField.substring(2).toDouble() * when (amountField[0]) {
+                    '-' -> -1
+                    else -> 1
+                }
+            }
+            else -> null
+        }
+
+        if (datePattern.matches(dateColumn) && amount != null) {
+            val dateParts = datePattern.matchEntire(dateColumn)?.groupValues!!
+            val dayNumber = dateParts[1].toInt().toString().padStart(2, '0')
+            val year = dateParts[5].toInt()
+            val date  = LocalDate.of(year, monthNumber(dateParts[3]), dayNumber.toInt())
+            df = df.concat(dataFrameOf("A", "B", "C")(DayDate.of(date), getByPosition(descriptionRange, row, true).trim(), amount))
+        } else {
+            logger?.debug { "[$dateColumn] [${getByPosition(descriptionRange, row, true)}] [$amount]" }
+            for (cell in row) {
+                logger?.debug { "Pair(Range(${cell.key.from}F, ${cell.key.to}F), \"${cell.value}\")," }
+            }
+        }
+    }
+    return df
+}
+
+private fun getByRange(range: Range, row: Map<Range, String>) : String {
+    return row.filter { it.key.from < range.to && it.key.to > range.from }
+        .values.fold("") {acc, it -> acc + it}
 }
 
 private suspend fun readPdf(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {

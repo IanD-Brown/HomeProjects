@@ -19,7 +19,7 @@ internal class PDFConverterJVM : AbstractPDFConverter {
         val logger = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)
 
         textStripper.startPage = 0
-        textStripper.endPage = document.numberOfPages - 1
+        textStripper.endPage = document.numberOfPages
         textStripper.getText(document)
         items = textStripper.areaHolder.items
 
