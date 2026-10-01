@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,22 +23,23 @@ import androidx.compose.ui.unit.dp
 internal fun RouteScreen(onNavigate: (Route) -> Unit) {
     Scaffold(modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(title = { Text("Home Energy") }, actions = {
-                IconButton(onClick = AppState.switchThemeCallback) {
-                    Icon(imageVector = Icons.Default.SettingsBrightness, contentDescription = null)
-                }
-            })
+            TopAppBar(
+                title = { Text("Home Energy") },
+                actions = {
+                    IconButton(onClick = AppState.switchThemeCallback) {
+                        Icon(imageVector = Icons.Default.SettingsBrightness, contentDescription = null)
+                    }
+                    IconButton(onClick = { onNavigate(Route.SettingView) }) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = null)
+                    }
+                })
         },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(items = listOf(
-                "Meters" to Route.Meters,
-                "Settings" to Route.Settings,
-                "Future" to Route.Future
-            )) { (name, route) ->
+            items(items = listOf("Meters" to Route.Meters, "Future" to Route.Future)) { (name, route) ->
                 ListItem(
                     headlineContent = { Text(name) },
                     modifier = Modifier.clickable {

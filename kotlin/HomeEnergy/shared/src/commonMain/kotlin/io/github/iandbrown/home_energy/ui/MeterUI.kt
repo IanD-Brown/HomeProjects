@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReadMore
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,6 +36,18 @@ internal class MeterViewModel(dao: MeterDao, private val repository: MeterReposi
             }
         }
     }
+
+    fun clearConsumption() {
+        viewModelScope.launch {
+            try {
+                setLoading()
+                repository.clearConsumption()
+                readAll()
+            } catch (e: Exception) {
+                handleException(e)
+            }
+        }
+    }
 }
 
 @Composable
@@ -50,6 +63,9 @@ internal fun MeterRoute(showMeterEditor: (Meter?) -> Unit, editTariff: (Meter?) 
             BottomBarWithButtons(
                 ButtonSettings(enabled = !settingsState.values().isEmpty(), imageVector = Icons.AutoMirrored.Filled.ReadMore) {
                     viewModel.readConsumption(state.values())
+                },
+                ButtonSettings(imageVector = Icons.Default.Clear) {
+                    viewModel.clearConsumption()
                 },
                 addButtonSettings({
                     showMeterEditor(null)

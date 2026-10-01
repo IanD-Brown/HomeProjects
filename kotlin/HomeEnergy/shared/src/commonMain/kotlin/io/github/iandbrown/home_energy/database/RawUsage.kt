@@ -16,7 +16,7 @@ data class RawUsage(
     val day: Short,
     val period: Short,
     val meterId: Int,
-    val averageConsumption: Double)
+    val consumption: Double)
 
 @Dao
 interface RawUsageDao : BaseReadDao<RawUsage>, BaseWriteDao<RawUsage> {
@@ -25,4 +25,7 @@ interface RawUsageDao : BaseReadDao<RawUsage>, BaseWriteDao<RawUsage> {
 
     @Query("DELETE FROM $table")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM $table WHERE meterId = :meterId")
+    suspend fun get(meterId: Int): List<RawUsage>
 }

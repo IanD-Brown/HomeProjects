@@ -171,7 +171,7 @@ class MonthlyStatisticsTest {
                         day = parts[2].toShort(),
                         period = parts[3].toShort(),
                         meterId = parts[4].toInt(),
-                        averageConsumption = parts[5].toDouble()
+                        consumption = parts[5].toDouble()
                     )
                 } catch (_: Exception) {
                     null

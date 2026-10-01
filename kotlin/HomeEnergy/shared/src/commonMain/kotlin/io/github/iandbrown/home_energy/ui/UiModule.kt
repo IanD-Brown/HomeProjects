@@ -65,14 +65,9 @@ val uiModule = module {
             editTariff = { meter -> backstack.add(Route.MeterTariffList(meter!!)) })
     }
 
-    navigation<Route.Settings> {
+    navigation<Route.SettingView> {
         val backstack = LocalBackstack.current
-        SettingsRoute(navigate = { setting -> backstack.add(Route.SettingEditor(setting)) })
-    }
-
-    navigation<Route.SettingEditor> { route ->
-        val backstack = LocalBackstack.current
-        SettingsEditorRoute(route.setting) { backstack.removeLastOrNull() }
+        SettingsEditorView { backstack.removeLastOrNull() }
     }
 
     navigation<Route.MeterEditor> { route ->

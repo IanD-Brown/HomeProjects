@@ -10,6 +10,7 @@ import io.github.iandbrown.home_energy.database.MeterTariff
 import io.github.iandbrown.home_energy.database.MeterTariffDao
 import io.github.iandbrown.home_energy.database.RawUsage
 import io.github.iandbrown.home_energy.database.RawUsageDao
+import io.github.iandbrown.home_energy.database.Setting
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.YearMonth
@@ -39,7 +40,7 @@ private data class InterimKey(val meterId: MeterId, val year : Short, val month 
 
 private data class InterimMeterMonthUsage(val meterId: MeterId = 0, val year : Short = 0, val month : Short = 0, val kwh: Double = 0.0, val cost: Double = 0.0) {
     fun plus(rawUsage: RawUsage, cost: Double) : InterimMeterMonthUsage {
-        return InterimMeterMonthUsage(rawUsage.meterId.toShort(), rawUsage.year, rawUsage.month, kwh + rawUsage.averageConsumption, cost + cost)
+        return InterimMeterMonthUsage(rawUsage.meterId.toShort(), rawUsage.year, rawUsage.month, kwh + rawUsage.consumption, cost + cost)
     }
 }
 
@@ -68,8 +69,8 @@ internal class MonthlyStatistics {
             .groupBy { InterimKey(it.meterId.toShort(), it.year, it.month) }
             .mapValues { (_, items) ->
                 items.fold(ValuePair(0.0, 0.0)) {acc, rawUsage ->
-                    acc.plus(rawUsage.averageConsumption,
-                        rawUsage.averageConsumption * (periodToPriceByMeter[rawUsage.period]?.get(rawUsage.meterId.toShort()) ?: 0.0))
+                    acc.plus(rawUsage.consumption,
+                        rawUsage.consumption * (periodToPriceByMeter[rawUsage.period]?.get(rawUsage.meterId.toShort()) ?: 0.0))
                 }
             }
         meterMonthUsage = interim.keys.groupBy { MeterMonth(it.meterId, it.month) }
@@ -104,7 +105,10 @@ internal fun FutureScreen() {
 
     ViewCommon("Future Prediction",
         persistentListOf(usageState, settingsState, meterState, tariffState),) { paddingValues ->
-        val setting = settingsState.values()[0]
+        val setting = when {
+            settingsState.values().isEmpty() -> Setting(0, "", "", 0, 0, 0.0, 0.0, 0)
+            else -> settingsState.values()[0]
+        }
         var balance = setting.initialBalance
         val monthlyStatistics = MonthlyStatistics(usageState.values(), tariffState.values().filter { it.activeAccount })
         var grandTotal = 0.0
