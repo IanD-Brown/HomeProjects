@@ -60,6 +60,7 @@ import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.koinInject
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.round
 
 private data class FilterConfig(val minDate: DayDate,
@@ -67,7 +68,8 @@ private data class FilterConfig(val minDate: DayDate,
                                 val account: Int?,
                                 val category: Int?,
                                 val matchDistance: Int?,
-                                val description: Regex?)
+                                val description: Regex?,
+                                val absAmount: Double? = null)
 
 private var baseFilterConfig = FilterConfig(DayDate.ofCurrentYearStart(), null, null, null, null, null)
 
@@ -101,18 +103,13 @@ private fun FilterConfigEditor(fullFilter: Boolean,
             var category by remember { mutableStateOf(baseFilterConfig.category) }
             var matchDistance by remember { mutableStateOf(baseFilterConfig.matchDistance) }
             var description by remember { mutableStateOf(baseFilterConfig.description?.toString()) }
+            var absAmount by remember { mutableStateOf(baseFilterConfig.absAmount) }
             Column(modifier = Modifier.padding(16.dp)) {
                 LazyVerticalGrid(columns = GridCells.Fixed(2)) {
-                    viewTextItems(values = listOf("Minimum date"))
-                    item { DatePickerView(
-                        minDate.value(),
-                        Modifier.padding(0.dp),
-                        { true }) { minDate = DayDate.of(it) }}
-                    viewTextItems(values = listOf("Maximum date"))
-                    item { DatePickerView(
-                        maxDate?.value() ?: 0,
-                        Modifier.padding(0.dp),
-                        { true }) { maxDate = if (it > 0) DayDate.of(it) else null }}
+                    gridEntry("Minimum date", minDate.value()) { minDate = DayDate.of(it) }
+                    gridEntry("Maximum date", maxDate?.value() ?: 0) {
+                        maxDate = if (it > 0) DayDate.of(it) else null
+                    }
                     if (fullFilter) {
                         viewTextItems(values = listOf("Account"))
                         item { when (accounts.value) {
@@ -163,6 +160,13 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                         gridEntry("Description", description ?: "") {
                             description = it
                         }
+                        viewTextItems(values = listOf("Abs Value"))
+                        item { NumericField(absAmount?.toString() ?: "0") {
+                            val i = it.toDoubleOrNull()
+                            if (i != null) {
+                                absAmount = if (i > 0) i else null
+                            }
+                        } }
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -170,7 +174,7 @@ private fun FilterConfigEditor(fullFilter: Boolean,
                 Row(horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Button(onClick = {
-                        onConfirm(FilterConfig(minDate, maxDate, account, category, matchDistance, description?.toRegex()))
+                        onConfirm(FilterConfig(minDate, maxDate, account, category, matchDistance, description?.toRegex(), absAmount))
                     }) { Text("OK") }
                 }
             }
@@ -274,6 +278,7 @@ private fun filterTransaction(state: List<TransactionListView>,
         .filter { !fullFilter || baseFilterConfig.account == null || it.account == baseFilterConfig.account }
         .filter { !fullFilter || baseFilterConfig.category == null || it.category == baseFilterConfig.category }
         .filter { !fullFilter || baseFilterConfig.description == null || baseFilterConfig.description!!.containsMatchIn(it.description) }
+        .filter { !fullFilter || baseFilterConfig.absAmount == null || abs(it.amount) == baseFilterConfig.absAmount!! }
         .toMutableList()
 
     if (fullFilter && (baseFilterConfig.matchDistance ?: 0) > 0) {
@@ -286,8 +291,7 @@ private fun filterTransaction(state: List<TransactionListView>,
                 if (removed.contains(filtered[j])) {
                     continue
                 }
-                val added = element.amount + filtered[j].amount
-                if (added >= -0.1 && added <= 0.1) {
+                if (abs(element.amount + filtered[j].amount) < 0.01) {
                     removed.add(element)
                     removed.add(filtered[j])
                     break
@@ -455,8 +459,8 @@ internal fun ViewSpendingSummary(viewModel: TransactionListViewModel = koinInjec
                         val transactionsForMonth = byMonth[month.value()]
                         val total = transactionsForMonth?.sumOf { it.amount }
                         formatedNumber("%.2f", total)
-                        for (account in data) {
-                            formatedNumber("%.0f", transactionsForMonth?.filter { it.account == account.id }?.size?.toDouble())
+                        for ((id) in data) {
+                            formatedNumber("%.0f", transactionsForMonth?.filter { it.account == id }?.size?.toDouble())
                         }
                     }
                     viewTextItems(values = listOf("Average"))
@@ -531,13 +535,13 @@ internal fun ViewTransactionSummaryByCategory(viewModel: TransactionListViewMode
                     for (month in months) {
                         item { ViewText(month.toString().substring(3)) }
                         val nextMonth = month.nextMonth()
-                        for (category in viewCategories) {
-                            formatedNumber("%.2f", summaryByCategory[category.id]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount }) }
+                        for ((id) in viewCategories) {
+                            formatedNumber("%.2f", summaryByCategory[id]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount }) }
                         formatedNumber("%.2f", summaryByCategory[null]?.filter { it.date >= month.value() && it.date < nextMonth.value() }?.sumOf { it.amount })
                     }
                     item {} // No month for totals
-                    for (category in viewCategories) {
-                        formatedNumber("%.2f", summaryByCategory[category.id]?.sumOf { it.amount })
+                    for ((id) in viewCategories) {
+                        formatedNumber("%.2f", summaryByCategory[id]?.sumOf { it.amount })
                     }
                     formatedNumber("%.2f", summaryByCategory[null]?.sumOf { it.amount })
                 }
