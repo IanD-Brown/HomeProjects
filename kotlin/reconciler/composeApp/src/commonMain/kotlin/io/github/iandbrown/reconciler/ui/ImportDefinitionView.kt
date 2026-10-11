@@ -95,7 +95,8 @@ private enum class ImportTypes(val displayName: String) {
     EXCEL("Excel"),
     CREDIT("Santander credit HTML"),
     CURRENT("Santander current PDF"),
-    CHASE("Chase deposit PDF")
+    CHASE("Chase deposit PDF"),
+    CREDIT_PDF("Santander credit PDF")
 }
 
 internal class ImportDefinitionViewModel : BaseConfigCRUDViewModel<ImportDefinitionDao, ImportDefinition>(inject<ImportDefinitionDao>().value) {
@@ -171,9 +172,9 @@ internal fun ImportDefinitionList(viewModel: ImportDefinitionListViewModel = koi
                     }
                     item { EditButton { navController -> navController.navigate(item) } }
                     item { DeleteButton { viewModel.delete(item) } }
-                    for (account in orderedAccounts) {
-                        val item = accountValues[Pair(item.importDefinitionId, account.id)]
-                        item { ViewText("  * ${account.name}") }
+                    for ((id, name) in orderedAccounts) {
+                        val item = accountValues[Pair(item.importDefinitionId, id)]
+                        item { ViewText("  * $name") }
                         if (item != null) {
                             gridEntry(item.active, null, false) {}
                             viewTextItems(values = listOf(item.sheetName, item.dateColumn, item.descriptionColumn, item.amountInColumn, item.amountOutColumn))
@@ -320,9 +321,9 @@ internal fun EditImportDefinition(importDefinitionListView: ImportDefinitionList
             }
             LazyVerticalGrid(columns = GridCells.Fixed(8)) {
                 viewTextItems(values = listOf("Account", "Active", "Clear", "Sheet Name", "Date Column", "Description Column", "Amount In Column", "Amount Out Column"))
-                for (account in accounts.values.sortedBy { it.name }) {
-                    val def = editingDefinitions[account.id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = account.id)
-                    item { ViewText(account.name) }
+                for ((id, name1) in accounts.values.sortedBy { it.name }) {
+                    val def = editingDefinitions[id] ?: ImportDefinitionListView(importDefinitionId = 0, accountId = id)
+                    item { ViewText(name1) }
                     gridEntry(activeEdits, def, true)
                     gridEntry(clearEdits, def, false)
                     gridEntry(sheetNameEdits, def, StringField.SHEET_NAME_COLUMN)
@@ -348,6 +349,7 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
             ImportTypes.CREDIT -> listOf("html")
             ImportTypes.CURRENT -> listOf("pdf")
             ImportTypes.CHASE -> listOf("pdf")
+            ImportTypes.CREDIT_PDF -> listOf("pdf")
         }
         val importFile = FileKit.openFilePicker(FileKitType.File(extensions), mode = FileKitMode.Single)
         if (importFile != null && importFile.exists()) {
@@ -361,6 +363,7 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
                     ImportTypes.CURRENT -> readPdf(importFile, importDefinition)
                     ImportTypes.EXCEL -> readExcel(importFile, importDefinition)
                     ImportTypes.CHASE -> readChase(importFile, importDefinition)
+                    ImportTypes.CREDIT_PDF -> readCreditPdf(importFile, importDefinition)
                 }
                 performDataFrame(df, ruleCategoryMap, importDefinition)
             }
@@ -368,17 +371,75 @@ private suspend fun perform(exceptionHandler: (Exception) -> Unit,
     })
 }
 
+private suspend fun readCreditPdf(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {
+    val sourceBytes = importFile.readBytes()
+    val converter: AbstractPDFConverter = koinApp.koin.get { parametersOf(sourceBytes)}
+    val rows = converter.rowContent { it.size >= 3 }
+
+    return creditToDataFrame(rows, importDefinition)
+}
+
+private fun creditToDataFrame(rows: List<Map<Range, String>>,
+                             importDefinition: ImportDefinitionListView,
+                             logger : Logger? = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)): DataFrame<Any?> {
+    val datePattern = """(\d{1,2})(st |nd |rd |th )([a-zA-Z]{3})""".toRegex()
+    val amountPattern = """[\d,]+\.\d{2}""".toRegex()
+
+    val headerRow = rows.firstOrNull { row -> row.values.toSet().containsAll(
+        listOf(importDefinition.dateColumn,
+            importDefinition.descriptionColumn,
+            importDefinition.amountInColumn)) }
+    logger?.debug {"HeaderRow $headerRow"}
+    val dateRange = getRange(importDefinition.dateColumn, headerRow!!)
+    val descriptionRange = getRange(importDefinition.descriptionColumn, headerRow)
+    val amountRange = getRange(importDefinition.amountInColumn, headerRow)
+    logger?.debug { "HeaderRanges   $dateRange\n   $descriptionRange\n   $amountRange" }
+    val today = LocalDate.now()
+    return rows
+        .filter {
+            amountPattern.matches(getByRange(amountRange, it)) &&
+                    (datePattern.matches(getByPosition(dateRange, it, true)) || it.values.contains("CR"))
+        }
+        .fold(DataFrame.emptyOf<Any?>()) {acc, it ->
+            val dateField = getByPosition(dateRange, it, true)
+            val dayDate = when {
+                datePattern.matches(dateField) -> {
+                    val dateParts = datePattern.matchEntire(dateField)?.groupValues!!
+                    val month = monthNumber(dateParts[3])
+                    val year = when (month) {
+                        today.monthValue -> today.year
+                        1 -> today.year - 1
+                        else -> today.year
+                    }
+                    DayDate.of(LocalDate.of(year, month, dateParts[1].toInt()))
+                }
+                today.monthValue > 1 -> DayDate.of(LocalDate.of(today.year, today.month - 1, 1))
+                else -> DayDate.of(LocalDate.of(today.year - 1, 12, 1))
+            }
+            acc.concat(dataFrameOf("A", "B", "C")(
+            dayDate,
+            description(getByPosition(descriptionRange, it, true)).trim(),
+            creditAmount(getByRange(amountRange, it), it.values.contains("CR"))))
+        }
+}
+
+private fun creditAmount(amount: String, credit: Boolean) : Double =
+    when {
+        credit -> amount.replace(Regex(","), "").toDouble()
+        else -> amount.replace(Regex(","), "").toDouble() * -1
+    }
+
 private suspend fun readChase(importFile: PlatformFile, importDefinition: ImportDefinitionListView) : DataFrame<Any?> {
     val sourceBytes = importFile.readBytes()
     val converter: AbstractPDFConverter = koinApp.koin.get { parametersOf(sourceBytes)}
     val rows = converter.rowContent { it.size >= 4 }
 
-    return toDataFrame(rows, importDefinition)
+    return chaseToDataFrame(rows, importDefinition)
 }
 
-internal fun toDataFrame(rows: List<Map<Range, String>>,
-                         importDefinition: ImportDefinitionListView,
-                         logger : Logger? = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)): DataFrame<Any?> {
+private fun chaseToDataFrame(rows: List<Map<Range, String>>,
+                              importDefinition: ImportDefinitionListView,
+                              logger : Logger? = LoggerFactory.get(ImportDefinitionViewModel::class.simpleName!!)): DataFrame<Any?> {
     val datePattern = "(\\d{1,2})( )([a-zA-Z]{3})( )(\\d{4})".toRegex()
     val amountPattern = """([+\-])(£)(\d+\.\d{2})""".toRegex()
 
@@ -413,8 +474,8 @@ internal fun toDataFrame(rows: List<Map<Range, String>>,
             df = df.concat(dataFrameOf("A", "B", "C")(DayDate.of(date), getByPosition(descriptionRange, row, true).trim(), amount))
         } else {
             logger?.debug { "[$dateColumn] [${getByPosition(descriptionRange, row, true)}] [$amount]" }
-            for (cell in row) {
-                logger?.debug { "Pair(Range(${cell.key.from}F, ${cell.key.to}F), \"${cell.value}\")," }
+            for ((key, value) in row) {
+                logger?.debug { "Pair(Range(${key.from}F, ${key.to}F), \"$value\")," }
             }
         }
     }
@@ -472,8 +533,8 @@ internal fun toDataFrame(rows: List<Map<Range, String>>,
             df = df.concat(dataFrameOf("A", "B", "C")(DayDate.of(date), getByPosition(descriptionIndex, row, true).trim(), amount))
         } else {
             logger?.debug { "$dateColumn ${getByPosition(descriptionIndex, row, true)} $amountIn $amountOut" }
-            for (cell in row) {
-                logger?.debug { "Pair(Range(${cell.key.from}F, ${cell.key.to}F), \"${cell.value}\")," }
+            for ((key, value) in row) {
+                logger?.debug { "Pair(Range(${key.from}F, ${key.to}F), \"$value\")," }
             }
         }
     }
@@ -628,7 +689,7 @@ private suspend fun performDataFrame(dataFrame: AnyFrame,
 
 internal fun getCategory(ruleCategoryMap: Map<Regex, Int>, description: String): Int? {
     val matchingEntry = ruleCategoryMap.filter { entry -> entry.key.matches(description) }.map { it.value }
-    return if (matchingEntry.isNotEmpty()) matchingEntry[0] else null
+    return matchingEntry.firstOrNull()
 }
 
 internal fun asDouble(value: Any?) = value as? Double ?: 0.0
