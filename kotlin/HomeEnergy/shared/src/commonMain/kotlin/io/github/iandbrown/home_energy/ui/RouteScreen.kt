@@ -40,12 +40,7 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(items = listOf("Meters" to Route.Meters, "Future" to Route.Future)) { (name, route) ->
-                ListItem(
-                    headlineContent = { Text(name) },
-                    modifier = Modifier.clickable {
-                        onNavigate(route)
-                    }
-                )
+                ListItem(Modifier.clickable { onNavigate(route) }) { Text(name) }
             }
         }
     }
