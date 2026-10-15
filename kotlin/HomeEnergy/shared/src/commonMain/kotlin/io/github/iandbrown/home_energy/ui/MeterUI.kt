@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReadMore
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,36 +17,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.home_energy.database.Meter
 import io.github.iandbrown.home_energy.database.MeterDao
 import io.github.iandbrown.home_energy.repository.MeterRepository
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 internal class MeterViewModel(dao: MeterDao, private val repository: MeterRepository) : CRUDViewModel<MeterDao, Meter>(dao = dao) {
     fun readConsumption(meters: List<Meter>) {
-        viewModelScope.launch {
-            try {
-                setLoading()
-                repository.syncConsumption(meters)
-                readAll()
-            } catch (e: Exception) {
-                handleException(e)
-            }
+        runInCoroutine {
+            setLoading()
+            repository.syncConsumption(meters)
         }
     }
 
     fun clearConsumption() {
-        viewModelScope.launch {
-            try {
-                setLoading()
-                repository.clearConsumption()
-                readAll()
-            } catch (e: Exception) {
-                handleException(e)
-            }
+        runInCoroutine {
+            repository.clearConsumption()
+        }
+    }
+
+    fun compareConsumption(meters: ImmutableList<Meter>) {
+        runInCoroutine {
+            setLoading()
+            repository.compareConsumption(meters)
         }
     }
 }
@@ -61,7 +57,10 @@ internal fun MeterRoute(showMeterEditor: (Meter?) -> Unit, editTariff: (Meter?) 
         persistentListOf(state, settingsState),
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings(enabled = !settingsState.values().isEmpty(), imageVector = Icons.AutoMirrored.Filled.ReadMore) {
+                ButtonSettings(enabled = settingsState.values().isNotEmpty(), imageVector = Icons.Default.Compare) {
+                    viewModel.compareConsumption(state.values())
+                },
+                ButtonSettings(enabled = settingsState.values().isNotEmpty(), imageVector = Icons.AutoMirrored.Filled.ReadMore) {
                     viewModel.readConsumption(state.values())
                 },
                 ButtonSettings(imageVector = Icons.Default.Clear) {

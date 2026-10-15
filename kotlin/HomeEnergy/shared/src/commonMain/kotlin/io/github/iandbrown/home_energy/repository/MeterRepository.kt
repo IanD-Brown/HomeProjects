@@ -5,6 +5,7 @@ import io.github.iandbrown.home_energy.database.RawUsage
 import io.github.iandbrown.home_energy.database.RawUsageDao
 import io.github.iandbrown.home_energy.database.SettingDao
 import io.github.iandbrown.home_energy.networking.OctopusApi
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -17,12 +18,54 @@ class MeterRepository(
     private val rawUsageDao: RawUsageDao,
     private val settingDao: SettingDao
 ) {
+    suspend fun compareConsumption(meters: ImmutableList<Meter>) {
+        val differences = mutableMapOf<RawUsage, Double>()
+
+        println("Comparing consumption")
+
+        readConsumption(meters, {
+            val year = when (settingDao.get()[0].fromYear) {
+                0.toShort() -> 2023
+                else -> settingDao.get()[0].fromYear
+            }
+            "$year-01-01T00:00:00"
+        }, {
+            val lastUsage = rawUsageDao.get(it.year, it.month, it.day, it.period, it.meterId)
+
+            if (lastUsage.isEmpty()) {
+                println("Not found... $it")
+                rawUsageDao.insert(it)
+            } else if (lastUsage[0].consumption != it.consumption) {
+                differences[it] = lastUsage[0].consumption
+            }
+        }, {})
+
+        val meterName = meters.associateBy { it.id }
+        differences.forEach { change -> println("Diff ${change.key.humanReadable { meterName[it]?.name ?: it.toString() } }} ${change.value}") }
+    }
+
     suspend fun syncConsumption(meters: List<Meter>) {
+        var counter = 0
+
+        readConsumption(meters, {
+            getStartDateTime(it)
+        }, {
+            rawUsageDao.insert(it)
+            ++counter
+        }, {
+            println("$it} added $counter usages")
+            counter = 0
+        })
+    }
+
+    private suspend fun readConsumption(meters: List<Meter>,
+                                        startDT: suspend (Int) -> String,
+                                        usageProcessor: suspend (RawUsage) -> Unit,
+                                        nextMeter: (String) -> Unit) {
         val datePattern = "(\\d{4})(-)(\\d{2})(-)(\\d{2})(T)(\\d{2})(:)(\\d{2})".toRegex()
         for (meter in meters) {
             var url: String? = null
-            var counter = 0
-            val startDateTime = getStartDateTime(meter.id)
+            val startDateTime = startDT(meter.id)
 
             println("Fetching consumption for ${meter.name} (${meter.meterPointAdminNumber}) from $startDateTime")
             do {
@@ -47,8 +90,7 @@ class MeterRepository(
                             val month = startDateParts[3].toShort()
                             val day = startDateParts[5].toShort()
                             val year = startDateParts[1].toShort()
-                            rawUsageDao.insert(RawUsage(year, month, day, period.toShort(), meter.id, periodConsumption))
-                            ++counter
+                            usageProcessor(RawUsage(year, month, day, period.toShort(), meter.id, periodConsumption))
                         }
                     } else if (dto.consumption > 0.0) {
                         println("Invalid date $dto")
@@ -56,7 +98,7 @@ class MeterRepository(
                 }
                 url = response.next
             } while (url != null)
-            println("${meter.name} added $counter usages")
+            nextMeter(meter.name)
         }
     }
 

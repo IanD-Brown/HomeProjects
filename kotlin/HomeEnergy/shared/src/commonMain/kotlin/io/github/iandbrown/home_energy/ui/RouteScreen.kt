@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 internal fun RouteScreen(onNavigate: (Route) -> Unit) {
     Scaffold(modifier = Modifier.fillMaxSize(),
@@ -40,7 +41,12 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(items = listOf("Meters" to Route.Meters, "Future" to Route.Future)) { (name, route) ->
-                ListItem(Modifier.clickable { onNavigate(route) }) { Text(name) }
+                ListItem(
+                    headlineContent = { Text(name) },
+                    modifier = Modifier.clickable {
+                        onNavigate(route)
+                    }
+                )
             }
         }
     }
