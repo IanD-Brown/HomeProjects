@@ -7,7 +7,7 @@ androidx-activity = "1.13.0"
 jetbrains-androidx-lifecycle = "2.11.0"
 androidx-lifecycle = "2.11.0"
 composeHotReload = "1.2.0"
-composeMultiplatform = "1.12.1"
+composeMultiplatform = "1.12.2"
 kotlin = "2.4.21"
 kotlinx-coroutines = "1.11.0"
 # navigation
@@ -19,7 +19,7 @@ jetbraindNav3 = "1.1.2"
 # theme prefs
 materialThemePrefs = "1.0.0"
 # JSON serialize
-kotlin-serialize = "1.11.0"
+kotlin-serialize = "1.12.0"
 # room
 room = "2.8.5"
 ksp = "2.3.9"
@@ -28,7 +28,7 @@ sqliteBundled = "2.7.1"
 koin-core = "4.2.2"
 androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
-kotest-version = "6.2.5"
+kotest-version = "6.2.6"
 kover = "0.9.11"
 mockkery = "3.5.1"
 coroutine-test-version = "1.11.0"
@@ -37,7 +37,7 @@ filekit = "0.16.0"
 # immutable collections
 immutableCollections = "0.5.2"
 # dataframe
-kotlinx-dataframe = "1.0.0-rc01"
+kotlinx-dataframe = "1.0.0-rc02"
 # logging
 kmp-logger = "2.0.0"
 
