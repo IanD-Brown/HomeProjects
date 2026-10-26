@@ -8,3 +8,9 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
 }
+
+subprojects {
+    tasks.matching { it.name.startsWith("ksp") }.configureEach {
+        dependsOn(tasks.matching { it.name.startsWith("generateKotzillaConfig") })
+    }
+}

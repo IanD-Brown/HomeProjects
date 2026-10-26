@@ -98,7 +98,7 @@ internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO, val reader: suspen
 
     fun handleException(exception: Exception) = readDelegate.handleException(exception)
 
-    private fun runInCoroutine(operation: suspend () -> Unit) {
+    internal fun runInCoroutine(operation: suspend () -> Unit) {
         viewModelScope.launch {
             try {
                 operation()

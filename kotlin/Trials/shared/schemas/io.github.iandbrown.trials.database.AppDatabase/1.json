@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "14b7e7345bd6ec2d6debc091c1ff1f75",
+    "identityHash": "c34aedaf21e308b2dcd5259bb5222a7a",
     "entities": [
       {
         "tableName": "Nominations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`emailAddress` TEXT NOT NULL, `firstNameOfChild` TEXT NOT NULL, `surnameOfChild` TEXT NOT NULL, `childDateOfBirth` INTEGER NOT NULL, `gender` TEXT NOT NULL, `whichSchoolDoesYourChildAttend` TEXT NOT NULL, `whichYearGroupIsYourChildinNow` TEXT NOT NULL, `primaryPosition` TEXT NOT NULL, `secondaryPosition` TEXT NOT NULL, `foot` TEXT NOT NULL, `doesYourChildPlayForATeamOnTheWeekend` TEXT NOT NULL, `whatTypeOfTeamDoTheyPlayFor` TEXT NOT NULL, `teamTheyPlayFor` TEXT NOT NULL, `firstNameOfParentOrCarer` TEXT NOT NULL, `surnameOfParentOrCarer` TEXT NOT NULL, `parentOrCarerMobileNumber` TEXT NOT NULL, `parentOrCarerEmail` TEXT NOT NULL, `confirmEmail` TEXT NOT NULL, `medicalConditions` TEXT NOT NULL, `iWishMyChildToAttendTrials` TEXT NOT NULL, `consentToTheTakingOfPhotographs` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`emailAddress` TEXT NOT NULL, `firstNameOfChild` TEXT NOT NULL, `surnameOfChild` TEXT NOT NULL, `childDateOfBirth` INTEGER NOT NULL, `gender` TEXT NOT NULL, `whichSchoolDoesYourChildAttend` TEXT NOT NULL, `whichYearGroupIsYourChildInNow` TEXT NOT NULL, `primaryPosition` TEXT NOT NULL, `secondaryPosition` TEXT NOT NULL, `foot` TEXT NOT NULL, `doesYourChildPlayForATeamOnTheWeekend` TEXT NOT NULL, `whatTypeOfTeamDoTheyPlayFor` TEXT NOT NULL, `teamTheyPlayFor` TEXT NOT NULL, `firstNameOfParentOrCarer` TEXT NOT NULL, `surnameOfParentOrCarer` TEXT NOT NULL, `parentOrCarerMobileNumber` TEXT NOT NULL, `parentOrCarerEmail` TEXT NOT NULL, `confirmEmail` TEXT NOT NULL, `medicalConditions` TEXT NOT NULL, `iWishMyChildToAttendTrials` TEXT NOT NULL, `consentToTheTakingOfPhotographs` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
         "fields": [
           {
             "fieldPath": "emailAddress",
@@ -45,8 +45,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "whichYearGroupIsYourChildinNow",
-            "columnName": "whichYearGroupIsYourChildinNow",
+            "fieldPath": "whichYearGroupIsYourChildInNow",
+            "columnName": "whichYearGroupIsYourChildInNow",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -151,7 +151,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '14b7e7345bd6ec2d6debc091c1ff1f75')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c34aedaf21e308b2dcd5259bb5222a7a')"
     ]
   }
 }

@@ -24,7 +24,7 @@ kotlin {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         namespace = "io.github.iandbrown.trials.shared"
         compilerOptions {
-            jvmTarget = JvmTarget.JVM_11 // Max supported version for Android
+            jvmTarget = JvmTarget.JVM_21
         }
         withHostTest {}
     }
@@ -33,14 +33,23 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+
+            // email - jvm only????
+            // see https://bierdav.github.io/Kotlinmailer/get-started.html#configure-smtp-server
+            implementation(libs.kotlinmailer.core)
+            implementation(libs.kotlinmailer.smtp)
+            // optional html
+            implementation(libs.kotlinmailer.html)
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.koin.android)
             implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.kotlinmailer.core)
+            implementation(libs.kotlinmailer.smtp)
         }
         commonMain.dependencies {
-            implementation(libs.kotzilla.sdk.compose)
+            api(libs.kotzilla.sdk.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

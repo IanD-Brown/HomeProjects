@@ -1,26 +1,50 @@
 package io.github.iandbrown.trials.ui
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import io.github.iandbrown.trials.database.Nomination
 import io.github.iandbrown.trials.database.NominationDao
+import io.github.iandbrown.trials.database.Setting
 import io.github.iandbrown.trials.logic.DayDate
+import io.github.iandbrown.trials.logic.EmailSender
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.datetime.LocalDate
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
+import org.koin.core.parameter.parametersOf
 import java.math.BigDecimal
 
-internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<NominationDao, Nomination>(dao = dao)
+internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<NominationDao, Nomination>(dao = dao), KoinComponent {
+    internal fun sendEmail(nomination: Nomination, settings: Setting?) {
+        if (settings != null) {
+            runInCoroutine {
+                val emailSender: EmailSender = get { parametersOf(settings) }
+                emailSender.send(
+                    from = settings.userName,
+                    to = nomination.emailAddress,
+                    subject = "Nomination for ${nomination.firstNameOfChild} ${nomination.surnameOfChild}",
+                    body = "Nomination details for ${nomination.firstNameOfChild} ${nomination.surnameOfChild}"
+                )
+            }
+        }
+    }
+}
 
 @Composable
 internal fun NominationList() {
     val viewModel: NominationViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
+    val settingsModel: SettingsViewModel = koinViewModel()
+    val settings by settingsModel.getState().collectAsState()
 
     ViewCommon("Nominations",
-        persistentListOf(state),
+        persistentListOf(state, settings),
         bottomBar = {
             BottomBarWithButtons(
                 importButtonSettings(viewModel) { row ->
@@ -28,10 +52,14 @@ internal fun NominationList() {
                 }
             )
         }) { padding ->
-        TrailingIconLazyVerticalGrid(padding, 4, 0) {
-            viewTextItems(listOf("Email Address", "First Name", "Surname", "Date of Birth"))
-            state.values().forEach {
-                viewTextItems(listOf(it.emailAddress, it.firstNameOfChild, it.surnameOfChild, DayDate(it.childDateOfBirth).toString()))
+        val sortedNominations = state.values().sortedBy { it.surnameOfChild.trim() }
+        TrailingIconLazyVerticalGrid(padding, 4, 1) {
+            viewTextItems(listOf("Email Address", "First Name", "Surname", "Date of Birth", ""))
+            sortedNominations.forEach {
+                viewTextItems(listOf(it.emailAddress, it.firstNameOfChild, it.surnameOfChild.trim(), DayDate(it.childDateOfBirth).toString()))
+                clickableIcon(Icons.Default.Email, "mail", Color.Green) {
+                    viewModel.sendEmail(it, settings.values().firstOrNull())
+                }
             }
         }
     }

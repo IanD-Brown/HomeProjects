@@ -1,0 +1,339 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "157af5a0e5049a420b758491fd0a9c59",
+    "entities": [
+      {
+        "tableName": "Nominations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`emailAddress` TEXT NOT NULL, `firstNameOfChild` TEXT NOT NULL, `surnameOfChild` TEXT NOT NULL, `childDateOfBirth` INTEGER NOT NULL, `gender` TEXT NOT NULL, `whichSchoolDoesYourChildAttend` TEXT NOT NULL, `whichYearGroupIsYourChildInNow` TEXT NOT NULL, `primaryPosition` TEXT NOT NULL, `secondaryPosition` TEXT NOT NULL, `foot` TEXT NOT NULL, `doesYourChildPlayForATeamOnTheWeekend` TEXT NOT NULL, `whatTypeOfTeamDoTheyPlayFor` TEXT NOT NULL, `teamTheyPlayFor` TEXT NOT NULL, `firstNameOfParentOrCarer` TEXT NOT NULL, `surnameOfParentOrCarer` TEXT NOT NULL, `parentOrCarerMobileNumber` TEXT NOT NULL, `parentOrCarerEmail` TEXT NOT NULL, `confirmEmail` TEXT NOT NULL, `medicalConditions` TEXT NOT NULL, `iWishMyChildToAttendTrials` TEXT NOT NULL, `consentToTheTakingOfPhotographs` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "emailAddress",
+            "columnName": "emailAddress",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstNameOfChild",
+            "columnName": "firstNameOfChild",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surnameOfChild",
+            "columnName": "surnameOfChild",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "childDateOfBirth",
+            "columnName": "childDateOfBirth",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gender",
+            "columnName": "gender",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whichSchoolDoesYourChildAttend",
+            "columnName": "whichSchoolDoesYourChildAttend",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whichYearGroupIsYourChildInNow",
+            "columnName": "whichYearGroupIsYourChildInNow",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryPosition",
+            "columnName": "primaryPosition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryPosition",
+            "columnName": "secondaryPosition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "foot",
+            "columnName": "foot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "doesYourChildPlayForATeamOnTheWeekend",
+            "columnName": "doesYourChildPlayForATeamOnTheWeekend",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whatTypeOfTeamDoTheyPlayFor",
+            "columnName": "whatTypeOfTeamDoTheyPlayFor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teamTheyPlayFor",
+            "columnName": "teamTheyPlayFor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstNameOfParentOrCarer",
+            "columnName": "firstNameOfParentOrCarer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surnameOfParentOrCarer",
+            "columnName": "surnameOfParentOrCarer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentOrCarerMobileNumber",
+            "columnName": "parentOrCarerMobileNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentOrCarerEmail",
+            "columnName": "parentOrCarerEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confirmEmail",
+            "columnName": "confirmEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "medicalConditions",
+            "columnName": "medicalConditions",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iWishMyChildToAttendTrials",
+            "columnName": "iWishMyChildToAttendTrials",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consentToTheTakingOfPhotographs",
+            "columnName": "consentToTheTakingOfPhotographs",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "Settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `smtpHost` TEXT NOT NULL, `userName` TEXT NOT NULL, `password` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "smtpHost",
+            "columnName": "smtpHost",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userName",
+            "columnName": "userName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "password",
+            "columnName": "password",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "EmailTemplates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `bodyTemplate` TEXT NOT NULL, PRIMARY KEY(`name`))",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyTemplate",
+            "columnName": "bodyTemplate",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "name"
+          ]
+        }
+      },
+      {
+        "tableName": "States",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `entryEmail` TEXT, `type` INTEGER NOT NULL, PRIMARY KEY(`name`), FOREIGN KEY(`entryEmail`) REFERENCES `EmailTemplates`(`name`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entryEmail",
+            "columnName": "entryEmail",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "name"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_States_entryEmail",
+            "unique": false,
+            "columnNames": [
+              "entryEmail"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_States_entryEmail` ON `${TABLE_NAME}` (`entryEmail`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "EmailTemplates",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "entryEmail"
+            ],
+            "referencedColumns": [
+              "name"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "NextStates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`stateName` TEXT NOT NULL, `nextStateName` TEXT NOT NULL, PRIMARY KEY(`stateName`, `nextStateName`), FOREIGN KEY(`stateName`) REFERENCES `States`(`name`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`nextStateName`) REFERENCES `States`(`name`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "stateName",
+            "columnName": "stateName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextStateName",
+            "columnName": "nextStateName",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "stateName",
+            "nextStateName"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_NextStates_stateName",
+            "unique": false,
+            "columnNames": [
+              "stateName"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_NextStates_stateName` ON `${TABLE_NAME}` (`stateName`)"
+          },
+          {
+            "name": "index_NextStates_nextStateName",
+            "unique": false,
+            "columnNames": [
+              "nextStateName"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_NextStates_nextStateName` ON `${TABLE_NAME}` (`nextStateName`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "States",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "stateName"
+            ],
+            "referencedColumns": [
+              "name"
+            ]
+          },
+          {
+            "table": "States",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "nextStateName"
+            ],
+            "referencedColumns": [
+              "name"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '157af5a0e5049a420b758491fd0a9c59')"
+    ]
+  }
+}

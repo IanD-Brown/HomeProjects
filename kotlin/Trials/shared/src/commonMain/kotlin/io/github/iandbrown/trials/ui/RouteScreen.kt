@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SettingsBrightness
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -18,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun RouteScreen(onNavigate: (Route) -> Unit) {
     Scaffold(modifier = Modifier.fillMaxSize(),
@@ -25,6 +28,9 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
             TopAppBar(title = { Text("Trials") }, actions = {
                 IconButton(onClick = AppState.switchThemeCallback) {
                     Icon(imageVector = Icons.Default.SettingsBrightness, contentDescription = null)
+                }
+                IconButton(onClick = { onNavigate(Route.SettingView) }) {
+                    Icon(imageVector = Icons.Default.Settings, contentDescription = null)
                 }
             })
         },
@@ -34,7 +40,9 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(items = listOf(
-                "Nominations" to Route.Nominations
+                "Nominations" to Route.Nominations,
+                "Email Templates" to Route.EmailTemplates,
+                "States" to Route.States
             )) { (name, route) ->
                 ListItem(
                     headlineContent = { Text(name) },

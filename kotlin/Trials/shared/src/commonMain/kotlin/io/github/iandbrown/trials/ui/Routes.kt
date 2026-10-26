@@ -10,6 +10,12 @@ internal sealed interface Route {
     data object Root : Route
     @Serializable
     data object Nominations : Route
+    @Serializable
+    data object SettingView : Route
+    @Serializable
+    data object EmailTemplates : Route
+    @Serializable
+    data object States : Route
 }
 
 val LocalBackstack = compositionLocalOf<SnapshotStateList<Any>> { error("No backstack provided") }

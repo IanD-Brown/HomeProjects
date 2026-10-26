@@ -7,7 +7,10 @@ import org.koin.dsl.navigation3.navigation
 
 @OptIn(KoinExperimentalAPI::class)
 val uiModule = module {
+    viewModelOf(::EmailTemplateViewModel)
     viewModelOf(::NominationViewModel)
+    viewModelOf(::SettingsViewModel)
+    viewModelOf(::StateViewModel)
 
     navigation<Route.Root> {
         val backstack = LocalBackstack.current
@@ -16,5 +19,18 @@ val uiModule = module {
 
     navigation<Route.Nominations> {
         NominationList()
+    }
+
+    navigation<Route.SettingView> {
+        val backstack = LocalBackstack.current
+        SettingsEditorView { backstack.removeLastOrNull() }
+    }
+
+    navigation<Route.EmailTemplates> {
+        EmailTemplateView()
+    }
+
+    navigation<Route.States> {
+        StateView()
     }
 }

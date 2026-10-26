@@ -12,6 +12,8 @@ import dev.shivathapaa.logger.core.LoggerConfig
 import dev.shivathapaa.logger.sink.DefaultLogSink
 import io.github.iandbrown.trials.di.initKoin
 import io.github.iandbrown.trials.utils.LogFormatter
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.init
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.getOrNull
 
@@ -29,6 +31,7 @@ class MainActivity : ComponentActivity() {
                 androidContext(this@MainActivity)
             }
         }
+        FileKit.init(this)
 
         setContent {
             App()

@@ -134,6 +134,7 @@ fun ViewCommon(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateTopBar(
     title: String,
@@ -268,7 +269,6 @@ fun ViewTextField(
 @Composable
 fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,
@@ -517,4 +517,11 @@ internal suspend fun tryTransaction(
     } catch (e: Exception) {
         exceptionHandler(e)
     }
+}
+
+internal fun LazyGridScope.gridEntry(value : String, title : String? = null, onValueChange: (String) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item { ViewTextField(value = value, onValueChange = onValueChange) }
 }

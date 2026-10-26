@@ -38,7 +38,7 @@ data class Nomination(
 
 @Dao
 interface NominationDao : BaseReadDao<Nomination>, BaseWriteDao<Nomination> {
-    @Query("SELECT * FROM $table")
+    @Query("SELECT * FROM $table ORDER By surnameOfChild, firstNameOfChild")
     override suspend fun get(): List<Nomination>
 
     @Query("DELETE FROM $table")
