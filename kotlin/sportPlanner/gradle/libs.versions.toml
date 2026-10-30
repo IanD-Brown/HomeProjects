@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 android-compileSdk = "37"
 android-minSdk = "34"
 android-targetSdk = "37"
@@ -11,11 +11,11 @@ composeMultiplatform = "1.12.2"
 kotlin = "2.4.21"
 kotlinx-coroutines = "1.11.0"
 # navigation
-navigationCompose = "2.9.2"
+navigationCompose = "2.10.0"
 navigation3 = "1.2.0"
 navigationEvent = "1.1.0"
 androidx-savedstate = "1.5.0"
-jetbraindNav3 = "1.1.2"
+jetbraindNav3 = "1.2.0"
 # theme prefs
 materialThemePrefs = "1.0.0"
 # JSON serialize
@@ -30,10 +30,10 @@ androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
 kotest-version = "6.2.6"
 kover = "0.9.11"
-mockkery = "3.5.1"
+mockkery = "3.6.0"
 coroutine-test-version = "1.11.0"
 # filekit
-filekit = "0.16.0"
+filekit = "0.17.0"
 # immutable collections
 immutableCollections = "0.5.2"
 # dataframe
