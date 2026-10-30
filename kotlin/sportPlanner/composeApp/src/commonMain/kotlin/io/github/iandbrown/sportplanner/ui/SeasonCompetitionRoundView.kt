@@ -277,7 +277,7 @@ fun SeasonCompetitionRoundEditScreen(
                     Modifier,
                     { utcMs ->
                         val firstComp = seasonCompetitionState.values().firstOrNull()
-                        if (firstComp != null) isMondayIn(firstComp, utcMs) else false
+                        firstComp != null && isMondayIn(firstComp, utcMs)
                     }) {
                     week = it
                 }
@@ -288,9 +288,10 @@ fun SeasonCompetitionRoundEditScreen(
 }
 
 internal enum class FixtureResult(var display: String) {
-    UN_PLAYED(""), HOME_WIN("Home win"), AWAY_WIN(
-        "Away win"
-    )
+    UN_PLAYED(""),
+    HOME_WIN("Home win"),
+    AWAY_WIN("Away win"),
+    BYE("Bye")
 }
 
 internal fun getFixtures(
@@ -325,11 +326,8 @@ internal fun getFixtures(
 }
 
 private fun isPending(fixture: SeasonCupFixtureView, fixturesById: Map<Long, SeasonCupFixtureView>): Boolean {
-    if (fixture.result > 0) {
-        return false
-    }
-    return fixture.homePending > 0 && fixturesById[fixture.homePending]?.result!! == 0.toShort() ||
-            fixture.awayPending > 0 && fixturesById[fixture.awayPending]?.result!! == 0.toShort()
+    return fixture.result <= 0 && (fixture.homePending > 0 && fixturesById[fixture.homePending]?.result!! == 0.toShort() ||
+            fixture.awayPending > 0 && fixturesById[fixture.awayPending]?.result!! == 0.toShort())
 }
 
 internal fun teamDescription(
@@ -492,10 +490,10 @@ internal suspend fun calcCupFixtures(
             }
 
         }
-        for (teamCategory in teamCategoryDao.get()) {
+        for ((id) in teamCategoryDao.get()) {
             if (round == 1.toShort()) {
                 val competitionTeams =
-                    seasonTeamDao.getTeams(seasonId, competitionId, teamCategory.id)
+                    seasonTeamDao.getTeams(seasonId, competitionId, id)
                         .flatMap { seasonTeam ->
                             (0..<seasonTeam.count).map { teamNumber ->
                                 Pair(seasonTeam.associationId, teamNumber.toShort())
@@ -522,18 +520,18 @@ internal suspend fun calcCupFixtures(
                                 seasonId = seasonId,
                                 competitionId = competitionId,
                                 round = round,
-                                teamCategoryId = teamCategory.id,
+                                teamCategoryId = id,
                                 homeAssociationId = it.homeAssociation,
                                 homeTeamNumber = it.homeTeamNumber,
                                 awayAssociationId = it.awayAssociation,
                                 awayTeamNumber = it.awayTeamNumber,
-                                result = (if (it.awayAssociation > 0) 0 else 1).toShort()
+                                result = (if (it.awayAssociation > 0) FixtureResult.UN_PLAYED.ordinal else FixtureResult.BYE.ordinal).toShort()
                             )
                         )
                     }
             } else {
                 val previousRoundFixtures =
-                    dao.getByRound(seasonId, competitionId, teamCategory.id, (round - 1).toShort())
+                    dao.getByRound(seasonId, competitionId, id, (round - 1).toShort())
                         .shuffled(Random(System.currentTimeMillis()))
                 if (previousRoundFixtures.size > 1) {
                     for (i in previousRoundFixtures.indices step 2) {
@@ -544,7 +542,7 @@ internal suspend fun calcCupFixtures(
                                 seasonId = seasonId,
                                 competitionId = competitionId,
                                 round = round,
-                                teamCategoryId = teamCategory.id,
+                                teamCategoryId = id,
                                 homeAssociationId = winningAssociation(home),
                                 homeTeamNumber = winningTeamNumber(home),
                                 awayAssociationId = winningAssociation(away),
@@ -563,8 +561,8 @@ internal suspend fun calcCupFixtures(
 private suspend fun initAssociationOrderMap(destination: MutableMap<AssociationId, AssociationOrdering>,
                                     associationDao: AssociationDao = inject<AssociationDao>(AssociationDao::class.java).value) {
     val random = Random(System.currentTimeMillis())
-    for (association in associationDao.get()) {
-        destination[association.id] = AssociationOrdering(0, 0, random.nextInt())
+    for ((id) in associationDao.get()) {
+        destination[id] = AssociationOrdering(0, 0, random.nextInt())
     }
 }
 

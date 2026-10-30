@@ -189,11 +189,11 @@ internal fun SummaryCupFixtureScreen(season: Season) {
 private fun roundsState(rounds: List<SeasonCompetitionRound>): String {
     var week = -1
 
-    for (round in rounds) {
-        if (round.week <= week) {
+    for ((_, _, _, _, week1) in rounds) {
+        if (week1 <= week) {
             return "ROUNDS OUT OF ORDER"
         }
-        week = round.week
+        week = week1
     }
     return ""
 }
@@ -278,49 +278,39 @@ internal fun CupFixtureTableScreen(season: Season) {
                         listOf("Competition", "Team Category", "Round", "Home", "Away", "Winner")
                     )
                     var competitionId: CompetitionId = 0
-                    for (fixture in state.values()
+                    for ((id, _, competitionId1, round, _, teamCategoryName, homeAssociation, homeTeamNumber, awayAssociation, awayTeamNumber, homePending, awayPending, result) in state.values()
                         .filter { roundFilter == 0 || it.round == roundFilter.toShort() }
                         .sortedWith(
                             compareBy(
                                 { competitionNameLookup[it.competitionId] ?: "" },
                                 { it.teamCategoryName })
                         )) {
-                        if (fixture.competitionId != competitionId) {
+                        if (competitionId1 != competitionId) {
                             viewTextItems(
-                                listOf(competitionNameLookup[fixture.competitionId] ?: "", "", "", "", "", "")
+                                listOf(competitionNameLookup[competitionId1] ?: "", "", "", "", "", "")
                             )
-                            competitionId = fixture.competitionId
+                            competitionId = competitionId1
                         }
                         viewTextItems(
                             listOf(
                                 "",
-                                fixture.teamCategoryName,
-                                fixture.round.toString(),
-                                teamDescription(
-                                    fixturesById,
-                                    fixture.homePending,
-                                    fixture.homeAssociation,
-                                    fixture.homeTeamNumber
-                                ),
-                                teamDescription(
-                                    fixturesById,
-                                    fixture.awayPending,
-                                    fixture.awayAssociation,
-                                    fixture.awayTeamNumber
-                                )
+                                teamCategoryName,
+                                round.toString(),
+                                teamDescription(fixturesById, homePending, homeAssociation, homeTeamNumber),
+                                teamDescription(fixturesById, awayPending, awayAssociation, awayTeamNumber)
                             )
                         )
                         item {
                             DropdownList(
                                 FixtureResult.entries.map { it.display }
                                     .toImmutableList(),
-                                edits[fixture.id]?.toInt() ?: fixture.result.toInt(),
-                                 isLocked = { isLocked || fixture.awayAssociation.isBlank() },
+                                edits[id]?.toInt() ?: result.toInt(),
+                                 isLocked = { isLocked || awayAssociation.isBlank() },
                             ) {
                                 if (it == 0) {
-                                    edits.remove(fixture.id)
+                                    edits.remove(id)
                                 } else {
-                                    edits[fixture.id] = it.toShort()
+                                    edits[id] = it.toShort()
                                 }
                             }
                         }
