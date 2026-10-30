@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -105,7 +106,7 @@ fun ViewCommon(
     description: String = "Return to home screen",
     bottomBar: @Composable () -> Unit = {},
     confirm: () -> Boolean = { false },
-    confirmAction: () -> Unit = {},
+    confirmAction: (Boolean) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val errors = states.filterIsInstance<ViewModelState.Error>()
@@ -115,8 +116,8 @@ fun ViewCommon(
             topBar = { CreateTopBar(title, description, confirm, confirmAction) },
         ) {paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                for (error in errors) {
-                    ViewText(error.message)
+                for ((message) in errors) {
+                    ViewText(message)
                 }
             }
         }
@@ -140,7 +141,7 @@ private fun CreateTopBar(
     title: String,
     description: String,
     confirm: () -> Boolean,
-    confirmAction: () -> Unit
+    confirmAction: (Boolean) -> Unit
 ) {
     var isDialogOpen by remember { mutableStateOf(false) }
     val navState = rememberNavigationEventState(NavigationEventInfo.None)
@@ -150,8 +151,8 @@ private fun CreateTopBar(
         onBackCompleted = {}
     )
 
-    fun closeConfirmDialog(confirmAction : () -> Unit) : Boolean {
-        confirmAction()
+    fun closeConfirmDialog(save: Boolean) : Boolean {
+        confirmAction(save)
         return false
     }
 
@@ -168,12 +169,12 @@ private fun CreateTopBar(
         AlertDialog(
             onDismissRequest = {},
             dismissButton = {
-                Button(onClick = { isDialogOpen = closeConfirmDialog {} }) {
+                Button(onClick = { isDialogOpen = closeConfirmDialog(false) }) {
                     Text("Discard changes")
                 }
             },
             confirmButton = {
-                Button(onClick = {isDialogOpen = closeConfirmDialog(confirmAction) }) {
+                Button(onClick = {isDialogOpen = closeConfirmDialog(true) }) {
                     Text("Save")
                 }
             },
@@ -379,14 +380,14 @@ fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, onClick : 
 @Composable
 internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-        for (buttonSetting in buttonSettings) {
-            if (buttonSetting.imageVector == null) {
-                OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
-                    buttonSetting.onClick()
+        for ((value, enabled, imageVector, onClick) in buttonSettings) {
+            if (imageVector == null) {
+                OutlinedTextButton(value, Modifier.wrapContentSize(), enabled) {
+                    onClick()
                 }
             } else {
-                IconButton(onClick = { buttonSetting.onClick() }) {
-                    Icon(buttonSetting.imageVector, contentDescription = null)
+                IconButton(onClick = { onClick() }) {
+                    Icon(imageVector, contentDescription = null)
                 }
             }
         }
@@ -519,9 +520,29 @@ internal suspend fun tryTransaction(
     }
 }
 
-internal fun LazyGridScope.gridEntry(value : String, title : String? = null, onValueChange: (String) -> Unit) {
+internal fun LazyGridScope.gridEntry(value : String, title : String? = null, readOnly: Boolean = false, onValueChange: (String) -> Unit) {
     if (title != null) {
         item { ViewText(title) }
     }
-    item { ViewTextField(value = value, onValueChange = onValueChange) }
+    item { ViewTextField(value = value, readOnly = readOnly, onValueChange = onValueChange) }
+}
+
+internal fun LazyGridScope.gridEntry(itemList: ImmutableList<String>, selectedIndex: Int, title: String?, onItemClick: (Int) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item {
+        DropdownList(
+            itemList,
+            selectedIndex,
+            onItemClick = onItemClick
+        )
+    }
+}
+
+internal fun LazyGridScope.gridEntry(value: Boolean, title: String? = null, enabled: Boolean = true, onValueChange: (Boolean) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    item { Checkbox(value, onValueChange, Modifier.height(textFieldHeight), enabled) }
 }

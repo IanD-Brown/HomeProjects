@@ -11,6 +11,7 @@ val uiModule = module {
     viewModelOf(::NominationViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::StateViewModel)
+    viewModelOf(::TeamCategoryViewModel)
 
     navigation<Route.Root> {
         val backstack = LocalBackstack.current
@@ -31,6 +32,18 @@ val uiModule = module {
     }
 
     navigation<Route.States> {
-        StateView()
+        val backstack = LocalBackstack.current
+        StateView({ s, n -> backstack.add(Route.StateEditor(s, n)) })
+    }
+
+    navigation<Route.StateEditor> { route ->
+        val backstack = LocalBackstack.current
+        StateEditor(route.entity, route.currentNextStates) {
+            backstack.removeLastOrNull()
+        }
+    }
+
+    navigation<Route.TeamCategories> {
+        TeamCategoryView()
     }
 }

@@ -48,10 +48,10 @@ internal fun EmailTemplateView() {
                 )
             }
         ) { padding ->
-            TrailingIconLazyVerticalGrid(padding, 2, 2) {
-                viewTextItems(listOf("Name", "Body Template", "", ""))
+            TrailingIconLazyVerticalGrid(padding, 3, 2) {
+                viewTextItems(listOf("Name", "Subject Template", "Body Template", "", ""))
                 state.values().forEach { template ->
-                    viewTextItems(listOf(template.name, template.bodyTemplate))
+                    viewTextItems(listOf(template.name, template.subjectTemplate, template.bodyTemplate))
                     editButton { editingTemplate = template }
                     deleteButton { viewModel.delete(template) }
                 }
@@ -67,6 +67,7 @@ internal fun EmailTemplateEditor(
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(template?.name ?: "") }
+    var subjectTemplate by remember { mutableStateOf(template?.subjectTemplate ?: "") }
     var bodyTemplate by remember { mutableStateOf(template?.bodyTemplate ?: "") }
     val isEditing = template != null
 
@@ -77,14 +78,15 @@ internal fun EmailTemplateEditor(
         description = "Cancel editing",
         bottomBar = {
             BottomBarWithButton(enabled = isValid) {
-                onSave(EmailTemplate(name = name, bodyTemplate = bodyTemplate))
+                onSave(EmailTemplate(name = name, subjectTemplate = subjectTemplate, bodyTemplate = bodyTemplate))
             }
         },
         confirm = { name.isNotBlank() },
-        confirmAction = { onSave(EmailTemplate(name = name, bodyTemplate = bodyTemplate)) }
+        confirmAction = { onSave(EmailTemplate(name = name, subjectTemplate = subjectTemplate, bodyTemplate = bodyTemplate)) }
     ) { padding ->
         TrailingIconLazyVerticalGrid(padding, 2, 0) {
             gridEntry(name, "Name", onValueChange = { if (!isEditing) name = it })
+            gridEntry(subjectTemplate, "Subject Template", onValueChange = { subjectTemplate = it })
             gridEntry(bodyTemplate, "Body Template", onValueChange = { bodyTemplate = it })
         }
     }

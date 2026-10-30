@@ -3,6 +3,7 @@ package io.github.iandbrown.trials.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -13,8 +14,11 @@ import io.github.iandbrown.trials.database.NextStateDao
 import io.github.iandbrown.trials.database.State
 import io.github.iandbrown.trials.database.StateDao
 import io.github.iandbrown.trials.database.StateType
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import org.koin.compose.viewmodel.koinViewModel
 
 internal class StateViewModel(
@@ -28,12 +32,17 @@ internal class StateViewModel(
     private val templatesDelegate = ReadDelegate(viewModelScope) { emailTemplateDao.get() }
     val templatesState = templatesDelegate.uiState
 
-    fun saveNextStates(stateName: String, selectedNextStates: Set<String>) {
+    fun save(state: State, isAdd: Boolean, selectedNextStates: Set<String>) {
         runInCoroutine {
-            val existing = nextStateDao.getNextStatesFor(stateName)
+            if (isAdd) {
+                dao.insert(state)
+            } else {
+                dao.update(state)
+            }
+            val existing = nextStateDao.getNextStatesFor(state.name)
             existing.forEach { nextStateDao.delete(it) }
             selectedNextStates.forEach { nextName ->
-                nextStateDao.insert(NextState(stateName, nextName))
+                nextStateDao.insert(NextState(state.name.trim(), nextName.trim()))
             }
             nextStatesDelegate.readAll()
         }
@@ -41,152 +50,130 @@ internal class StateViewModel(
 }
 
 @Composable
-internal fun StateView() {
+internal fun StateView(showEditor: (State?, ImmutableSet<String>) -> Unit) {
     val viewModel: StateViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
     val nextStates by viewModel.nextStatesState.collectAsState()
-    val templates by viewModel.templatesState.collectAsState()
 
-    var editingState by remember { mutableStateOf<State?>(null) }
-    var isAdding by remember { mutableStateOf(false) }
-
-    if (isAdding || editingState != null) {
-        StateEditor(
-            state = editingState,
-            existingStates = state.values(),
-            allTemplates = templates.values().map { it.name },
-            currentNextStates = nextStates.values()
-                .filter { it.stateName == editingState?.name }
-                .map { it.nextStateName }
-                .toSet(),
-            onSave = { newState, selectedNextStates ->
-                if (editingState == null) {
-                    viewModel.insert(newState)
-                } else {
-                    viewModel.update(newState)
-                }
-                viewModel.saveNextStates(newState.name, selectedNextStates)
-                editingState = null
-                isAdding = false
-            },
-            onCancel = {
-                editingState = null
-                isAdding = false
-            }
-        )
-    } else {
-        ViewCommon(
-            title = "States",
-            states = persistentListOf(state, nextStates, templates),
-            bottomBar = {
-                BottomBarWithButtons(
-                    addButtonSettings(onClick = { isAdding = true })
-                )
-            }
-        ) { padding ->
-            TrailingIconLazyVerticalGrid(padding, 4, 2) {
-                viewTextItems(listOf("Name", "Entry Email", "Type", "Next States", "", ""))
-                state.values().forEach { st ->
-                    val entryEmailText = st.entryEmail ?: "-"
-                    val stateTypeDisplayName = StateType.fromInt(st.type).displayName
-                    val nextStatesList = nextStates.values()
-                        .filter { it.stateName == st.name }
-                        .joinToString(", ") { it.nextStateName }
-                        .ifEmpty { "-" }
-                    viewTextItems(listOf(st.name, entryEmailText, stateTypeDisplayName, nextStatesList))
-                    editButton { editingState = st }
-                    deleteButton { viewModel.delete(st) }
-                }
+    ViewCommon(
+        title = "States",
+        states = persistentListOf(state, nextStates),
+        bottomBar = {
+            BottomBarWithButtons(
+                addButtonSettings(onClick = { showEditor(null, persistentSetOf()) })
+            )
+        }
+    ) { padding ->
+        TrailingIconLazyVerticalGrid(padding, 4, 2) {
+            viewTextItems(listOf("Name", "Entry Email", "Type", "Next States", "", ""))
+            state.values().forEach { st ->
+                val entryEmailText = st.entryEmail ?: "-"
+                val stateTypeDisplayName = StateType.fromInt(st.type).displayName
+                val nextStateNames = nextStates.values().filter { it.stateName == st.name }.map { it.nextStateName }
+                val nextStatesList = nextStateNames.joinToString(", ").ifEmpty { "-" }
+                viewTextItems(listOf(st.name, entryEmailText, stateTypeDisplayName, nextStatesList))
+                editButton { showEditor(st, nextStateNames.toImmutableSet()) }
+                deleteButton { viewModel.delete(st) }
             }
         }
     }
 }
 
 @Composable
-internal fun StateEditor(
-    state: State?,
-    existingStates: List<State>,
-    allTemplates: List<String>,
-    currentNextStates: Set<String>,
-    onSave: (State, Set<String>) -> Unit,
-    onCancel: () -> Unit
-) {
+internal fun StateEditor(state: State?, currentNextStates: ImmutableSet<String>, done: () -> Unit) {
+    val viewModel: StateViewModel = koinViewModel()
+    val states by viewModel.getState().collectAsState()
+    val nextStates by viewModel.nextStatesState.collectAsState()
+    val templates by viewModel.templatesState.collectAsState()
+
     var name by remember { mutableStateOf(state?.name ?: "") }
     var entryEmail by remember { mutableStateOf(state?.entryEmail ?: "") }
-    var selectedType by remember { mutableStateOf(StateType.fromInt(state?.type ?: StateType.INTERMEDIATE.value)) }
-    var selectedNextStates by remember { mutableStateOf(currentNextStates) }
-    val isEditing = state != null
+    var selectedType by remember { mutableIntStateOf(state?.type ?: StateType.INTERMEDIATE.ordinal) }
+    var selectedNextStates by remember { mutableStateOf(currentNextStates.toSet()) }
 
-    val existingStart = existingStates.find { it.type == StateType.START.value && it.name != state?.name }
-    val isStartConflict = selectedType == StateType.START && existingStart != null
+    val existingStart = states.values().find { it.type == StateType.START.ordinal && it.name != state?.name }
+    val isStartConflict = selectedType == StateType.START.ordinal && existingStart != null
 
-    val templateOptions = (listOf("None") + allTemplates).toImmutableList()
-    val selectedTemplateIndex = if (entryEmail.isBlank()) 0 else templateOptions.indexOf(entryEmail).let { if (it < 0) 0 else it }
+    val existingError = states.values().find { it.type == StateType.ERROR.value && it.name != state?.name }
+    val isErrorConflict = selectedType == StateType.ERROR.ordinal && existingError != null
 
-    val stateTypeOptions = StateType.entries.map { it.displayName }.toImmutableList()
-    val selectedTypeIndex = StateType.entries.indexOf(selectedType)
+    var editorState by remember { mutableStateOf(EditorState.CLEAN) }
 
-    val isValid = name.isNotBlank() && !isStartConflict
+    fun setEditorState() {
+        // Clean when state is null and nothing entered or entries match state
+        editorState = if ((state == null && name.isBlank() && entryEmail.isBlank() && selectedType == StateType.INTERMEDIATE.ordinal && selectedNextStates.isEmpty()) ||
+            (state != null && name == state.name && entryEmail == state.entryEmail && selectedType == state.type && selectedNextStates == currentNextStates)
+        ) {
+            EditorState.CLEAN
+        } else if (name.isBlank()) {
+            EditorState.DIRTY
+        } else {
+            EditorState.VALID
+        }
+    }
+
+    fun save() {
+        viewModel.save(State(name = name.trim(), entryEmail = entryEmail.ifBlank { null }, type = selectedType),
+            state == null,
+            selectedNextStates)
+    }
 
     ViewCommon(
-        title = if (isEditing) "Edit State" else "Add State",
-        description = "Cancel editing",
-        bottomBar = {
-            BottomBarWithButton(enabled = isValid) {
-                val emailRef = if (entryEmail.isBlank() || entryEmail == "None") null else entryEmail
-                onSave(State(name = name, entryEmail = emailRef, type = selectedType.value), selectedNextStates)
+        if (state != null) "Edit State" else "Add State",
+        persistentListOf(states, nextStates, templates),
+        "Return to states list",
+        {
+            BottomBarWithButton(enabled = editorState == EditorState.VALID && !isStartConflict && !isErrorConflict) {
+                save()
+                done()
             }
         },
-        confirm = { isValid },
-        confirmAction = {
-            val emailRef = if (entryEmail.isBlank() || entryEmail == "None") null else entryEmail
-            onSave(State(name = name, entryEmail = emailRef, type = selectedType.value), selectedNextStates)
+        confirm = { editorState == EditorState.VALID && !isStartConflict && !isErrorConflict },
+        confirmAction = {save ->
+            if (save) {
+                save()
+            }
+
+            done()
         }
     ) { padding ->
+        val templateOptions = (listOf("None") + templates.values().map {it.name}).toImmutableList()
+        val selectedTemplateIndex = if (entryEmail.isBlank()) 0 else templateOptions.indexOf(entryEmail).let { if (it < 0) 0 else it }
+
+        val stateTypeOptions = StateType.entries.map { it.displayName }.toImmutableList()
         TrailingIconLazyVerticalGrid(padding, 2, 0) {
-            gridEntry(name, "Name", onValueChange = { if (!isEditing) name = it })
-
-            item { ViewText("Type") }
-            item {
-                DropdownList(
-                    itemList = stateTypeOptions,
-                    selectedIndex = selectedTypeIndex,
-                    onItemClick = { idx ->
-                        selectedType = StateType.entries[idx]
-                    }
-                )
+            gridEntry(name, "Name", state != null) {
+                name = it
+                setEditorState()
             }
 
-            if (existingStart != null && selectedType == StateType.START) {
-                item { ViewText("Start Conflict") }
-                item { ViewText("A START state already exists: ${existingStart.name}") }
+            gridEntry(stateTypeOptions, selectedType, "Type") { idx ->
+                selectedType = idx
+                setEditorState()
             }
 
-            item { ViewText("Entry Email") }
-            item {
-                DropdownList(
-                    itemList = templateOptions,
-                    selectedIndex = selectedTemplateIndex,
-                    onItemClick = { idx ->
-                        entryEmail = if (idx == 0) "" else templateOptions[idx]
-                    }
-                )
+            if (existingStart != null && selectedType == StateType.START.ordinal) {
+                viewTextItems(listOf("Start Conflict", "A START state already exists: ${existingStart.name}"))
             }
 
-            existingStates.map { it.name }.filter { it != name }.forEach { otherStateName ->
+            if (existingError != null && selectedType == StateType.ERROR.ordinal) {
+                viewTextItems(listOf("Error Conflict", "An ERROR state already exists: ${existingError.name}"))
+            }
+
+            gridEntry(templateOptions, selectedTemplateIndex, "Entry Email") { idx ->
+                entryEmail = if (idx == 0) "" else templateOptions[idx]
+            }
+
+            viewTextItems(listOf("", "", "Next State", "Selected"))
+
+            states.values().map { it.name }.filter { it != name }.forEach { otherStateName ->
                 val isChecked = selectedNextStates.contains(otherStateName)
-                item { ViewText("Next State: $otherStateName") }
-                item {
-                    OutlinedTextButton(
-                        value = if (isChecked) "Selected" else "Select",
-                        onClick = {
-                            selectedNextStates = if (isChecked) {
-                                selectedNextStates - otherStateName
-                            } else {
-                                selectedNextStates + otherStateName
-                            }
-                        }
-                    )
+                gridEntry(isChecked, otherStateName) {
+                    selectedNextStates = when (it) {
+                        true -> selectedNextStates + otherStateName
+                        else -> selectedNextStates - otherStateName
+                    }
+                    setEditorState()
                 }
             }
         }

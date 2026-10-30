@@ -18,7 +18,8 @@ private const val statesTable = "States"
 enum class StateType(val value: Int, val displayName: String) {
     START(0, "Start"),
     INTERMEDIATE(1, "Intermediate"),
-    END(2, "End");
+    END(2, "End"),
+    ERROR(3, "Error");
 
     companion object {
         fun fromInt(value: Int): StateType = entries.find { it.value == value } ?: INTERMEDIATE

@@ -1,17 +1,29 @@
 package io.github.iandbrown.trials.ui
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewModelScope
 import io.github.iandbrown.trials.database.Nomination
 import io.github.iandbrown.trials.database.NominationDao
 import io.github.iandbrown.trials.database.Setting
+import io.github.iandbrown.trials.database.StateDao
+import io.github.iandbrown.trials.database.Trial
+import io.github.iandbrown.trials.database.TrialDao
 import io.github.iandbrown.trials.logic.DayDate
 import io.github.iandbrown.trials.logic.EmailSender
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.LocalDate
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.koin.compose.viewmodel.koinViewModel
@@ -20,7 +32,33 @@ import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
 import java.math.BigDecimal
 
-internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<NominationDao, Nomination>(dao = dao), KoinComponent {
+internal class NominationViewModel(
+    dao: NominationDao,
+    val trialDao: TrialDao,
+    val stateDao: StateDao
+) : CRUDViewModel<NominationDao, Nomination>(dao = dao), KoinComponent {
+
+    private val trialDelegate = ReadDelegate(viewModelScope) { trialDao.get() }
+    val trialState = trialDelegate.uiState
+
+    private val stateDelegate = ReadDelegate(viewModelScope) { stateDao.get() }
+    val statesState = stateDelegate.uiState
+
+    fun addTrial(trial: Trial) {
+        runInCoroutine { trialDao.insert(trial) }
+        trialDelegate.readAll()
+    }
+
+    fun updateTrial(trial: Trial) {
+        runInCoroutine { trialDao.update(trial) }
+        trialDelegate.readAll()
+    }
+
+    fun deleteTrial(trial: Trial) {
+        runInCoroutine { trialDao.delete(trial) }
+        trialDelegate.readAll()
+    }
+
     internal fun sendEmail(nomination: Nomination, settings: Setting?) {
         if (settings != null) {
             runInCoroutine {
@@ -43,24 +81,175 @@ internal fun NominationList() {
     val settingsModel: SettingsViewModel = koinViewModel()
     val settings by settingsModel.getState().collectAsState()
 
-    ViewCommon("Nominations",
-        persistentListOf(state, settings),
-        bottomBar = {
-            BottomBarWithButtons(
-                importButtonSettings(viewModel) { row ->
-                    toNomination(row)
-                }
-            )
-        }) { padding ->
-        val sortedNominations = state.values().sortedBy { it.surnameOfChild.trim() }
-        TrailingIconLazyVerticalGrid(padding, 4, 1) {
-            viewTextItems(listOf("Email Address", "First Name", "Surname", "Date of Birth", ""))
-            sortedNominations.forEach {
-                viewTextItems(listOf(it.emailAddress, it.firstNameOfChild, it.surnameOfChild.trim(), DayDate(it.childDateOfBirth).toString()))
-                clickableIcon(Icons.Default.Email, "mail", Color.Green) {
-                    viewModel.sendEmail(it, settings.values().firstOrNull())
+    var editingNomination by remember { mutableStateOf<Nomination?>(null) }
+
+    if (editingNomination != null) {
+        NominationEditor(
+            nomination = editingNomination!!,
+            viewModel = viewModel,
+            onDone = { editingNomination = null }
+        )
+    } else {
+        ViewCommon("Nominations",
+            persistentListOf(state, settings),
+            bottomBar = {
+                BottomBarWithButtons(
+                    importButtonSettings(viewModel) { row ->
+                        toNomination(row)
+                    }
+                )
+            }) { padding ->
+            val sortedNominations = state.values()
+            TrailingIconLazyVerticalGrid(padding, 5, 2) {
+                viewTextItems(listOf("Name", "School year", "Gender", "Primary", "Secondary", "", ""))
+                sortedNominations.forEach { nomination ->
+                    viewTextItems(listOf("${nomination.firstNameOfChild} ${nomination.surnameOfChild.trim()}",
+                        nomination.whichYearGroupIsYourChildInNow,
+                        nomination.gender,
+                        nomination.primaryPosition,
+                        nomination.secondaryPosition))
+                    clickableIcon(Icons.Default.Email, "mail", Color.Green) {
+                        viewModel.sendEmail(nomination, settings.values().firstOrNull())
+                    }
+                    editButton { editingNomination = nomination }
                 }
             }
+        }
+    }
+}
+
+@Composable
+internal fun NominationEditor(
+    nomination: Nomination,
+    viewModel: NominationViewModel,
+    onDone: () -> Unit
+) {
+    val trialsState by viewModel.trialState.collectAsState()
+    val statesState by viewModel.statesState.collectAsState()
+
+    var firstName by remember { mutableStateOf(nomination.firstNameOfChild) }
+    var surname by remember { mutableStateOf(nomination.surnameOfChild) }
+    var yearGroup by remember { mutableStateOf(nomination.whichYearGroupIsYourChildInNow) }
+    var gender by remember { mutableStateOf(nomination.gender) }
+    var selectedState by remember { mutableStateOf(nomination.state ?: "") }
+
+    var newTrialDateString by remember { mutableStateOf("") }
+    var newTrialAttended by remember { mutableStateOf(false) }
+    var newTrialOutcome by remember { mutableStateOf("") }
+
+    val availableStates = statesState.values().map { it.name }
+    val stateOptions = (listOf("None") + availableStates).toImmutableList()
+    val selectedStateIndex = if (selectedState.isBlank()) 0 else stateOptions.indexOf(selectedState).let { if (it < 0) 0 else it }
+
+    val relatedTrials = trialsState.values().filter { it.nominee == nomination.id }
+
+    fun saveNomination() {
+        val stateRef = if (selectedState.isBlank() || selectedState == "None") null else selectedState
+        val updated = nomination.copy(
+            firstNameOfChild = firstName,
+            surnameOfChild = surname,
+            whichYearGroupIsYourChildInNow = yearGroup,
+            gender = gender,
+            state = stateRef
+        )
+        viewModel.update(updated)
+        onDone()
+    }
+
+    ViewCommon(
+        title = "Edit Nomination: $firstName $surname",
+        description = "Return to Nomination List",
+        bottomBar = {
+            BottomBarWithButton {
+                saveNomination()
+            }
+        },
+        confirm = { true },
+        confirmAction = { saveNomination() }
+    ) { padding ->
+        TrailingIconLazyVerticalGrid(padding, 2, 0) {
+            gridEntry(firstName, "First Name") { firstName = it }
+            gridEntry(surname, "Surname") { surname = it }
+            gridEntry(yearGroup, "School Year") { yearGroup = it }
+            gridEntry(gender, "Gender") { gender = it }
+
+            item { ViewText("State") }
+            item {
+                DropdownList(
+                    itemList = stateOptions,
+                    selectedIndex = selectedStateIndex,
+                    onItemClick = { idx ->
+                        selectedState = if (idx == 0) "" else stateOptions[idx]
+                    }
+                )
+            }
+
+            item { ViewText("Related Trials") }
+            item { ViewText("") }
+
+            item { ViewText("Date") }
+            item { ViewText("Attended / Outcome") }
+
+            relatedTrials.forEach { trial ->
+                val dateDisplay = DayDate(trial.date).toString()
+                item { ViewText(dateDisplay) }
+                item {
+                    val outcomeDisplay = trial.outcome ?: "No Outcome"
+                    Row {
+                        OutlinedTextButton(
+                            value = "${if (trial.attended) "Attended" else "Absent"} | $outcomeDisplay",
+                            onClick = {
+                                viewModel.updateTrial(trial.copy(attended = !trial.attended))
+                            }
+                        )
+                        IconButton(onClick = { viewModel.deleteTrial(trial) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Trial", tint = Color.Red)
+                        }
+                    }
+                }
+            }
+
+            item { ViewText("Add Trial (dd/mm/yyyy)") }
+            item {
+                ViewTextField(
+                    value = newTrialDateString,
+                    onValueChange = { newTrialDateString = it },
+                    label = "Date"
+                )
+            }
+
+            item { ViewText("New Trial Outcome") }
+            item {
+                DropdownList(
+                    itemList = stateOptions,
+                    selectedIndex = if (newTrialOutcome.isBlank()) 0 else stateOptions.indexOf(newTrialOutcome).let { if (it < 0) 0 else it },
+                    onItemClick = { idx ->
+                        newTrialOutcome = if (idx == 0) "" else stateOptions[idx]
+                    }
+                )
+            }
+
+            item {
+                OutlinedTextButton(
+                    value = "Add Trial",
+                    enabled = newTrialDateString.isNotBlank(),
+                    onClick = {
+                        val parsedDate = DayDate(newTrialDateString).value()
+                        val outcomeRef = if (newTrialOutcome.isBlank() || newTrialOutcome == "None") null else newTrialOutcome
+                        viewModel.addTrial(
+                            Trial(
+                                nominee = nomination.id,
+                                date = parsedDate,
+                                attended = newTrialAttended,
+                                outcome = outcomeRef
+                            )
+                        )
+                        newTrialDateString = ""
+                        newTrialOutcome = ""
+                    }
+                )
+            }
+            item { ViewText("") }
         }
     }
 }
@@ -70,28 +259,32 @@ internal fun toNomination(row: DataRow<Any?>): Nomination {
     if (childBirthDate == 0) {
         println(row)
     }
+    val adultDetails = io.github.iandbrown.trials.database.AdultDetails(
+        type = io.github.iandbrown.trials.database.AdultType.PARENT_OR_CARER,
+        emailAddress = string(row[1]),
+        firstNameOfParentOrCarer = string(row[14]),
+        surnameOfParentOrCarer = string(row[15]),
+        parentOrCarerMobileNumber = string(row[16]),
+        parentOrCarerEmail = string(row[17]),
+        confirmEmail = string(row[18])
+    )
     return Nomination(
-        string(row[1]),
-        string(row[2]),
-        string(row[3]),
-        childBirthDate,
-        string(row[5]),
-        string(row[6]),
-        string(row[7]),
-        string(row[8]),
-        string(row[9]),
-        string(row[10]),
-        string(row[11]),
-        string(row[12]),
-        string(row[13]),
-        string(row[14]),
-        string(row[15]),
-        string(row[16]),
-        string(row[17]),
-        string(row[18]),
-        string(row[19]),
-        string(row[20]),
-        string(row[21])
+        adultDetails = adultDetails,
+        firstNameOfChild = string(row[2]),
+        surnameOfChild = string(row[3]),
+        childDateOfBirth = childBirthDate,
+        gender = string(row[5]),
+        whichSchoolDoesYourChildAttend = string(row[6]),
+        whichYearGroupIsYourChildInNow = string(row[7]),
+        primaryPosition = string(row[8]),
+        secondaryPosition = string(row[9]),
+        foot = string(row[10]),
+        doesYourChildPlayForATeamOnTheWeekend = string(row[11]),
+        whatTypeOfTeamDoTheyPlayFor = string(row[12]),
+        teamTheyPlayFor = string(row[13]),
+        medicalConditions = string(row[19]),
+        iWishMyChildToAttendTrials = string(row[20]),
+        consentToTheTakingOfPhotographs = string(row[21])
     )
 }
 

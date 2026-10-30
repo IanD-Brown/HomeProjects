@@ -12,7 +12,8 @@ private const val table = "EmailTemplates"
 @Entity(tableName = table)
 data class EmailTemplate(
     @PrimaryKey val name: String,
-    val bodyTemplate: String
+    val subjectTemplate: String = "",
+    val bodyTemplate: String = ""
 )
 
 @Dao

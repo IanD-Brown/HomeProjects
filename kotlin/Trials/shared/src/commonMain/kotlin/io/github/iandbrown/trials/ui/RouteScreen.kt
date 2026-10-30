@@ -42,7 +42,8 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
             items(items = listOf(
                 "Nominations" to Route.Nominations,
                 "Email Templates" to Route.EmailTemplates,
-                "States" to Route.States
+                "States" to Route.States,
+                "Team Categories" to Route.TeamCategories
             )) { (name, route) ->
                 ListItem(
                     headlineContent = { Text(name) },
