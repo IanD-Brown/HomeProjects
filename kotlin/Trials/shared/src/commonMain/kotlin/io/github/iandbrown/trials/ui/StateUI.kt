@@ -68,7 +68,7 @@ internal fun StateView(showEditor: (State?, ImmutableSet<String>) -> Unit) {
             viewTextItems(listOf("Name", "Entry Email", "Type", "Next States", "", ""))
             state.values().forEach { st ->
                 val entryEmailText = st.entryEmail ?: "-"
-                val stateTypeDisplayName = StateType.fromInt(st.type).displayName
+                val stateTypeDisplayName = StateType.entries[st.type].displayName
                 val nextStateNames = nextStates.values().filter { it.stateName == st.name }.map { it.nextStateName }
                 val nextStatesList = nextStateNames.joinToString(", ").ifEmpty { "-" }
                 viewTextItems(listOf(st.name, entryEmailText, stateTypeDisplayName, nextStatesList))
@@ -94,7 +94,7 @@ internal fun StateEditor(state: State?, currentNextStates: ImmutableSet<String>,
     val existingStart = states.values().find { it.type == StateType.START.ordinal && it.name != state?.name }
     val isStartConflict = selectedType == StateType.START.ordinal && existingStart != null
 
-    val existingError = states.values().find { it.type == StateType.ERROR.value && it.name != state?.name }
+    val existingError = states.values().find { it.type == StateType.ERROR.ordinal && it.name != state?.name }
     val isErrorConflict = selectedType == StateType.ERROR.ordinal && existingError != null
 
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }

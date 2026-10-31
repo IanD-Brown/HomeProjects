@@ -129,8 +129,8 @@ internal fun ViewCommon(
             topBar = { CreateTopBar(title, description, confirm, confirmAction) },
         ) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                for (error in errors) {
-                    ViewText(error.message)
+                for ((message) in errors) {
+                    ViewText(message)
                 }
             }
         }
@@ -303,7 +303,6 @@ internal fun ViewTextField(
 @Composable
 internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,

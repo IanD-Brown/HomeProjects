@@ -15,15 +15,11 @@ import kotlinx.serialization.Serializable
 private const val statesTable = "States"
 
 @Serializable
-enum class StateType(val value: Int, val displayName: String) {
-    START(0, "Start"),
-    INTERMEDIATE(1, "Intermediate"),
-    END(2, "End"),
-    ERROR(3, "Error");
-
-    companion object {
-        fun fromInt(value: Int): StateType = entries.find { it.value == value } ?: INTERMEDIATE
-    }
+enum class StateType(val displayName: String, val readOnly: Boolean) {
+    START("Start", false),
+    INTERMEDIATE("Intermediate", true),
+    END("End", true),
+    ERROR("Error", false);
 }
 
 @Serializable

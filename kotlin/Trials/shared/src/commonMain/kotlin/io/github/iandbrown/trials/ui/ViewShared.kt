@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -35,6 +36,8 @@ import androidx.compose.material3.AssistChipDefaults.IconSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,11 +46,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -78,6 +84,7 @@ import androidx.room.useWriterConnection
 import io.github.iandbrown.trials.database.AppDatabase
 import io.github.iandbrown.trials.database.BaseReadDao
 import io.github.iandbrown.trials.database.BaseWriteDao
+import io.github.iandbrown.trials.logic.DayDate
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -520,6 +527,51 @@ internal suspend fun tryTransaction(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DatePickerView(current: Int, modifier: Modifier, isSelectable: (Long) -> Boolean, onItemClick: (Int) -> Unit) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    ViewTextField(
+        value = DayDate(current).toString(),
+        modifier = modifier,
+        trailingIcon = {
+            IconButton(onClick = { showDatePicker = !showDatePicker }) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = "Select date"
+                )
+            }
+        }
+    ) {}
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = DayDate(current).asUtcMs(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = isSelectable(utcTimeMillis)
+            })
+        val onDismissRequest = { showDatePicker = false }
+
+        DatePickerDialog(
+            onDismissRequest = onDismissRequest,
+            confirmButton = {
+                TextButton(
+                    enabled = (datePickerState.selectedDateMillis ?: 0) > 0L,
+                    onClick = {
+                        onItemClick(DayDate(datePickerState.selectedDateMillis!!).value())
+                        onDismissRequest()
+                    }) { ViewText("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissRequest) { ViewText("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
 internal fun LazyGridScope.gridEntry(value : String, title : String? = null, readOnly: Boolean = false, onValueChange: (String) -> Unit) {
     if (title != null) {
         item { ViewText(title) }
@@ -545,4 +597,15 @@ internal fun LazyGridScope.gridEntry(value: Boolean, title: String? = null, enab
         item { ViewText(title) }
     }
     item { Checkbox(value, onValueChange, Modifier.height(textFieldHeight), enabled) }
+}
+
+internal fun LazyGridScope.gridEntry(current: Int, title: String? = null, readOnly: Boolean, isSelectable: (Long) -> Boolean, onValueChange: (Int) -> Unit) {
+    if (title != null) {
+        item { ViewText(title) }
+    }
+    if (readOnly) {
+        item { ViewText(DayDate(current).toString())}
+    } else {
+        item { DatePickerView(current, Modifier, isSelectable, onValueChange) }
+    }
 }
