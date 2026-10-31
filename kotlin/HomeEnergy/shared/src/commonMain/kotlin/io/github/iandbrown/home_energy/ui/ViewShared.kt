@@ -94,8 +94,8 @@ internal fun ViewCommon(
             topBar = { CreateTopBar(title, description, confirm, confirmAction) },
         ) {paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                for (error in errors) {
-                    ViewText(error.message)
+                for ((message) in errors) {
+                    ViewText(message)
                 }
             }
         }
@@ -251,7 +251,6 @@ internal fun ViewTextField(
 @Composable
 internal fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun textFieldColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,
@@ -357,14 +356,14 @@ internal fun BottomBarWithButton(value : String = OK, enabled: Boolean = true, o
 @Composable
 internal fun BottomBarWithButtons(vararg buttonSettings: ButtonSettings) {
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-        for (buttonSetting in buttonSettings) {
-            if (buttonSetting.imageVector == null) {
-                OutlinedTextButton(buttonSetting.value, Modifier.wrapContentSize(), buttonSetting.enabled) {
-                    buttonSetting.onClick()
+        for ((value, enabled, imageVector, onClick) in buttonSettings) {
+            if (imageVector == null) {
+                OutlinedTextButton(value, Modifier.wrapContentSize(), enabled) {
+                    onClick()
                 }
             } else {
-                IconButton(onClick = { buttonSetting.onClick() }) {
-                    Icon(buttonSetting.imageVector, contentDescription = null)
+                IconButton(onClick = { onClick() }) {
+                    Icon(imageVector, contentDescription = null)
                 }
             }
         }
@@ -419,14 +418,6 @@ internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
         Modifier,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
-}
-
-@Composable
-internal fun EditorRow(title: String, content: @Composable () -> Unit) {
-    Row {
-        ViewText(title)
-        content()
-    }
 }
 
 @Composable
