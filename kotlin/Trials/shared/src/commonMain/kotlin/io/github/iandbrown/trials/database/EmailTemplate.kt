@@ -1,5 +1,6 @@
 package io.github.iandbrown.trials.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -12,6 +13,8 @@ private const val table = "EmailTemplates"
 @Entity(tableName = table)
 data class EmailTemplate(
     @PrimaryKey val name: String,
+    @ColumnInfo(defaultValue = "") val toTemplate: String = "",
+    @ColumnInfo(defaultValue = "") val copyTemplate: String = "",
     val subjectTemplate: String = "",
     val bodyTemplate: String = ""
 )

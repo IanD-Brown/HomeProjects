@@ -49,7 +49,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -67,7 +66,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -150,6 +148,7 @@ private fun CreateTopBar(
     confirm: () -> Boolean,
     confirmAction: (Boolean) -> Unit
 ) {
+    val backstack = LocalBackstack.current
     var isDialogOpen by remember { mutableStateOf(false) }
     val navState = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
@@ -167,6 +166,8 @@ private fun CreateTopBar(
         IconButton(onClick = {
             if (confirm()) {
                 isDialogOpen = true
+            } else if (backstack.size > 1) {
+                backstack.removeLastOrNull()
             }
         }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = description)
@@ -191,14 +192,15 @@ private fun CreateTopBar(
 }
 
 @Composable
-private fun SingleLineTextField(value: String,
-                                onValueChange: (String) -> Unit,
-                                modifier: Modifier,
-                                label: @Composable (() -> Unit)? = null,
-                                trailingIcon: @Composable (() -> Unit)? = null,
-                                isError: Boolean = false,
-                                keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-                                readOnly : Boolean = false
+private fun CustomTextField(value: String,
+                            onValueChange: (String) -> Unit,
+                            modifier: Modifier,
+                            label: @Composable (() -> Unit)? = null,
+                            trailingIcon: @Composable (() -> Unit)? = null,
+                            isError: Boolean = false,
+                            keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+                            readOnly : Boolean = false,
+                            lineCount: Int = 1
 ) {
     val colors = textFieldColors()
     val textStyle = textStyle()
@@ -220,15 +222,15 @@ private fun SingleLineTextField(value: String,
             value,
             onValueChange,
             modifier.defaultMinSize(TextFieldDefaults.MinWidth)
-                .height(textFieldHeight)
+                .height(textFieldHeight * lineCount)
                 .padding(horizontal = 4.dp),
             readOnly = readOnly,
             textStyle = mergedTextStyle,
             keyboardOptions = keyboardOptions,
             cursorBrush = SolidColor(if (isError) colors.errorCursorColor else colors.cursorColor),
             interactionSource = interactionSource,
-            singleLine = true,
-            maxLines = 1,
+            singleLine = lineCount == 1,
+            maxLines = lineCount,
             minLines = 1,
             decorationBox =
                 @Composable { innerTextField ->
@@ -237,7 +239,7 @@ private fun SingleLineTextField(value: String,
                         value,
                         innerTextField = innerTextField,
                         enabled = true,
-                        singleLine = true,
+                        singleLine = lineCount == 1,
                         visualTransformation = VisualTransformation.None,
                         interactionSource = interactionSource,
                         isError = isError,
@@ -251,6 +253,7 @@ private fun SingleLineTextField(value: String,
         )
     }
 }
+
 @Composable
 internal fun ViewText(value : String, modifier: Modifier = Modifier) =
     Text(
@@ -271,8 +274,8 @@ fun ViewTextField(
     onValueChange: (String) -> Unit
 )  =
     when (label) {
-        null -> SingleLineTextField(value, onValueChange, modifier, trailingIcon = trailingIcon, readOnly = readOnly)
-        else -> SingleLineTextField(value, onValueChange, modifier, { ViewText(label) }, trailingIcon, readOnly = readOnly)
+        null -> CustomTextField(value, onValueChange, modifier, trailingIcon = trailingIcon, readOnly = readOnly)
+        else -> CustomTextField(value, onValueChange, modifier, { ViewText(label) }, trailingIcon, readOnly = readOnly)
     }
 @Composable
 fun textStyle(): TextStyle = TextStyle.Default.copy(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface)
@@ -375,6 +378,36 @@ class TrailingIconGridCells(val dataColumnCount: Int, val trailingIconCount: Int
     }
 }
 
+@Composable
+internal fun WeightedIconLazyVerticalGrid(paddingValues: PaddingValues,
+                                          iconCount: Int,
+                                          vararg weights: Int,
+                                          content: LazyGridScope.() -> Unit) {
+    LazyVerticalGrid(modifier = Modifier.padding(paddingValues),
+        columns = WeightedIconGridCells(iconCount, weights)) {
+        content()
+    }
+}
+
+internal class WeightedIconGridCells(val iconCount: Int, val weights: IntArray) : GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        val columnCount = iconCount + weights.size
+        val totalSpacing = spacing * (columnCount - 1)
+        val iconSize = (IconSize + 16.dp).roundToPx()
+        val remainingSpace = availableSize - totalSpacing - iconSize * iconCount
+        val totalWeight = weights.sum()
+        return mutableListOf<Int>().apply {
+            repeat(weights.size) {
+                add((remainingSpace / totalWeight) * weights[it])
+            }
+        }.apply {
+            repeat(iconCount) {
+                add(iconSize)
+            }
+        }
+    }
+}
+
 internal data class ButtonSettings(val value : String = OK, val enabled: Boolean = true, val imageVector: ImageVector? = null, val onClick : () -> Unit)
 
 internal fun addButtonSettings(onClick : () -> Unit, enabled: Boolean = true) : ButtonSettings =
@@ -433,31 +466,6 @@ internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () 
 internal fun LazyGridScope.viewTextItems(values: List<String>) {
     items(items = values) {
         ViewText(it)
-    }
-}
-
-@Composable
-internal fun NumericField(value: String, onValueChange: (String) -> Unit) {
-    TextField(
-        value = value,
-        onValueChange = {
-            try {
-                onValueChange(it)
-            } catch (_: NumberFormatException) {
-            }
-        },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        colors = textFieldColors(),
-        textStyle = textStyle()
-    )
-}
-
-@Composable
-internal fun EditorRow(title: String, content: @Composable () -> Unit) {
-    Row {
-        ViewText(title)
-        content()
     }
 }
 
@@ -572,11 +580,11 @@ internal fun DatePickerView(current: Int, modifier: Modifier, isSelectable: (Lon
     }
 }
 
-internal fun LazyGridScope.gridEntry(value : String, title : String? = null, readOnly: Boolean = false, onValueChange: (String) -> Unit) {
+internal fun LazyGridScope.gridEntry(value : String, title : String? = null, readOnly: Boolean = false, lineCount:Int = 1, onValueChange: (String) -> Unit) {
     if (title != null) {
         item { ViewText(title) }
     }
-    item { ViewTextField(value = value, readOnly = readOnly, onValueChange = onValueChange) }
+    item { CustomTextField(value, onValueChange, Modifier, trailingIcon = null, readOnly = readOnly, lineCount = lineCount) }
 }
 
 internal fun LazyGridScope.gridEntry(itemList: ImmutableList<String>, selectedIndex: Int, title: String?, onItemClick: (Int) -> Unit) {

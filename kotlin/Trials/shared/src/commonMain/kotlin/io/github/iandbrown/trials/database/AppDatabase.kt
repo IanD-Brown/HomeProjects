@@ -1,9 +1,10 @@
 package io.github.iandbrown.trials.database
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-private const val version = 1
+private const val version = 2
 private const val majorVersion = 1
 
 @Database(entities = [
@@ -19,6 +20,7 @@ private const val majorVersion = 1
     views = [],
     version = version,
     autoMigrations = [
+        AutoMigration(1, 2)
     ])
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAdultDetailsDao(): AdultDetailsDao

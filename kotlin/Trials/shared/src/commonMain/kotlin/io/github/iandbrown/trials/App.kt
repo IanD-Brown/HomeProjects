@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateListOf
@@ -15,8 +14,9 @@ import com.softartdev.theme.material3.PreferableMaterialTheme
 import io.github.iandbrown.trials.ui.LocalBackstack
 import io.github.iandbrown.trials.ui.Route
 import org.koin.compose.navigation3.koinEntryProvider
+import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun App() {
     PreferableMaterialTheme {

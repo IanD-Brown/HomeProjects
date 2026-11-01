@@ -15,79 +15,104 @@ internal class EmailTemplateViewModel(dao: EmailTemplateDao) :
     CRUDViewModel<EmailTemplateDao, EmailTemplate>(dao = dao)
 
 @Composable
-internal fun EmailTemplateView() {
+internal fun EmailTemplateView(showEditor: (EmailTemplate?) -> Unit) {
     val viewModel: EmailTemplateViewModel = koinViewModel()
     val state by viewModel.getState().collectAsState()
-    var editingTemplate by remember { mutableStateOf<EmailTemplate?>(null) }
-    var isAdding by remember { mutableStateOf(false) }
 
-    if (isAdding || editingTemplate != null) {
-        EmailTemplateEditor(
-            template = editingTemplate,
-            onSave = { template ->
-                if (editingTemplate == null) {
-                    viewModel.insert(template)
-                } else {
-                    viewModel.update(template)
-                }
-                editingTemplate = null
-                isAdding = false
-            },
-            onCancel = {
-                editingTemplate = null
-                isAdding = false
-            }
-        )
-    } else {
-        ViewCommon(
-            title = "Email Templates",
-            states = persistentListOf(state),
-            bottomBar = {
-                BottomBarWithButtons(
-                    addButtonSettings(onClick = { isAdding = true })
-                )
-            }
-        ) { padding ->
-            TrailingIconLazyVerticalGrid(padding, 3, 2) {
-                viewTextItems(listOf("Name", "Subject Template", "Body Template", "", ""))
-                state.values().forEach { template ->
-                    viewTextItems(listOf(template.name, template.subjectTemplate, template.bodyTemplate))
-                    editButton { editingTemplate = template }
-                    deleteButton { viewModel.delete(template) }
-                }
+    ViewCommon(
+        title = "Email Templates",
+        states = persistentListOf(state),
+        bottomBar = {
+            BottomBarWithButtons(
+                addButtonSettings(onClick = { showEditor(null) })
+            )
+        }
+    ) { padding ->
+        TrailingIconLazyVerticalGrid(padding, 3, 2) {
+            viewTextItems(listOf("Name", "To", "Subject", "", ""))
+            state.values().forEach { template ->
+                viewTextItems(listOf(template.name, template.toTemplate, template.subjectTemplate))
+                editButton { showEditor(template) }
+                deleteButton { viewModel.delete(template) }
             }
         }
     }
 }
 
 @Composable
-internal fun EmailTemplateEditor(
-    template: EmailTemplate?,
-    onSave: (EmailTemplate) -> Unit,
-    onCancel: () -> Unit
-) {
+internal fun EmailTemplateEditor(template: EmailTemplate?, done: () -> Unit) {
+    val viewModel: EmailTemplateViewModel = koinViewModel()
     var name by remember { mutableStateOf(template?.name ?: "") }
+    var toTemplate by remember { mutableStateOf(template?.toTemplate ?: "") }
+    var copyTemplate by remember { mutableStateOf(template?.copyTemplate ?: "") }
     var subjectTemplate by remember { mutableStateOf(template?.subjectTemplate ?: "") }
     var bodyTemplate by remember { mutableStateOf(template?.bodyTemplate ?: "") }
-    val isEditing = template != null
 
-    val isValid = name.isNotBlank()
+    var editorState by remember { mutableStateOf(EditorState.CLEAN) }
+
+    fun editorTemplate(): EmailTemplate =
+        EmailTemplate(name, toTemplate, copyTemplate, subjectTemplate, bodyTemplate)
+
+    fun allBlank(): Boolean =
+        name.isBlank() && toTemplate.isBlank() && copyTemplate.isBlank()  && subjectTemplate.isBlank() && bodyTemplate.isBlank()
+
+    fun setEditorState() {
+        editorState = if ((template == null && allBlank()) || editorTemplate() == template) {
+            EditorState.CLEAN
+        } else if ((template == null && name.isBlank() && !allBlank())) {
+            EditorState.DIRTY
+        } else {
+            EditorState.VALID
+        }
+    }
+
+    fun save() {
+        val editorTemplate = editorTemplate()
+        if (template == null) {
+            viewModel.insert(editorTemplate)
+        } else if (editorTemplate != template) {
+            viewModel.update(editorTemplate)
+        }
+    }
 
     ViewCommon(
-        title = if (isEditing) "Edit Email Template" else "Add Email Template",
-        description = "Cancel editing",
+        title = if (template != null) "Edit Email Template" else "Add Email Template",
+        description = "Return to email templates",
         bottomBar = {
-            BottomBarWithButton(enabled = isValid) {
-                onSave(EmailTemplate(name = name, subjectTemplate = subjectTemplate, bodyTemplate = bodyTemplate))
+            BottomBarWithButton(enabled = editorState == EditorState.VALID) {
+                save()
+                done()
             }
         },
-        confirm = { name.isNotBlank() },
-        confirmAction = { onSave(EmailTemplate(name = name, subjectTemplate = subjectTemplate, bodyTemplate = bodyTemplate)) }
+        confirm = { editorState == EditorState.VALID },
+        confirmAction = { save ->
+            if (save) {
+                save()
+            }
+            done()
+        }
     ) { padding ->
-        TrailingIconLazyVerticalGrid(padding, 2, 0) {
-            gridEntry(name, "Name", onValueChange = { if (!isEditing) name = it })
-            gridEntry(subjectTemplate, "Subject Template", onValueChange = { subjectTemplate = it })
-            gridEntry(bodyTemplate, "Body Template", onValueChange = { bodyTemplate = it })
+        WeightedIconLazyVerticalGrid(padding, 0, 1, 4) {
+            gridEntry(name, "Name", readOnly = template != null) {
+                name = it
+                setEditorState()
+            }
+            gridEntry(toTemplate, "To") {
+                toTemplate = it
+                setEditorState()
+            }
+            gridEntry(copyTemplate, "Copy") {
+                copyTemplate = it
+                setEditorState()
+            }
+            gridEntry(subjectTemplate, "Subject") {
+                subjectTemplate = it
+                setEditorState()
+            }
+            gridEntry(bodyTemplate, "Body", lineCount = 10) {
+                bodyTemplate = it
+                setEditorState()
+            }
         }
     }
 }

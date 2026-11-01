@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +78,7 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
     val errorState = states.values().firstOrNull { StateType.entries[it.type] == StateType.ERROR }
     var teamCategoryFilter by remember { mutableIntStateOf(0) }
     var stateFilter by remember { mutableIntStateOf(0) }
+    var selected by remember { mutableStateOf(setOf<Int>()) }
 
     ViewCommon("Nominations",
         persistentListOf(state, settings, teamCategories),
@@ -92,28 +96,33 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
                 val teamCategoryList = (listOf("") + teamCategories.values().map { it.name }).toImmutableList()
                 DropdownList(teamCategoryList, teamCategoryFilter, modifier = Modifier.weight(1f)) {
                     teamCategoryFilter = it
+                    selected = setOf()
                 }
                 Spacer(modifier = Modifier.size(8.dp))
-                ViewText(" and ")
+                ViewText(" and/or ")
                 Spacer(modifier = Modifier.size(8.dp))
                 val stateList = (listOf("") + states.values().map { it.name }).toImmutableList()
                 DropdownList(stateList, stateFilter, modifier = Modifier.weight(1f)) {
                     stateFilter = it
+                    selected = setOf()
                 }
+                Spacer(modifier = Modifier.size(8.dp))
+                ViewText("Selected: ${selected.size}", Modifier.weight(1f))
             }
 
             val (columnCount, header) = if (teamCategoryFilter == 0) {
-                Pair(5,listOf("Name", "School year", "Gender", "Primary", "Secondary", "", ""))
+                Pair(5,listOf("Name", "School year", "Gender", "Primary", "Secondary", "", "", ""))
             } else {
-                Pair(3,listOf("Name", "Primary", "Secondary", "", ""))
+                Pair(3,listOf("Name", "Primary", "Secondary", "", "", ""))
             }
             val nominationValues = state.values()
                 .filter { teamCategoryFilter == 0 ||
                         it.gender == teamCategories.values()[teamCategoryFilter - 1].gender.displayName &&
                         it.whichYearGroupIsYourChildInNow == teamCategories.values()[teamCategoryFilter - 1].yearGroup.displayName }
                 .filter { stateFilter == 0 || it.state == states.values()[stateFilter - 1].name }
+            val surfaceColor = MaterialTheme.colorScheme.onSurface
 
-            TrailingIconLazyVerticalGrid(PaddingValues(), columnCount, 2) {
+            TrailingIconLazyVerticalGrid(PaddingValues(), columnCount, 3) {
                 viewTextItems(header)
                 nominationValues.forEach { nomination ->
                     if (teamCategoryFilter == 0) {
@@ -134,6 +143,14 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
                                 nomination.secondaryPosition
                             )
                         )
+                    }
+                    val icon = if (selected.contains(nomination.id)) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank
+                    clickableIcon(icon, "", surfaceColor) {
+                        selected = if (selected.contains(nomination.id)) {
+                            selected - nomination.id
+                        } else {
+                            selected + nomination.id
+                        }
                     }
                     clickableIcon(Icons.Default.Email, "mail", Color.Green) {
                         viewModel.sendEmail(nomination, settings.values().firstOrNull())

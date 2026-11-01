@@ -2,6 +2,7 @@ package io.github.iandbrown.trials.ui
 
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import io.github.iandbrown.trials.database.EmailTemplate
 import io.github.iandbrown.trials.database.Nomination
 import io.github.iandbrown.trials.database.State
 import kotlinx.collections.immutable.ImmutableSet
@@ -26,6 +27,8 @@ internal sealed interface Route {
     data class StateEditor(val entity: State?, val currentNextStates: ImmutableSet<String>) : Route
     @Serializable
     data class NominationEditor(val entity: Nomination) : Route
+    @Serializable
+    data class EmailTemplateEditor(val entity: EmailTemplate?) : Route
 }
 
 val LocalBackstack = compositionLocalOf<SnapshotStateList<Any>> { error("No backstack provided") }

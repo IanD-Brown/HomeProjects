@@ -93,6 +93,8 @@ kotlin-dataframe-excel = { module = "org.jetbrains.kotlinx:dataframe-excel", ver
 kotlinmailer-core = { module = "at.quickme.kotlinmailer:core", version.ref = "kotlinmailer" }
 kotlinmailer-smtp = { module = "at.quickme.kotlinmailer:smtp", version.ref = "kotlinmailer" }
 kotlinmailer-html = { module = "at.quickme.kotlinmailer:html", version.ref = "kotlinmailer"}
+# test
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines"}
 
 [plugins]
 kotzilla = { id = "io.kotzilla.kotzilla-plugin", version.ref = "kotzilla" }

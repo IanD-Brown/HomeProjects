@@ -35,7 +35,13 @@ val uiModule = module {
     }
 
     navigation<Route.EmailTemplates> {
-        EmailTemplateView()
+        val backstack = LocalBackstack.current
+        EmailTemplateView {backstack.add(Route.EmailTemplateEditor(it))}
+    }
+
+    navigation<Route.EmailTemplateEditor> {
+        val backstack = LocalBackstack.current
+        EmailTemplateEditor(it.entity) { backstack.removeLastOrNull() }
     }
 
     navigation<Route.States> {
