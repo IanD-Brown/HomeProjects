@@ -28,9 +28,9 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             val expandedTeams = buildAllTeams(teams)
 
             then("each team should play against every other team once") {
-                for (team in expandedTeams) {
+                for ((first, second) in expandedTeams) {
                     val opponents = plannedGames.map {
-                        if (it.home.associationId == team.first && it.home.teamNumber == team.second)
+                        if (it.home.associationId == first && it.home.teamNumber == second)
                             Pair(it.away.associationId, it.away.teamNumber)
                         else
                             Pair(it.home.associationId, it.home.teamNumber)
@@ -42,18 +42,18 @@ class SeasonLeagueGamesTest : BehaviorSpec({
             then("the home and away game count for each team should be the same") {
                 val gameCounts = mutableMapOf<Pair<Short, Short>, Pair<Int, Int>>()
                 for (team in expandedTeams) {
-                    for (plannedGame in plannedGames) {
-                        val isHome = plannedGame.home.associationId == team.first && plannedGame.home.teamNumber == team.second
+                    for ((_, home) in plannedGames) {
+                        val isHome = home.associationId == team.first && home.teamNumber == team.second
 
                         gameCounts.getOrPut(team) { Pair(0, 0) }.let {
                             gameCounts[team] = Pair(it.first + if (isHome) 1 else 0, it.second + if (isHome) 0 else 1)
                         }
                     }
                 }
-                for (gameCount in gameCounts.values) {
-                    for (gameCount2 in gameCounts.values) {
-                        gameCount.first shouldBe gameCount2.first
-                        gameCount.second shouldBe gameCount2.second
+                for ((first, second) in gameCounts.values) {
+                    for ((first1, second1) in gameCounts.values) {
+                        first shouldBe first1
+                        second shouldBe second1
                     }
                 }
             }
@@ -261,11 +261,11 @@ private fun buildAllTeams(teams: List<SeasonTeam>): List<Pair<Short, Short>> = t
     }
 }
 
-private fun createSeasonCompView(competitionId: Int, startDate: String, endDate: String): SeasonCompView =
+private fun createSeasonCompView(competitionId: CompetitionId, startDate: String, endDate: String): SeasonCompView =
     SeasonCompView(
         1.toShort(),
         "",
-        competitionId.toShort(),
+        competitionId,
         "",
         0.toShort(),
         getDayDateVal(startDate),

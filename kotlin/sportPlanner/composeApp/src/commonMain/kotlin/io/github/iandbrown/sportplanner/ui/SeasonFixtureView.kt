@@ -153,11 +153,7 @@ fun FixtureScreen() {
         ViewCommon("Fixtures",
             states = persistentListOf(seasonState)) { paddingValues ->
             LazyVerticalGrid(columns = WeightedIconGridCells(4, 1), Modifier.padding(paddingValues)) {
-                item { ViewText("Season") }
-                item { Icon(Blank, "") }
-                item { Icon(Blank, "") }
-                item { Icon(Blank, "") }
-                item { Icon(Blank, "") }
+                viewTextItems(listOf("Season", "", "", "", ""))
                 for (season in seasonState.values().sortedByDescending { it.name.trim().uppercase() }) {
                     item { ViewText(season.name) }
                     clickableIcon(Icons.Filled.Info, "Date summary", onSurface) {

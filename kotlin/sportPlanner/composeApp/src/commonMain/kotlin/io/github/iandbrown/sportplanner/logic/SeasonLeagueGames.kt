@@ -79,7 +79,7 @@ private class FixtureScheduler(
 
         var missingCount = 0
         for (plannedGameEntry in plannedGamesByTeamCategoryId) {
-            if (!plannedGameEntry.value.isEmpty()) {
+            if (plannedGameEntry.value.isNotEmpty()) {
                 missingCount += plannedGameEntry.value.size
                 println("Missing fixtures $plannedGameEntry")
                 fixtures.add(SeasonFixture(
@@ -156,9 +156,8 @@ private class FixtureScheduler(
 
         init {
             for (tolerance in if (force) listOf(Tolerance.ALL) else listOf(Tolerance.NONE, Tolerance.SINGLE)) {
-                for (entry in teamCategoriesByMatchDay) {
-                    val teamCategories = entry.value
-                    val homeGameByAssociation = existingHomeFixtures(entry.key).toMutableMap()
+                for ((key, teamCategories) in teamCategoriesByMatchDay) {
+                    val homeGameByAssociation = existingHomeFixtures(key).toMutableMap()
 
                     for (teamCategory in teamCategories) {
                         if (isBreakScheduled(teamCategory) ||
