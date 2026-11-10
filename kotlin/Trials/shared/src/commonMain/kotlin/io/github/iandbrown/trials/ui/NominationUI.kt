@@ -1,18 +1,24 @@
 package io.github.iandbrown.trials.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
-import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,13 +28,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import dev.shivathapaa.logger.api.LoggerFactory
+import io.github.iandbrown.trials.database.AdultDetails
+import io.github.iandbrown.trials.database.AdultDetailsDao
+import io.github.iandbrown.trials.database.AdultType
+import io.github.iandbrown.trials.database.EmailTemplate
 import io.github.iandbrown.trials.database.Nomination
+import io.github.iandbrown.trials.database.NominationAdultDetails
+import io.github.iandbrown.trials.database.NominationAdultDetailsDao
 import io.github.iandbrown.trials.database.NominationDao
+import io.github.iandbrown.trials.database.NominationWithAdultDetails
 import io.github.iandbrown.trials.database.Setting
 import io.github.iandbrown.trials.database.State
 import io.github.iandbrown.trials.database.StateType
+import io.github.iandbrown.trials.database.StateWithNextStates
+import io.github.iandbrown.trials.database.StateWithNextStatesDao
 import io.github.iandbrown.trials.database.Trial
 import io.github.iandbrown.trials.database.TrialDao
 import io.github.iandbrown.trials.logic.DayDate
@@ -46,46 +62,216 @@ import org.koin.core.parameter.parametersOf
 import java.math.BigDecimal
 import kotlin.time.Clock
 
+internal class TrialViewModel(dao : TrialDao) : CRUDViewModel<TrialDao, Trial>(dao = dao), KoinComponent
+
 internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<NominationDao, Nomination>(dao = dao), KoinComponent {
-    internal fun sendEmail(nomination: Nomination, settings: Setting?) {
-        if (settings != null) {
-            runInCoroutine {
-                val emailSender: EmailSender = get { parametersOf(settings) }
-                emailSender.send(
-                    from = settings.userName,
-                    to = nomination.emailAddress,
-                    subject = "Nomination for ${nomination.firstNameOfChild} ${nomination.surnameOfChild}",
-                    body = "Nomination details for ${nomination.firstNameOfChild} ${nomination.surnameOfChild}"
-                )
+
+    private fun resolveTemplate(field: String?, nomination: NominationWithAdultDetails, dateValue: Int) : String {
+        if (field != null) {
+            val regex = """#\w+\b""".toRegex()
+
+            return regex.replace(field) { match ->
+                when (match.groupValues[0]) {
+                    "#Date" -> DayDate(dateValue).toString()
+                    "#ChildFirstName" -> nomination.nomination.firstNameOfChild
+                    "#ChildSurname" -> nomination.nomination.surnameOfChild
+                    "#ParentEmail" -> nomination.adultDetailsList
+                        .filter { it.type == AdultType.PARENT_OR_CARER }
+                        .joinToString(",") { it.emailAddress }
+                    "#NomineeEmail" -> nomination.adultDetailsList
+                        .filter { it.type == AdultType.NOMINEE }
+                        .joinToString(",") { it.emailAddress }
+                    else -> match.groupValues[0]
+                }
             }
+        }
+        return ""
+    }
+
+    internal fun setState(
+        settings: Setting?,
+        nominations: List<Nomination>,
+        nextState: StateWithNextStates?,
+        emailTemplate: EmailTemplate?,
+        dateValue: Int
+    ) {
+        val trialsDao : TrialDao = get()
+        runInCoroutine {
+            val emailSender: EmailSender? = if (settings != null) get { parametersOf(settings)} else null
+            try {
+                val nextStateName = nextState?.state?.name
+                nominations.forEach {
+                    val withAdultDetails = dao.getNominationWithAdultDetails(it.id)!!
+                    if (emailTemplate != null && emailSender != null) {
+                        val to = resolveTemplate(emailTemplate.toTemplate, withAdultDetails, dateValue)
+                        val copy = resolveTemplate(emailTemplate.copyTemplate, withAdultDetails, dateValue)
+                        val subject = resolveTemplate(emailTemplate.subjectTemplate, withAdultDetails, dateValue)
+                        val body = resolveTemplate(emailTemplate.bodyTemplate, withAdultDetails, dateValue)
+
+                         emailSender.send(settings?.userName ?: "", to, copy, subject, body)
+                    } else if (emailTemplate != null) {
+                        LoggerFactory.get(this.javaClass.name).info {
+                            "To: ${resolveTemplate(emailTemplate.toTemplate, withAdultDetails, dateValue)} " +
+                                    "Copy: ${ resolveTemplate(emailTemplate.copyTemplate, withAdultDetails, dateValue)} " +
+                                    "Subject ${resolveTemplate(emailTemplate.subjectTemplate, withAdultDetails, dateValue)} " +
+                                    "Body: ${resolveTemplate(emailTemplate.bodyTemplate, withAdultDetails, dateValue)}\n"
+                        }
+                    }
+                    trialsDao.getForNominee(it.id).firstOrNull()?.also {prior ->
+                        trialsDao.update(prior.copy(outcome = nextStateName))
+                    }
+                    trialsDao.insert(Trial(it.id, dateValue))
+                    update(it.copy(state = nextStateName))
+                }
+            } catch (e: Exception) {
+                handleException(e)
+            }
+        }
+    }
+    suspend fun insertWithAdultDetails(
+        nomination: Nomination,
+        adultDetailsList: List<AdultDetails>,
+        errorState: State?
+    ) {
+        val existing = dao.getByChildDetails(nomination.firstNameOfChild, nomination.surnameOfChild, nomination.childDateOfBirth)
+        val nominationId = when {
+            existing == null -> dao.insert(nomination).toInt()
+            errorState != null && existing.state == errorState.name && nomination.state != errorState.name -> {
+                dao.delete(existing)
+                dao.insert(nomination).toInt()
+            }
+            else -> {
+                dao.update(nomination.copy(id = existing.id))
+                existing.id
+            }
+        }
+
+        val adultDetailsDao: AdultDetailsDao = get()
+        val nominationAdultDetailsDao: NominationAdultDetailsDao = get()
+
+        adultDetailsList.forEach { adult ->
+            val existingAdult = adultDetailsDao.getByDetails(adult.emailAddress, adult.firstNameOfParentOrCarer, adult.surnameOfParentOrCarer, adult.type)
+            val adultId = if (existingAdult == null) {
+                adultDetailsDao.insert(adult).toInt()
+            } else {
+                adultDetailsDao.update(adult.copy(id = existingAdult.id))
+                existingAdult.id
+            }
+            nominationAdultDetailsDao.insert(NominationAdultDetails(nominationId = nominationId, adultDetailsId = adultId))
         }
     }
 }
 
-internal class TrialViewModel(dao : TrialDao) : CRUDViewModel<TrialDao, Trial>(dao = dao), KoinComponent
+internal class StateWithNextStatesViewModel(dao: StateWithNextStatesDao) : ReadViewModel<StateWithNextStatesDao, StateWithNextStates> (dao = dao)
 
 @Composable
 internal fun NominationList(showEditor: (Nomination) -> Unit) {
     val viewModel: NominationViewModel = koinViewModel()
-    val state by viewModel.getState().collectAsState()
+    val nominationState by viewModel.getState().collectAsState()
     val settingsModel: SettingsViewModel = koinViewModel()
     val settings by settingsModel.getState().collectAsState()
     val stateViewModel: StateViewModel = koinViewModel()
-    val states by stateViewModel.getState().collectAsState()
+    val nextStates by stateViewModel.getState().collectAsState()
+    val stateWithNextStatesViewModel: StateWithNextStatesViewModel = koinViewModel()
+    val stateWithNextStatesState by stateWithNextStatesViewModel.getState().collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()
     val teamCategories by teamCategoryViewModel.getState().collectAsState()
-    val startState = states.values().firstOrNull { StateType.entries[it.type] == StateType.START }
-    val errorState = states.values().firstOrNull { StateType.entries[it.type] == StateType.ERROR }
+    val emailTemplatesViewModel: EmailTemplateViewModel = koinViewModel()
+    val emailTemplatesState by emailTemplatesViewModel.getState().collectAsState()
+    val startState = nextStates.values().firstOrNull { StateType.entries[it.type] == StateType.START }
+    val errorState = nextStates.values().firstOrNull { StateType.entries[it.type] == StateType.ERROR }
+    val endStates = nextStates.values().filter { StateType.entries[it.type] == StateType.END }.map { it.name }
     var teamCategoryFilter by remember { mutableIntStateOf(0) }
     var stateFilter by remember { mutableIntStateOf(0) }
     var selected by remember { mutableStateOf(setOf<Int>()) }
+    var isDialogOpen by remember { mutableStateOf(false) }
+
+    fun closeDialog() {
+        isDialogOpen = false
+    }
+
+    if (isDialogOpen) {
+        var selectedNextState by remember { mutableStateOf<StateWithNextStates?>(null) }
+        var emailDateContent by remember { mutableIntStateOf(0) }
+
+        val nextStatesByStateName = stateWithNextStatesState.values().associateBy { it.state.name }
+        var nextStates = stateWithNextStatesState.values()
+            .map {it.nextStates}
+            .fold(mutableSetOf<State>()) { acc, set -> acc.apply { addAll(set) } }
+
+        val selectedNominations = nominationState.values().filter { selected.contains(it.id) }
+        selectedNominations
+            .forEach {
+                nextStates = nextStates.intersect(nextStatesByStateName[it.state]?.nextStates?.toSet()
+                    ?: emptySet()).toMutableSet()
+            }
+        val nextStateList = nextStates.toList().sortedBy { it.name }.map {it.name}.toImmutableList()
+
+        if (nextStateList.isNotEmpty()) {
+            selectedNextState = nextStatesByStateName[nextStateList[0]]
+        }
+
+        Dialog(onDismissRequest = { closeDialog() }/*, DialogProperties(dismissOnClickOutside = true)*/) {
+            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row {
+                        ViewText("Set state for Selection")
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    WeightedIconLazyVerticalGrid(PaddingValues(), 0, 1, 1) {
+                        gridEntry(nextStateList, 0, "Next state") {
+                            selectedNextState = nextStatesByStateName[nextStateList[it]]
+                        }
+
+                        if (selectedNextState == null || selectedNextState!!.state.entryEmail == null) {
+                            viewTextItems(listOf("Empty", ""))
+                        } else {
+                            val emailTemplate = emailTemplatesState.values()
+                                .firstOrNull { it.name == selectedNextState!!.state.entryEmail }
+                            if (emailTemplate?.bodyTemplate?.contains("#Date") == true || emailTemplate?.subjectTemplate?.contains(
+                                    "#Date"
+                                ) == true
+                            ) {
+                                gridEntry(
+                                    emailDateContent,
+                                    "Select Date",
+                                    readOnly = false,
+                                    isSelectable = { true }) {
+                                    emailDateContent = it
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { closeDialog()}) { Text("Cancel") }
+                        Button(onClick = {
+                            viewModel.setState(
+                                settings.values().firstOrNull(),
+                                selectedNominations,
+                                selectedNextState,
+                                emailTemplatesState.values().firstOrNull { it.name == selectedNextState!!.state.entryEmail },
+                                emailDateContent)
+                            closeDialog()
+                        }) { Text("OK") }
+                    }
+
+                }
+            }
+        }
+    }
 
     ViewCommon("Nominations",
-        persistentListOf(state, settings, teamCategories),
+        persistentListOf(nominationState, settings, teamCategories, stateWithNextStatesState, emailTemplatesState),
         bottomBar = {
             BottomBarWithButtons(
-                importButtonSettings(viewModel) { row ->
-                    toNomination(row, startState, errorState)
+                incrementalImportButtonSettings(viewModel) { row ->
+                    val (nomination, adultDetails) = toNomination(row, startState, errorState)
+                    viewModel.insertWithAdultDetails(nomination, adultDetails, errorState)
+                },
+                ButtonSettings("Action", selected.isNotEmpty()) {
+                    isDialogOpen = true
                 }
             )
         }) { padding ->
@@ -101,7 +287,7 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
                 Spacer(modifier = Modifier.size(8.dp))
                 ViewText(" and/or ")
                 Spacer(modifier = Modifier.size(8.dp))
-                val stateList = (listOf("") + states.values().map { it.name }).toImmutableList()
+                val stateList = (listOf("") + nextStates.values().map { it.name } + "Neither Error or End").toImmutableList()
                 DropdownList(stateList, stateFilter, modifier = Modifier.weight(1f)) {
                     stateFilter = it
                     selected = setOf()
@@ -111,18 +297,28 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
             }
 
             val (columnCount, header) = if (teamCategoryFilter == 0) {
-                Pair(5,listOf("Name", "School year", "Gender", "Primary", "Secondary", "", "", ""))
+                Pair(5,listOf("Name", "School year", "Gender", "Primary", "Secondary", "", ""))
             } else {
-                Pair(3,listOf("Name", "Primary", "Secondary", "", "", ""))
+                Pair(3,listOf("Name", "Primary", "Secondary", "", ""))
             }
-            val nominationValues = state.values()
+            val nominationValues = nominationState.values()
                 .filter { teamCategoryFilter == 0 ||
                         it.gender == teamCategories.values()[teamCategoryFilter - 1].gender.displayName &&
                         it.whichYearGroupIsYourChildInNow == teamCategories.values()[teamCategoryFilter - 1].yearGroup.displayName }
-                .filter { stateFilter == 0 || it.state == states.values()[stateFilter - 1].name }
+                .filter {
+                    when (stateFilter) {
+                        0 -> true
+                        nextStates.values().size + 1 -> {
+                            (errorState != null && it.state == errorState.name) || !endStates.contains(it.state)
+                        }
+                        else -> {
+                            it.state == nextStates.values()[stateFilter - 1].name
+                        }
+                    }
+                }
             val surfaceColor = MaterialTheme.colorScheme.onSurface
 
-            TrailingIconLazyVerticalGrid(PaddingValues(), columnCount, 3) {
+            TrailingIconLazyVerticalGrid(PaddingValues(), columnCount, 2) {
                 viewTextItems(header)
                 nominationValues.forEach { nomination ->
                     if (teamCategoryFilter == 0) {
@@ -151,9 +347,6 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
                         } else {
                             selected + nomination.id
                         }
-                    }
-                    clickableIcon(Icons.Default.Email, "mail", Color.Green) {
-                        viewModel.sendEmail(nomination, settings.values().firstOrNull())
                     }
                     editButton { showEditor(nomination) }
                 }
@@ -296,10 +489,12 @@ internal fun validDateOfBirth(currentYear: Int, yearGroup: String, date: Long) :
     return date >= firstDate.asUtcMs() && date < endDate.asUtcMs()
 }
 
-internal fun toNomination(row: DataRow<Any?>, startState: State?, errorState: State?): Nomination {
+internal fun toNomination(row: DataRow<Any?>, startState: State?, errorState: State?): Pair<Nomination, List<AdultDetails>> {
     val childBirthDate = date(row[4])
     val yearGroup = string(row[7])
-    val state = when (validDateOfBirth(yearGroup, DayDate(childBirthDate).asUtcMs())) {
+    val parentOrCarerEmail = string(row[17])
+    val confirmEmail = string(row[18])
+    val state = when (validDateOfBirth(yearGroup, DayDate(childBirthDate).asUtcMs()) && parentOrCarerEmail == confirmEmail) {
         true -> startState?.name
         else -> errorState?.name
     }
@@ -307,20 +502,22 @@ internal fun toNomination(row: DataRow<Any?>, startState: State?, errorState: St
         println("${string(row[2])} ${string(row[3])} ${row[4]} $yearGroup ${DayDate(childBirthDate)}")
     }
 
-    val adultDetails = io.github.iandbrown.trials.database.AdultDetails(
-        type = io.github.iandbrown.trials.database.AdultType.PARENT_OR_CARER,
-        emailAddress = string(row[1]),
-        firstNameOfParentOrCarer = string(row[14]),
-        surnameOfParentOrCarer = string(row[15]),
+    val adultDetails = AdultDetails(
+        type = AdultType.PARENT_OR_CARER,
+        emailAddress = parentOrCarerEmail,
+        firstNameOfParentOrCarer = string(row[14], true),
+        surnameOfParentOrCarer = string(row[15], true),
         parentOrCarerMobileNumber = string(row[16]),
-        parentOrCarerEmail = string(row[17]),
-        confirmEmail = string(row[18])
+        confirmEmail = confirmEmail
     )
-    return Nomination(
-        state,
-        adultDetails = adultDetails,
-        firstNameOfChild = string(row[2]),
-        surnameOfChild = string(row[3]),
+    val nomineeDetails = AdultDetails(
+        type = AdultType.NOMINEE,
+        emailAddress = string(row[1])
+    )
+    val nomination = Nomination(
+        state = state,
+        firstNameOfChild = string(row[2], true),
+        surnameOfChild = string(row[3], true),
         childDateOfBirth = childBirthDate,
         gender = string(row[5]),
         whichSchoolDoesYourChildAttend = string(row[6]),
@@ -328,21 +525,27 @@ internal fun toNomination(row: DataRow<Any?>, startState: State?, errorState: St
         primaryPosition = string(row[8]),
         secondaryPosition = string(row[9]),
         foot = string(row[10]),
-        doesYourChildPlayForATeamOnTheWeekend = string(row[11]),
+        doesYourChildPlayForATeamOnTheWeekend = string(row[11]).trim() == "Yes",
         whatTypeOfTeamDoTheyPlayFor = string(row[12]),
         teamTheyPlayFor = string(row[13]),
         medicalConditions = string(row[19]),
-        iWishMyChildToAttendTrials = string(row[20]),
-        consentToTheTakingOfPhotographs = string(row[21])
+        iWishMyChildToAttendTrials = string(row[20]).trim() == "Yes",
+        consentToTheTakingOfPhotographs = string(row[21]).trim() == "Yes"
     )
+    return Pair(nomination, listOf(adultDetails, nomineeDetails))
 }
 
-internal fun string(cell: Any?): String =
+internal fun string(cell: Any?, titleCase: Boolean = false): String =
     when (cell) {
-        is String -> cell
+        is String -> if (titleCase) titleCase(cell.trim()) else cell.trim()
         is Double -> cell.toString()
         is Char -> cell.toString()
         else -> ""
+    }
+
+private fun titleCase(value: String) : String =
+    """\b\w+\b""".toRegex().replace(value) {m ->
+        m.value.lowercase().replaceFirstChar { it.uppercaseChar() }
     }
 
 private enum class DateType(val pattern: Regex, val dayIndex: Int, val monthIndex: Int, val yearIndex: Int) {

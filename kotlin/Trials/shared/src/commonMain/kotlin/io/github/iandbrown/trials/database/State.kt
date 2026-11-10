@@ -72,3 +72,10 @@ interface StateDao : BaseReadDao<State>, BaseWriteDao<State> {
     @Query("DELETE FROM $statesTable")
     override suspend fun deleteAll()
 }
+
+@Dao
+interface StateWithNextStatesDao: BaseReadDao<StateWithNextStates> {
+    @Transaction
+    @Query("SELECT * from $statesTable")
+    override suspend fun get(): List<StateWithNextStates>
+}

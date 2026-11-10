@@ -70,7 +70,7 @@ internal fun StateView(showEditor: (State?, ImmutableSet<String>) -> Unit) {
                 val entryEmailText = st.entryEmail ?: "-"
                 val stateTypeDisplayName = StateType.entries[st.type].displayName
                 val nextStateNames = nextStates.values().filter { it.stateName == st.name }.map { it.nextStateName }
-                val nextStatesList = nextStateNames.joinToString(", ").ifEmpty { "-" }
+                val nextStatesList = nextStateNames.sorted().joinToString(", ").ifEmpty { "-" }
                 viewTextItems(listOf(st.name, entryEmailText, stateTypeDisplayName, nextStatesList))
                 editButton { showEditor(st, nextStateNames.toImmutableSet()) }
                 deleteButton { viewModel.delete(st) }
@@ -166,7 +166,7 @@ internal fun StateEditor(state: State?, currentNextStates: ImmutableSet<String>,
 
             viewTextItems(listOf("", "", "Next State", "Selected"))
 
-            states.values().map { it.name }.filter { it != name }.forEach { otherStateName ->
+            states.values().map { it.name }.forEach { otherStateName ->
                 val isChecked = selectedNextStates.contains(otherStateName)
                 gridEntry(isChecked, otherStateName) {
                     selectedNextStates = when (it) {

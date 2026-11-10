@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.iandbrown.trials.database.AppDatabase
+import io.github.iandbrown.trials.database.MIGRATION_3_4
 import io.github.iandbrown.trials.database.dbFileName
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.Module
@@ -13,6 +14,7 @@ import java.io.File
 actual fun platformModule(): Module = module {
     single<RoomDatabase.Builder<AppDatabase>> {
         Room.databaseBuilder<AppDatabase>(getFilePath())
+            .addMigrations(MIGRATION_3_4)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
     }

@@ -1,5 +1,6 @@
 package io.github.iandbrown.trials.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -35,6 +36,7 @@ private const val table = "Trials"
 data class Trial(
     val nominee: Int,
     val date: Int,
+    @ColumnInfo(defaultValue = "0") val confirmed: Boolean = false,
     val attended: Boolean = false,
     val outcome: String? = null,
     @PrimaryKey(autoGenerate = true)

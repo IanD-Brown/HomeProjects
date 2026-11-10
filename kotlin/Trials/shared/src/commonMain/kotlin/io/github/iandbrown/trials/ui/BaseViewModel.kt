@@ -74,6 +74,17 @@ fun logException(className: String, exception: Exception, context: String) {
     logger.error(exception) { "$context ${exception.message}" }
 }
 
+internal open class ReadViewModel<DAO, ENTITY>(val dao: DAO, val reader: suspend () -> List<ENTITY> = { dao.get() }) : ViewModel() where DAO : BaseReadDao<ENTITY> {
+    private val readDelegate = ReadDelegate(viewModelScope) { reader() }
+
+    fun getState(): StateFlow<ViewModelState<ENTITY>> =
+        readDelegate.uiState
+
+    fun readAll() = readDelegate.readAll()
+
+    fun handleException(exception: Exception) = readDelegate.handleException(exception)
+}
+
 internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO, val reader: suspend() -> List<ENTITY> = { dao.get() }) : ViewModel()
     where DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY> {
     private val readDelegate = ReadDelegate(viewModelScope) { reader() }
@@ -84,7 +95,7 @@ internal open class CRUDViewModel<DAO, ENTITY> (val dao: DAO, val reader: suspen
 
     internal fun readAll() = readDelegate.readAll()
 
-    fun insert(entity: ENTITY) {
+    open fun insert(entity: ENTITY) {
         runInCoroutine { dao.insert(entity) }
     }
 

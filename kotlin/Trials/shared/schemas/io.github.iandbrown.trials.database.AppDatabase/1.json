@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "531379173395600ef6989525d9ad3712",
+    "identityHash": "40707946bc1ac72140bbe5b6296ad4d2",
     "entities": [
       {
         "tableName": "AdultDetails",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`type` TEXT NOT NULL DEFAULT 'PARENT_OR_CARER', `emailAddress` TEXT NOT NULL DEFAULT '', `firstNameOfParentOrCarer` TEXT NOT NULL DEFAULT '', `surnameOfParentOrCarer` TEXT NOT NULL DEFAULT '', `parentOrCarerMobileNumber` TEXT NOT NULL DEFAULT '', `parentOrCarerEmail` TEXT NOT NULL DEFAULT '', `confirmEmail` TEXT NOT NULL DEFAULT '', `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL DEFAULT 0)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`type` TEXT NOT NULL DEFAULT 'PARENT_OR_CARER', `emailAddress` TEXT NOT NULL DEFAULT '', `firstNameOfParentOrCarer` TEXT NOT NULL DEFAULT '', `surnameOfParentOrCarer` TEXT NOT NULL DEFAULT '', `parentOrCarerMobileNumber` TEXT NOT NULL DEFAULT '', `confirmEmail` TEXT NOT NULL DEFAULT '', `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "type",
@@ -44,13 +44,6 @@
             "defaultValue": "''"
           },
           {
-            "fieldPath": "parentOrCarerEmail",
-            "columnName": "parentOrCarerEmail",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
             "fieldPath": "confirmEmail",
             "columnName": "confirmEmail",
             "affinity": "TEXT",
@@ -74,13 +67,27 @@
       },
       {
         "tableName": "EmailTemplates",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `subjectTemplate` TEXT NOT NULL, `bodyTemplate` TEXT NOT NULL, PRIMARY KEY(`name`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `toTemplate` TEXT NOT NULL DEFAULT '', `copyTemplate` TEXT NOT NULL DEFAULT '', `subjectTemplate` TEXT NOT NULL, `bodyTemplate` TEXT NOT NULL, PRIMARY KEY(`name`))",
         "fields": [
           {
             "fieldPath": "name",
             "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "toTemplate",
+            "columnName": "toTemplate",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "copyTemplate",
+            "columnName": "copyTemplate",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "subjectTemplate",
@@ -173,7 +180,7 @@
       },
       {
         "tableName": "Nominations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`state` TEXT, `firstNameOfChild` TEXT NOT NULL, `surnameOfChild` TEXT NOT NULL, `childDateOfBirth` INTEGER NOT NULL, `gender` TEXT NOT NULL, `whichSchoolDoesYourChildAttend` TEXT NOT NULL, `whichYearGroupIsYourChildInNow` TEXT NOT NULL, `primaryPosition` TEXT NOT NULL, `secondaryPosition` TEXT NOT NULL, `foot` TEXT NOT NULL, `doesYourChildPlayForATeamOnTheWeekend` TEXT NOT NULL, `whatTypeOfTeamDoTheyPlayFor` TEXT NOT NULL, `teamTheyPlayFor` TEXT NOT NULL, `medicalConditions` TEXT NOT NULL, `iWishMyChildToAttendTrials` TEXT NOT NULL, `consentToTheTakingOfPhotographs` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `adult_type` TEXT NOT NULL DEFAULT 'PARENT_OR_CARER', `adult_emailAddress` TEXT NOT NULL DEFAULT '', `adult_firstNameOfParentOrCarer` TEXT NOT NULL DEFAULT '', `adult_surnameOfParentOrCarer` TEXT NOT NULL DEFAULT '', `adult_parentOrCarerMobileNumber` TEXT NOT NULL DEFAULT '', `adult_parentOrCarerEmail` TEXT NOT NULL DEFAULT '', `adult_confirmEmail` TEXT NOT NULL DEFAULT '', `adult_id` INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(`state`) REFERENCES `States`(`name`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`state` TEXT, `firstNameOfChild` TEXT NOT NULL, `surnameOfChild` TEXT NOT NULL, `childDateOfBirth` INTEGER NOT NULL, `gender` TEXT NOT NULL, `whichSchoolDoesYourChildAttend` TEXT NOT NULL, `whichYearGroupIsYourChildInNow` TEXT NOT NULL, `primaryPosition` TEXT NOT NULL, `secondaryPosition` TEXT NOT NULL, `foot` TEXT NOT NULL, `doesYourChildPlayForATeamOnTheWeekend` INTEGER NOT NULL, `whatTypeOfTeamDoTheyPlayFor` TEXT NOT NULL, `teamTheyPlayFor` TEXT NOT NULL, `medicalConditions` TEXT NOT NULL, `iWishMyChildToAttendTrials` INTEGER NOT NULL, `consentToTheTakingOfPhotographs` INTEGER NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, FOREIGN KEY(`state`) REFERENCES `States`(`name`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "state",
@@ -237,7 +244,7 @@
           {
             "fieldPath": "doesYourChildPlayForATeamOnTheWeekend",
             "columnName": "doesYourChildPlayForATeamOnTheWeekend",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -261,13 +268,13 @@
           {
             "fieldPath": "iWishMyChildToAttendTrials",
             "columnName": "iWishMyChildToAttendTrials",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
             "fieldPath": "consentToTheTakingOfPhotographs",
             "columnName": "consentToTheTakingOfPhotographs",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -275,62 +282,6 @@
             "columnName": "id",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "adultDetails.type",
-            "columnName": "adult_type",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "'PARENT_OR_CARER'"
-          },
-          {
-            "fieldPath": "adultDetails.emailAddress",
-            "columnName": "adult_emailAddress",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "adultDetails.firstNameOfParentOrCarer",
-            "columnName": "adult_firstNameOfParentOrCarer",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "adultDetails.surnameOfParentOrCarer",
-            "columnName": "adult_surnameOfParentOrCarer",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "adultDetails.parentOrCarerMobileNumber",
-            "columnName": "adult_parentOrCarerMobileNumber",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "adultDetails.parentOrCarerEmail",
-            "columnName": "adult_parentOrCarerEmail",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "adultDetails.confirmEmail",
-            "columnName": "adult_confirmEmail",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "adultDetails.id",
-            "columnName": "adult_id",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -348,6 +299,17 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_Nominations_state` ON `${TABLE_NAME}` (`state`)"
+          },
+          {
+            "name": "index_Nominations_firstNameOfChild_surnameOfChild_childDateOfBirth",
+            "unique": true,
+            "columnNames": [
+              "firstNameOfChild",
+              "surnameOfChild",
+              "childDateOfBirth"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Nominations_firstNameOfChild_surnameOfChild_childDateOfBirth` ON `${TABLE_NAME}` (`firstNameOfChild`, `surnameOfChild`, `childDateOfBirth`)"
           }
         ],
         "foreignKeys": [
@@ -360,6 +322,75 @@
             ],
             "referencedColumns": [
               "name"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "NominationAdultDetails",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`nominationId` INTEGER NOT NULL, `adultDetailsId` INTEGER NOT NULL, PRIMARY KEY(`nominationId`, `adultDetailsId`), FOREIGN KEY(`nominationId`) REFERENCES `Nominations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`adultDetailsId`) REFERENCES `AdultDetails`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "nominationId",
+            "columnName": "nominationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adultDetailsId",
+            "columnName": "adultDetailsId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "nominationId",
+            "adultDetailsId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_NominationAdultDetails_nominationId",
+            "unique": false,
+            "columnNames": [
+              "nominationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_NominationAdultDetails_nominationId` ON `${TABLE_NAME}` (`nominationId`)"
+          },
+          {
+            "name": "index_NominationAdultDetails_adultDetailsId",
+            "unique": false,
+            "columnNames": [
+              "adultDetailsId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_NominationAdultDetails_adultDetailsId` ON `${TABLE_NAME}` (`adultDetailsId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Nominations",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "nominationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "AdultDetails",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "adultDetailsId"
+            ],
+            "referencedColumns": [
+              "id"
             ]
           }
         ]
@@ -485,7 +516,7 @@
       },
       {
         "tableName": "Trials",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`nominee` INTEGER NOT NULL, `date` INTEGER NOT NULL, `attended` INTEGER NOT NULL, `outcome` TEXT, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, FOREIGN KEY(`nominee`) REFERENCES `Nominations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`outcome`) REFERENCES `States`(`name`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`nominee` INTEGER NOT NULL, `date` INTEGER NOT NULL, `confirmed` INTEGER NOT NULL DEFAULT 0, `attended` INTEGER NOT NULL, `outcome` TEXT, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, FOREIGN KEY(`nominee`) REFERENCES `Nominations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`outcome`) REFERENCES `States`(`name`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "nominee",
@@ -498,6 +529,13 @@
             "columnName": "date",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "confirmed",
+            "columnName": "confirmed",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
           },
           {
             "fieldPath": "attended",
@@ -571,7 +609,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '531379173395600ef6989525d9ad3712')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '40707946bc1ac72140bbe5b6296ad4d2')"
     ]
   }
 }

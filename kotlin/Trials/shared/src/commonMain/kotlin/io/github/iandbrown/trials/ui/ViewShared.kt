@@ -463,9 +463,9 @@ internal fun LazyGridScope.deleteButton(disabled: Boolean = false, onClick : () 
         }
     }
 }
-internal fun LazyGridScope.viewTextItems(values: List<String>) {
+internal fun LazyGridScope.viewTextItems(values: List<String>, modifier : Modifier = Modifier) {
     items(items = values) {
-        ViewText(it)
+        ViewText(it, modifier = modifier)
     }
 }
 
@@ -480,9 +480,9 @@ internal fun TrailingIconLazyVerticalGrid(paddingValues: PaddingValues,
     }
 }
 
-internal fun <DAO, ENTITY, VIEW_MODEL> importButtonSettings(
+internal fun <DAO, ENTITY, VIEW_MODEL> incrementalImportButtonSettings(
     viewModel: VIEW_MODEL,
-    rowHandler: suspend (DataRow<Any?>) -> ENTITY
+    rowHandler: suspend (DataRow<Any?>) -> Unit
 ): ButtonSettings
         where ENTITY : Any,
               DAO : BaseReadDao<ENTITY>, DAO : BaseWriteDao<ENTITY>,
@@ -490,17 +490,14 @@ internal fun <DAO, ENTITY, VIEW_MODEL> importButtonSettings(
     ButtonSettings(imageVector = Icons.Default.Upload) {
         viewModel.viewModelScope.launch {
             tryTransaction({ exception -> viewModel.handleException(exception) }, {
-                importFromFile(
-                    "xlsx",
-                    { inputStream ->
-                        val dataFrame = DataFrame.readExcel(inputStream)
-                        viewModel.dao.deleteAll()
-                        dataFrame
-                    }, { row -> viewModel.dao.insert(rowHandler(row)) })
+                importFromFile("xlsx",
+                    { inputStream -> DataFrame.readExcel(inputStream) }
+                ) { rowHandler(it) }
             })
             viewModel.readAll()
         }
     }
+
 
 internal suspend fun importFromFile(
     extension: String = "csv",

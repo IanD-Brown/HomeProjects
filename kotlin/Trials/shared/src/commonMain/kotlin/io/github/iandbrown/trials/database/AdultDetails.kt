@@ -34,9 +34,6 @@ data class AdultDetails(
     val parentOrCarerMobileNumber: String = "",
 
     @ColumnInfo(defaultValue = "")
-    val parentOrCarerEmail: String = "",
-
-    @ColumnInfo(defaultValue = "")
     val confirmEmail: String = "",
 
     @PrimaryKey(autoGenerate = true)
@@ -48,6 +45,9 @@ data class AdultDetails(
 interface AdultDetailsDao : BaseReadDao<AdultDetails>, BaseWriteDao<AdultDetails> {
     @Query("SELECT * FROM $table")
     override suspend fun get(): List<AdultDetails>
+
+    @Query("SELECT * FROM $table WHERE emailAddress = :emailAddress AND firstNameOfParentOrCarer = :firstName AND surnameOfParentOrCarer = :surname AND type = :type")
+    suspend fun getByDetails(emailAddress: String, firstName: String, surname: String, type: AdultType): AdultDetails?
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

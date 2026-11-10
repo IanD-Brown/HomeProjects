@@ -43,7 +43,8 @@ internal fun RouteScreen(onNavigate: (Route) -> Unit) {
                 "Nominations" to Route.Nominations,
                 "Email Templates" to Route.EmailTemplates,
                 "States" to Route.States,
-                "Team Categories" to Route.TeamCategories
+                "Team Categories" to Route.TeamCategories,
+                "Trials" to Route.TrialsList
             )) { (name, route) ->
                 ListItem(
                     headlineContent = { Text(name) },
