@@ -13,10 +13,8 @@ private const val viewName = "TrialDetailsView"
             "n.firstNameOfChild, " +
             "n.surnameOfChild, " +
             "n.gender, " +
-            "n.whichYearGroupIsYourChildInNow, " +
-            "n.primaryPosition, " +
-            "n.secondaryPosition, " +
-            "n.foot, " +
+            "n.whichYearGroupIsYourChildInNow AS yearGroup, " +
+            "n.id AS nominee, " +
             "t.date, " +
             "t.confirmed, " +
             "t.attended, " +
@@ -30,10 +28,8 @@ data class TrialDetailsView(
     val firstNameOfChild: String,
     val surnameOfChild: String,
     val gender: String,
-    val whichYearGroupIsYourChildInNow: String,
-    val primaryPosition: String,
-    val secondaryPosition: String,
-    val foot: String,
+    val yearGroup: String,
+    val nominee: Int,
     val date: Int,
     val confirmed: Boolean,
     val attended: Boolean,
@@ -46,7 +42,7 @@ interface TrialDetailsViewDao : BaseReadDao<TrialDetailsView> {
     @Query("SELECT * FROM $viewName")
     override suspend fun get(): List<TrialDetailsView>
 
-    @Query("SELECT * FROM $viewName WHERE gender = :gender AND whichYearGroupIsYourChildInNow = :yearGroup AND date = :date")
+    @Query("SELECT * FROM $viewName WHERE gender = :gender AND yearGroup = :yearGroup AND date = :date")
     suspend fun getForTrial(gender: String, yearGroup: String, date: Int): List<TrialDetailsView>
 
     @Query("UPDATE Trials SET confirmed = 1 - confirmed WHERE id = :id")

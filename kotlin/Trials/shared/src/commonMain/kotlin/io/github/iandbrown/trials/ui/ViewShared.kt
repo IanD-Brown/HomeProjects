@@ -25,6 +25,8 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -449,6 +451,14 @@ internal fun LazyGridScope.clickableIcon(imageVector: ImageVector,
                                          color: Color,
                                          route : () -> Unit) {
     item { ClickableIcon(imageVector, contentDescription, color, route) }
+}
+
+internal fun LazyGridScope.selectedCheckbox(selected: Boolean, color: Color, setState: () -> Unit) {
+    val icon = if (selected) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank
+    clickableIcon(icon, "", color) {
+        setState()
+    }
+
 }
 
 internal fun LazyGridScope.editButton(route : () -> Unit) =

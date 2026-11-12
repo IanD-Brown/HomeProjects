@@ -3,7 +3,6 @@ package io.github.iandbrown.trials.ui
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import io.github.iandbrown.trials.database.EmailTemplate
-import io.github.iandbrown.trials.database.Nomination
 import io.github.iandbrown.trials.database.State
 import io.github.iandbrown.trials.database.TrialsView
 import kotlinx.collections.immutable.ImmutableSet
@@ -29,7 +28,7 @@ internal sealed interface Route {
     @Serializable
     data class StateEditor(val entity: State?, val currentNextStates: ImmutableSet<String>) : Route
     @Serializable
-    data class NominationEditor(val entity: Nomination) : Route
+    data class NominationEditor(val nominationId: Int) : Route
     @Serializable
     data class EmailTemplateEditor(val entity: EmailTemplate?) : Route
     @Serializable

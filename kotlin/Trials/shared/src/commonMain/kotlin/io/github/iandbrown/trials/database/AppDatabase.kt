@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
-private const val version = 4
+private const val version = 5
 private const val majorVersion = 1
 
 val MIGRATION_3_4 = object : Migration(3, 4) {
@@ -37,7 +37,8 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     version = version,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
-        AutoMigration(from = 2, to = 3)
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 4, to = 5)
     ])
 abstract class AppDatabase: RoomDatabase() {
     abstract fun getAdultDetailsDao(): AdultDetailsDao

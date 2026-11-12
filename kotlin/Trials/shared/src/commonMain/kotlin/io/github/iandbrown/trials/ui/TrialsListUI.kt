@@ -1,6 +1,9 @@
 package io.github.iandbrown.trials.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,6 +22,7 @@ import io.github.iandbrown.trials.database.TrialsView
 import io.github.iandbrown.trials.database.TrialsViewDao
 import io.github.iandbrown.trials.logic.DayDate
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.InjectedParam
@@ -84,38 +88,55 @@ internal fun TrialsListView(showDetails: (TrialsView) -> Unit) {
 }
 
 @Composable
-internal fun TrialDetails(entity: TrialsView, done: () -> Unit) {
+internal fun TrialDetails(entity: TrialsView, showDetails: (Int) -> Unit, done: () -> Unit) {
     val viewModel: TrialDetailsViewModel = koinViewModel(key = "${entity.gender.displayName}, ${entity.yearGroup.displayName} ${entity.date}") {
         parametersOf(entity.gender.displayName, entity.yearGroup.displayName, entity.date)
     }
     val state by viewModel.getState().collectAsState()
     var confirmEdits by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var attendedEdits by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var selected by remember { mutableStateOf(setOf<Int>()) }
+    var isDialogOpen by remember { mutableStateOf(false) }
+
+    if (isDialogOpen) {
+        SetStateDialog(selectedNominationIds = selected.toImmutableSet(), currentTrialDate = entity.date, onStateSet = { viewModel.readAll() }){
+            isDialogOpen = false
+            selected = setOf()
+        }
+    }
 
     ViewCommon(
         title = "Trial Details ${entity.name} ${DayDate(entity.date)}",
         states = persistentListOf(state),
         bottomBar = {
-            BottomBarWithButton(
-                if (confirmEdits.isEmpty() && attendedEdits.isEmpty()) "Done" else "Save and Exit"
-            ) {
-                if (confirmEdits.isNotEmpty() || attendedEdits.isNotEmpty()) {
-                    viewModel.update(confirmEdits, attendedEdits)
+            BottomBarWithButtons(
+                ButtonSettings("Action", selected.isNotEmpty()) {
+                    isDialogOpen = true
+                },
+                ButtonSettings(if (confirmEdits.isEmpty() && attendedEdits.isEmpty()) "Exit" else "Save and Exit"){
+                    if (confirmEdits.isNotEmpty() || attendedEdits.isNotEmpty()) {
+                        viewModel.update(confirmEdits, attendedEdits)
+                    }
+                    done()
                 }
-                done()
+            )
+        },
+        confirm = { confirmEdits.isNotEmpty() || attendedEdits.isNotEmpty()},
+        confirmAction = {
+            if (it) {
+                viewModel.update(confirmEdits, attendedEdits)
             }
         }
     ) { padding ->
-        TrailingIconLazyVerticalGrid(padding, 8, 0) {
-            viewTextItems(listOf("First Name", "Surname", "Primary Pos", "Secondary Pos", "Foot", "Confirmed", "Attended", "Outcome"))
+        val surfaceColor = MaterialTheme.colorScheme.onSurface
+
+        TrailingIconLazyVerticalGrid(padding, 6, 1) {
+            viewTextItems(listOf("First Name", "Surname", "Confirmed", "Attended", "Outcome", "Selected", ""))
             state.values().forEach { detail ->
                 viewTextItems(
                     listOf(
                         detail.firstNameOfChild,
                         detail.surnameOfChild,
-                        detail.primaryPosition,
-                        detail.secondaryPosition,
-                        detail.foot,
                     ),
                 )
                 gridEntry(if (confirmEdits.contains(detail.id)) !detail.confirmed else detail.confirmed) {
@@ -131,6 +152,18 @@ internal fun TrialDetails(entity: TrialsView, done: () -> Unit) {
                     }
                 }
                 viewTextItems(listOf(detail.outcome ?: "-"))
+                selectedCheckbox(selected.contains(detail.nominee), surfaceColor) {
+                    selected = if (selected.contains(detail.nominee)) {
+                        selected - detail.nominee
+                    } else {
+                        selected + detail.nominee
+                    }
+                }
+
+                clickableIcon(Icons.Default.Info, "view details", surfaceColor) {
+                    showDetails(detail.nominee)
+                }
+
             }
         }
     }

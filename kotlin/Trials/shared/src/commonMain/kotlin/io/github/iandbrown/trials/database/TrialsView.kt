@@ -16,7 +16,7 @@ private const val viewName = "TrialsView"
             "t.date " +
             "FROM Nominations n, TeamCategories tc, Trials t " +
             "WHERE UPPER(n.whichYearGroupIsYourChildInNow) = tc.yearGroup AND UPPER(n.gender) = tc.gender AND t.nominee = n.id " +
-            "ORDER BY name, date ASC"
+            "ORDER BY name ASC, date DESC"
 )
 data class TrialsView(
     val name: String,

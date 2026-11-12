@@ -29,7 +29,7 @@ val uiModule = module {
 
     navigation<Route.NominationEditor> {
         val backstack = LocalBackstack.current
-        NominationEditor(it.entity) { backstack.removeLastOrNull() }
+        NominationEditor(it.nominationId) { backstack.removeLastOrNull() }
     }
 
     navigation<Route.SettingView> {
@@ -70,7 +70,7 @@ val uiModule = module {
 
     navigation<Route.TrialsDetails> { route ->
         val backstack = LocalBackstack.current
-        TrialDetails(route.entity) {
+        TrialDetails(route.entity, {backstack.add(Route.NominationEditor(it))}) {
             backstack.removeLastOrNull()
         }
     }

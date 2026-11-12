@@ -48,8 +48,8 @@ interface TrialDao : BaseReadDao<Trial>, BaseWriteDao<Trial> {
     @Query("SELECT * FROM $table ORDER BY date DESC")
     override suspend fun get(): List<Trial>
 
-    @Query("SELECT * FROM $table WHERE nominee = :nomineeId ORDER BY date DESC")
-    suspend fun getForNominee(nomineeId: Int): List<Trial>
+    @Query("SELECT * FROM $table WHERE nominee = :nomineeId AND date = :date LIMIT 1")
+    suspend fun getForNominee(nomineeId: Int, date: Int): Trial
 
     @Query("DELETE FROM $table")
     override suspend fun deleteAll()

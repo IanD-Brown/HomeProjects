@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,8 +46,10 @@ import io.github.iandbrown.trials.database.Trial
 import io.github.iandbrown.trials.database.TrialDao
 import io.github.iandbrown.trials.logic.DayDate
 import io.github.iandbrown.trials.logic.EmailSender
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -93,7 +92,9 @@ internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<Nominatio
         nominations: List<Nomination>,
         nextState: StateWithNextStates?,
         emailTemplate: EmailTemplate?,
-        dateValue: Int
+        dateValue: Int,
+        currentTrialDate: Int,
+        onComplete: () -> Unit = {}
     ) {
         val trialsDao : TrialDao = get()
         runInCoroutine {
@@ -117,12 +118,15 @@ internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<Nominatio
                                     "Body: ${resolveTemplate(emailTemplate.bodyTemplate, withAdultDetails, dateValue)}\n"
                         }
                     }
-                    trialsDao.getForNominee(it.id).firstOrNull()?.also {prior ->
-                        trialsDao.update(prior.copy(outcome = nextStateName))
+                    if (currentTrialDate > 0) {
+                        trialsDao.getForNominee(it.id, currentTrialDate).also { prior ->
+                            trialsDao.update(prior.copy(outcome = nextStateName))
+                        }
                     }
                     trialsDao.insert(Trial(it.id, dateValue))
-                    update(it.copy(state = nextStateName))
+                    dao.update(it.copy(state = nextStateName))
                 }
+                onComplete()
             } catch (e: Exception) {
                 handleException(e)
             }
@@ -165,19 +169,13 @@ internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<Nominatio
 internal class StateWithNextStatesViewModel(dao: StateWithNextStatesDao) : ReadViewModel<StateWithNextStatesDao, StateWithNextStates> (dao = dao)
 
 @Composable
-internal fun NominationList(showEditor: (Nomination) -> Unit) {
+internal fun NominationList(showEditor: (Int) -> Unit) {
     val viewModel: NominationViewModel = koinViewModel()
     val nominationState by viewModel.getState().collectAsState()
-    val settingsModel: SettingsViewModel = koinViewModel()
-    val settings by settingsModel.getState().collectAsState()
     val stateViewModel: StateViewModel = koinViewModel()
     val nextStates by stateViewModel.getState().collectAsState()
-    val stateWithNextStatesViewModel: StateWithNextStatesViewModel = koinViewModel()
-    val stateWithNextStatesState by stateWithNextStatesViewModel.getState().collectAsState()
     val teamCategoryViewModel: TeamCategoryViewModel = koinViewModel()
     val teamCategories by teamCategoryViewModel.getState().collectAsState()
-    val emailTemplatesViewModel: EmailTemplateViewModel = koinViewModel()
-    val emailTemplatesState by emailTemplatesViewModel.getState().collectAsState()
     val startState = nextStates.values().firstOrNull { StateType.entries[it.type] == StateType.START }
     val errorState = nextStates.values().firstOrNull { StateType.entries[it.type] == StateType.ERROR }
     val endStates = nextStates.values().filter { StateType.entries[it.type] == StateType.END }.map { it.name }
@@ -191,79 +189,11 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
     }
 
     if (isDialogOpen) {
-        var selectedNextState by remember { mutableStateOf<StateWithNextStates?>(null) }
-        var emailDateContent by remember { mutableIntStateOf(0) }
-
-        val nextStatesByStateName = stateWithNextStatesState.values().associateBy { it.state.name }
-        var nextStates = stateWithNextStatesState.values()
-            .map {it.nextStates}
-            .fold(mutableSetOf<State>()) { acc, set -> acc.apply { addAll(set) } }
-
-        val selectedNominations = nominationState.values().filter { selected.contains(it.id) }
-        selectedNominations
-            .forEach {
-                nextStates = nextStates.intersect(nextStatesByStateName[it.state]?.nextStates?.toSet()
-                    ?: emptySet()).toMutableSet()
-            }
-        val nextStateList = nextStates.toList().sortedBy { it.name }.map {it.name}.toImmutableList()
-
-        if (nextStateList.isNotEmpty()) {
-            selectedNextState = nextStatesByStateName[nextStateList[0]]
-        }
-
-        Dialog(onDismissRequest = { closeDialog() }/*, DialogProperties(dismissOnClickOutside = true)*/) {
-            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row {
-                        ViewText("Set state for Selection")
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    WeightedIconLazyVerticalGrid(PaddingValues(), 0, 1, 1) {
-                        gridEntry(nextStateList, 0, "Next state") {
-                            selectedNextState = nextStatesByStateName[nextStateList[it]]
-                        }
-
-                        if (selectedNextState == null || selectedNextState!!.state.entryEmail == null) {
-                            viewTextItems(listOf("Empty", ""))
-                        } else {
-                            val emailTemplate = emailTemplatesState.values()
-                                .firstOrNull { it.name == selectedNextState!!.state.entryEmail }
-                            if (emailTemplate?.bodyTemplate?.contains("#Date") == true || emailTemplate?.subjectTemplate?.contains(
-                                    "#Date"
-                                ) == true
-                            ) {
-                                gridEntry(
-                                    emailDateContent,
-                                    "Select Date",
-                                    readOnly = false,
-                                    isSelectable = { true }) {
-                                    emailDateContent = it
-                                }
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(16.dp))
-
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { closeDialog()}) { Text("Cancel") }
-                        Button(onClick = {
-                            viewModel.setState(
-                                settings.values().firstOrNull(),
-                                selectedNominations,
-                                selectedNextState,
-                                emailTemplatesState.values().firstOrNull { it.name == selectedNextState!!.state.entryEmail },
-                                emailDateContent)
-                            closeDialog()
-                        }) { Text("OK") }
-                    }
-
-                }
-            }
-        }
+        SetStateDialog( selected.toImmutableSet(), 0) { closeDialog() }
     }
 
     ViewCommon("Nominations",
-        persistentListOf(nominationState, settings, teamCategories, stateWithNextStatesState, emailTemplatesState),
+        persistentListOf(nominationState, teamCategories),
         bottomBar = {
             BottomBarWithButtons(
                 incrementalImportButtonSettings(viewModel) { row ->
@@ -340,15 +270,14 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
                             )
                         )
                     }
-                    val icon = if (selected.contains(nomination.id)) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank
-                    clickableIcon(icon, "", surfaceColor) {
+                    selectedCheckbox(selected.contains(nomination.id), surfaceColor) {
                         selected = if (selected.contains(nomination.id)) {
                             selected - nomination.id
                         } else {
                             selected + nomination.id
                         }
                     }
-                    editButton { showEditor(nomination) }
+                    editButton { showEditor(nomination.id) }
                 }
             }
         }
@@ -356,43 +285,136 @@ internal fun NominationList(showEditor: (Nomination) -> Unit) {
 }
 
 @Composable
-internal fun NominationEditor(nomination: Nomination, onDone: () -> Unit) {
+internal fun SetStateDialog(
+    selectedNominationIds: ImmutableSet<Int>,
+    currentTrialDate: Int,
+    onStateSet: () -> Unit = {},
+    closeDialog: () -> Unit
+) {
+    val viewModel: NominationViewModel = koinViewModel()
+    val nominationState by viewModel.getState().collectAsState()
+    val stateWithNextStatesViewModel: StateWithNextStatesViewModel = koinViewModel()
+    val stateWithNextStatesState by stateWithNextStatesViewModel.getState().collectAsState()
+    val emailTemplatesViewModel: EmailTemplateViewModel = koinViewModel()
+    val emailTemplatesState by emailTemplatesViewModel.getState().collectAsState()
+    val settingsModel: SettingsViewModel = koinViewModel()
+    val settings by settingsModel.getState().collectAsState()
+    var selectedNextState by remember { mutableStateOf<StateWithNextStates?>(null) }
+    var emailDateContent by remember { mutableIntStateOf(0) }
+
+    val nextStatesByStateName = stateWithNextStatesState.values().associateBy { it.state.name }
+    val nextStates = stateWithNextStatesState.values()
+        .map { it.nextStates }
+        .fold(mutableSetOf<State>()) { acc, set -> acc.apply { addAll(set) } }
+    val nextStateList = nextStates.toList().sortedBy { it.name }.map { it.name }.toImmutableList()
+
+    if (nextStateList.isNotEmpty()) {
+        selectedNextState = nextStatesByStateName[nextStateList[0]]
+    }
+
+    Dialog(onDismissRequest = { closeDialog() }) {
+        Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row {
+                    ViewText("Set state for Selection")
+                }
+                Spacer(Modifier.height(16.dp))
+                WeightedIconLazyVerticalGrid(PaddingValues(), 0, 1, 1) {
+                    gridEntry(nextStateList, 0, "Next state") {
+                        selectedNextState = nextStatesByStateName[nextStateList[it]]
+                    }
+
+                    if (selectedNextState == null || selectedNextState!!.state.entryEmail == null) {
+                        viewTextItems(listOf("Empty", ""))
+                    } else {
+                        val emailTemplate = emailTemplatesState.values()
+                            .firstOrNull { it.name == selectedNextState!!.state.entryEmail }
+                        if (emailTemplate?.bodyTemplate?.contains("#Date") == true || emailTemplate?.subjectTemplate?.contains(
+                                "#Date"
+                            ) == true
+                        ) {
+                            gridEntry(
+                                emailDateContent,
+                                "Select Date",
+                                readOnly = false,
+                                isSelectable = { true }) {
+                                emailDateContent = it
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { closeDialog() }) { Text("Cancel") }
+                    Button(onClick = {
+                        viewModel.setState(
+                            settings.values().firstOrNull(),
+                            nominationState.values().filter { selectedNominationIds.contains(it.id) },
+                            selectedNextState,
+                            emailTemplatesState.values()
+                                .firstOrNull { it.name == selectedNextState!!.state.entryEmail },
+                            emailDateContent,
+                            currentTrialDate,
+                            onComplete = onStateSet
+                        )
+                        closeDialog()
+                    }) { Text("OK") }
+                }
+
+            }
+        }
+    }
+}
+
+@Composable
+internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
     val viewModel: TrialViewModel = koinViewModel()
     val trialsState by viewModel.getState().collectAsState()
     val nominationViewModel: NominationViewModel = koinViewModel()
+    val nominationState by nominationViewModel.getState().collectAsState()
     val stateViewModel: StateViewModel = koinViewModel()
     val statesState by stateViewModel.getState().collectAsState()
 
-    var firstName by remember { mutableStateOf(nomination.firstNameOfChild) }
-    var surname by remember { mutableStateOf(nomination.surnameOfChild) }
-    var birthDate by remember { mutableIntStateOf(nomination.childDateOfBirth) }
-    var yearGroup by remember { mutableStateOf(nomination.whichYearGroupIsYourChildInNow) }
-    var gender by remember { mutableStateOf(nomination.gender) }
-
+    var nomination by remember { mutableStateOf<Nomination?>(null) }
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
+    var startState by remember { mutableStateOf<State?>(null) }
+    var errorState by remember { mutableStateOf<State?>(null) }
 
-    fun validate() : String? {
-        if (firstName.isBlank() || surname.isBlank() || yearGroup.isBlank() || gender.isBlank() ||
-            !validDateOfBirth(yearGroup, DayDate(birthDate).asUtcMs())) {
-            return statesState.values().firstOrNull { StateType.entries[it.type] == StateType.ERROR }?.name
+    fun validate() : State? {
+        if (startState == null) {
+            startState = statesState.values().firstOrNull { StateType.entries[it.type] == StateType.START }
         }
-        return statesState.values().firstOrNull { StateType.entries[it.type] == StateType.START }?.name
+        if (errorState == null) {
+            errorState = statesState.values().firstOrNull { StateType.entries[it.type] == StateType.ERROR }
+        }
+        if (nomination == null ||
+                nomination!!.firstNameOfChild.isBlank() ||
+                nomination!!.surnameOfChild.isBlank() ||
+                nomination!!.whichYearGroupIsYourChildInNow.isBlank() ||
+                nomination!!.gender.isBlank() ||
+                !validDateOfBirth(nomination!!.whichYearGroupIsYourChildInNow, DayDate(nomination!!.childDateOfBirth).asUtcMs())) {
+            return errorState
+        }
+        return startState
     }
 
-    fun editorNomination(): Nomination = nomination.copy(
-        firstNameOfChild = firstName,
-        surnameOfChild = surname,
-        whichYearGroupIsYourChildInNow = yearGroup,
-        gender = gender,
-        state = validate()
-    )
+    fun editorNomination(): Nomination {
+        val validation = validate()
+
+        return when {
+            validation == null -> Nomination()
+            validation == errorState -> Nomination(state = validation.name)
+            nomination?.state.isNullOrBlank() -> nomination!!.copy(state = validation.name)
+            else -> nomination ?: Nomination()
+        }
+    }
 
     fun setEditorState() {
         val editorNomination = editorNomination()
-        val stateLookup = statesState.values().associateBy { it.name }
-        editorState = if (nomination == editorNomination) {
+        editorState = if (nomination != null && !nomination!!.state.isNullOrBlank() &&  nomination == editorNomination) {
             EditorState.CLEAN
-        } else if ((stateLookup[editorNomination.state]?.type ?: -1) == StateType.ERROR.ordinal) {
+        } else if (errorState != null && editorNomination.state == errorState!!.name) {
             EditorState.DIRTY
         } else {
             EditorState.VALID
@@ -405,8 +427,8 @@ internal fun NominationEditor(nomination: Nomination, onDone: () -> Unit) {
     }
 
     ViewCommon(
-        title = "Edit Nomination: $firstName $surname",
-        states = persistentListOf(trialsState),
+        title = "Nominee: ${nomination?.firstNameOfChild} ${nomination?.surnameOfChild}",
+        states = persistentListOf(trialsState, nominationState, statesState),
         description = "Return to Nomination List",
         bottomBar = {
             BottomBarWithButton(enabled = editorState == EditorState.VALID)  {
@@ -422,42 +444,130 @@ internal fun NominationEditor(nomination: Nomination, onDone: () -> Unit) {
             }
         }
     ) { padding ->
+        if (nomination == null) {
+            nomination = nominationState.values().firstOrNull { it.id == nominationId }
+        }
         val readOnly = statesState.values()
-            .filter { it.name == nomination.state }
+            .filter { it.name == nomination?.state }
             .map { StateType.entries[it.type].readOnly }
             .firstOrNull { it } ?: false
-        TrailingIconLazyVerticalGrid(padding, 2, 0) {
-            gridEntry(firstName, "First Name", readOnly) {
-                firstName = it
-                setEditorState()
-            }
-            gridEntry(surname, "Surname", readOnly) {
-                surname = it
-                setEditorState()
-            }
-            gridEntry(birthDate, "Date of Birth", readOnly,
-                { validDateOfBirth(yearGroup, it)},
-                {
-                    birthDate = it
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            TrailingIconLazyVerticalGrid(PaddingValues(), 2, 0) {
+                gridEntry(nomination?.firstNameOfChild ?: "", "First Name", readOnly) {
+                    nomination =
+                        nomination?.copy(firstNameOfChild = it) ?: Nomination(firstNameOfChild = it)
                     setEditorState()
-                })
-            gridEntry(yearGroup, "School Year", readOnly) {
-                yearGroup = it
-                setEditorState()
-            }
-            gridEntry(gender, "Gender", readOnly) {
-                gender = it
-                setEditorState()
-            }
+                }
+                gridEntry(nomination?.surnameOfChild ?: "", "Surname", readOnly) {
+                    nomination =
+                        nomination?.copy(surnameOfChild = it) ?: Nomination(surnameOfChild = it)
+                    setEditorState()
+                }
+                gridEntry(
+                    nomination?.childDateOfBirth ?: 0, "Date of Birth", readOnly,
+                    { validDateOfBirth(nomination?.whichYearGroupIsYourChildInNow ?: "", it) },
+                    {
+                        nomination = nomination?.copy(childDateOfBirth = it) ?: Nomination(
+                            childDateOfBirth = it
+                        )
+                        setEditorState()
+                    })
+                gridEntry(
+                    nomination?.whichYearGroupIsYourChildInNow ?: "",
+                    "School Year",
+                    readOnly
+                ) {
+                    nomination =
+                        nomination?.copy(whichYearGroupIsYourChildInNow = it) ?: Nomination(
+                            whichYearGroupIsYourChildInNow = it
+                        )
+                    setEditorState()
+                }
+                gridEntry(nomination?.gender ?: "", "Gender", readOnly) {
+                    nomination = nomination?.copy(gender = it) ?: Nomination(gender = it)
+                    setEditorState()
+                }
+                gridEntry(nomination?.whichSchoolDoesYourChildAttend ?: "", "School", readOnly) {
+                    nomination =
+                        nomination?.copy(whichSchoolDoesYourChildAttend = it) ?: Nomination(
+                            whichSchoolDoesYourChildAttend = it
+                        )
+                    setEditorState()
+                }
+                gridEntry(nomination?.primaryPosition ?: "", "Primary Position", readOnly) {
+                    nomination =
+                        nomination?.copy(primaryPosition = it) ?: Nomination(primaryPosition = it)
+                    setEditorState()
+                }
+                gridEntry(nomination?.secondaryPosition ?: "", "Secondary Position", readOnly) {
+                    nomination = nomination?.copy(secondaryPosition = it) ?: Nomination(
+                        secondaryPosition = it
+                    )
+                    setEditorState()
+                }
+                gridEntry(nomination?.foot ?: "", "Foot", readOnly) {
+                    nomination = nomination?.copy(foot = it) ?: Nomination(foot = it)
+                    setEditorState()
+                }
+                gridEntry(
+                    nomination?.doesYourChildPlayForATeamOnTheWeekend ?: false,
+                    "Plays for team on weekend",
+                    enabled = !readOnly
+                ) {
+                    nomination =
+                        nomination?.copy(doesYourChildPlayForATeamOnTheWeekend = it) ?: Nomination(
+                            doesYourChildPlayForATeamOnTheWeekend = it
+                        )
+                    setEditorState()
+                }
+                gridEntry(nomination?.whatTypeOfTeamDoTheyPlayFor ?: "", "Type of Team", readOnly) {
+                    nomination = nomination?.copy(whatTypeOfTeamDoTheyPlayFor = it) ?: Nomination(
+                        whatTypeOfTeamDoTheyPlayFor = it
+                    )
+                    setEditorState()
+                }
+                gridEntry(nomination?.teamTheyPlayFor ?: "", "Team Name", readOnly) {
+                    nomination =
+                        nomination?.copy(teamTheyPlayFor = it) ?: Nomination(teamTheyPlayFor = it)
+                    setEditorState()
+                }
+                gridEntry(nomination?.medicalConditions ?: "", "Medical Conditions", readOnly) {
+                    nomination = nomination?.copy(medicalConditions = it) ?: Nomination(
+                        medicalConditions = it
+                    )
+                    setEditorState()
+                }
+                gridEntry(
+                    nomination?.iWishMyChildToAttendTrials ?: false,
+                    "Wish to attend trials",
+                    enabled = !readOnly
+                ) {
+                    nomination = nomination?.copy(iWishMyChildToAttendTrials = it) ?: Nomination(
+                        iWishMyChildToAttendTrials = it
+                    )
+                    setEditorState()
+                }
+                gridEntry(
+                    nomination?.consentToTheTakingOfPhotographs ?: false,
+                    "Consent for photographs",
+                    enabled = !readOnly
+                ) {
+                    nomination =
+                        nomination?.copy(consentToTheTakingOfPhotographs = it) ?: Nomination(
+                            consentToTheTakingOfPhotographs = it
+                        )
+                    setEditorState()
+                }
 
-            viewTextItems(listOf("State", nomination.state ?: "", "Trials", ""))
-        }
-        TrailingIconLazyVerticalGrid(PaddingValues(), 3, 0) {
-            viewTextItems(listOf("Date", "Attended", "Outcome"))
-            trialsState.values().filter { it.nominee == nomination.id }.forEach { trial ->
-                viewTextItems(listOf(DayDate(trial.date).toString()))
-                gridEntry(trial.attended, enabled = false) {}
-                viewTextItems(listOf(trial.outcome ?: ""))
+                viewTextItems(listOf("State", nomination?.state ?: "", "", "", "Trials", ""))
+            }
+            TrailingIconLazyVerticalGrid(PaddingValues(), 3, 0) {
+                viewTextItems(listOf("Date", "Attended", "Outcome"))
+                trialsState.values().filter { it.nominee == nominationId }.sortedBy { it.date }.forEach { trial ->
+                    viewTextItems(listOf(DayDate(trial.date).toString()))
+                    gridEntry(trial.attended, enabled = false) {}
+                    viewTextItems(listOf(trial.outcome ?: ""))
+                }
             }
         }
     }
