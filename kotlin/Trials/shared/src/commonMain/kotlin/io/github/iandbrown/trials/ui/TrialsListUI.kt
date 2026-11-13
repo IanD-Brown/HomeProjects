@@ -75,7 +75,10 @@ internal fun TrialsListView(showDetails: (TrialsView) -> Unit) {
     ) { padding ->
         TrailingIconLazyVerticalGrid(padding, 2, 0) {
             viewTextItems(listOf("Team Category", "Date"))
-            state.values().forEach { trialsView ->
+            state.values()
+                .filter {it.date > 0}
+                .sortedWith(compareByDescending ( TrialsView::date ).thenBy ( TrialsView::name ))
+                .forEach { trialsView ->
                 viewTextItems(
                     listOf(trialsView.name, DayDate(trialsView.date).toString()),
                     Modifier.clickable {
@@ -101,7 +104,7 @@ internal fun TrialDetails(entity: TrialsView, showDetails: (Int) -> Unit, done: 
     if (isDialogOpen) {
         SetStateDialog(selectedNominationIds = selected.toImmutableSet(), currentTrialDate = entity.date, onStateSet = { viewModel.readAll() }){
             isDialogOpen = false
-            selected = setOf()
+            selected = state.values().filter { it.outcome.isNullOrBlank() && !selected.contains(it.nominee) }.map { it.nominee}.toSet()
         }
     }
 

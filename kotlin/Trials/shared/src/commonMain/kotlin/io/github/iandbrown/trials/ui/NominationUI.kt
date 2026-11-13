@@ -30,6 +30,8 @@ import androidx.compose.ui.window.Dialog
 import dev.shivathapaa.logger.api.LoggerFactory
 import io.github.iandbrown.trials.database.AdultDetails
 import io.github.iandbrown.trials.database.AdultDetailsDao
+import io.github.iandbrown.trials.database.AdultDetailsView
+import io.github.iandbrown.trials.database.AdultDetailsViewDao
 import io.github.iandbrown.trials.database.AdultType
 import io.github.iandbrown.trials.database.EmailTemplate
 import io.github.iandbrown.trials.database.Nomination
@@ -55,6 +57,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.annotation.InjectedParam
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
@@ -167,6 +170,13 @@ internal class NominationViewModel(dao: NominationDao) : CRUDViewModel<Nominatio
 }
 
 internal class StateWithNextStatesViewModel(dao: StateWithNextStatesDao) : ReadViewModel<StateWithNextStatesDao, StateWithNextStates> (dao = dao)
+
+internal class AdultDetailsViewModel(
+    dao: AdultDetailsViewDao,
+    @InjectedParam nominationId: Int) : ReadViewModel<AdultDetailsViewDao, AdultDetailsView> (
+        dao = dao,
+        reader = {dao.getForNomination(nominationId)}
+    )
 
 @Composable
 internal fun NominationList(showEditor: (Int) -> Unit) {
@@ -375,6 +385,8 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
     val nominationState by nominationViewModel.getState().collectAsState()
     val stateViewModel: StateViewModel = koinViewModel()
     val statesState by stateViewModel.getState().collectAsState()
+    val adultDetailsViewModel: AdultDetailsViewModel = koinViewModel { parametersOf(nominationId) }
+    val adultDetailsState by adultDetailsViewModel.getState().collectAsState()
 
     var nomination by remember { mutableStateOf<Nomination?>(null) }
     var editorState by remember { mutableStateOf(EditorState.CLEAN) }
@@ -428,7 +440,7 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
 
     ViewCommon(
         title = "Nominee: ${nomination?.firstNameOfChild} ${nomination?.surnameOfChild}",
-        states = persistentListOf(trialsState, nominationState, statesState),
+        states = persistentListOf(trialsState, nominationState, statesState, adultDetailsState),
         description = "Return to Nomination List",
         bottomBar = {
             BottomBarWithButton(enabled = editorState == EditorState.VALID)  {
@@ -472,13 +484,8 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
                         )
                         setEditorState()
                     })
-                gridEntry(
-                    nomination?.whichYearGroupIsYourChildInNow ?: "",
-                    "School Year",
-                    readOnly
-                ) {
-                    nomination =
-                        nomination?.copy(whichYearGroupIsYourChildInNow = it) ?: Nomination(
+                gridEntry(nomination?.whichYearGroupIsYourChildInNow ?: "", "School Year", readOnly) {
+                    nomination = nomination?.copy(whichYearGroupIsYourChildInNow = it) ?: Nomination(
                             whichYearGroupIsYourChildInNow = it
                         )
                     setEditorState()
@@ -488,15 +495,13 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
                     setEditorState()
                 }
                 gridEntry(nomination?.whichSchoolDoesYourChildAttend ?: "", "School", readOnly) {
-                    nomination =
-                        nomination?.copy(whichSchoolDoesYourChildAttend = it) ?: Nomination(
+                    nomination = nomination?.copy(whichSchoolDoesYourChildAttend = it) ?: Nomination(
                             whichSchoolDoesYourChildAttend = it
                         )
                     setEditorState()
                 }
                 gridEntry(nomination?.primaryPosition ?: "", "Primary Position", readOnly) {
-                    nomination =
-                        nomination?.copy(primaryPosition = it) ?: Nomination(primaryPosition = it)
+                    nomination = nomination?.copy(primaryPosition = it) ?: Nomination(primaryPosition = it)
                     setEditorState()
                 }
                 gridEntry(nomination?.secondaryPosition ?: "", "Secondary Position", readOnly) {
@@ -537,10 +542,7 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
                     )
                     setEditorState()
                 }
-                gridEntry(
-                    nomination?.iWishMyChildToAttendTrials ?: false,
-                    "Wish to attend trials",
-                    enabled = !readOnly
+                gridEntry(nomination?.iWishMyChildToAttendTrials ?: false, "Wish to attend trials", enabled = !readOnly
                 ) {
                     nomination = nomination?.copy(iWishMyChildToAttendTrials = it) ?: Nomination(
                         iWishMyChildToAttendTrials = it
@@ -559,7 +561,14 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
                     setEditorState()
                 }
 
-                viewTextItems(listOf("State", nomination?.state ?: "", "", "", "Trials", ""))
+                viewTextItems(listOf("State", nomination?.state ?: "", "", ""))
+            }
+            TrailingIconLazyVerticalGrid(PaddingValues(), 4, 0) {
+                viewTextItems(listOf("Type", "Email", "First Name", "Surname"))
+                adultDetailsState.values().forEach {
+                    viewTextItems( listOf(it.type.displayName, it.emailAddress, it.firstName, it.surname))
+                }
+                viewTextItems(listOf("", "", "", "", "Trials"))
             }
             TrailingIconLazyVerticalGrid(PaddingValues(), 3, 0) {
                 viewTextItems(listOf("Date", "Attended", "Outcome"))

@@ -8,6 +8,7 @@ import org.koin.dsl.navigation3.navigation
 @OptIn(KoinExperimentalAPI::class)
 val uiModule = module {
     viewModelOf(::EmailTemplateViewModel)
+    viewModelOf(::AdultDetailsViewModel)
     viewModelOf(::NominationViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::StateViewModel)

@@ -1,6 +1,7 @@
 package io.github.iandbrown.trials.di
 
 import io.github.iandbrown.trials.database.AdultDetailsDao
+import io.github.iandbrown.trials.database.AdultDetailsViewDao
 import io.github.iandbrown.trials.database.AppDatabase
 import io.github.iandbrown.trials.database.EmailTemplateDao
 import io.github.iandbrown.trials.database.NextStateDao
@@ -26,6 +27,7 @@ val commonModule = module {
 
     // Provide DAOs
     single<AdultDetailsDao> { get<AppDatabase>().getAdultDetailsDao() }
+    single<AdultDetailsViewDao> { get<AppDatabase>().getAdultDetailsViewDao() }
     single<EmailTemplateDao> { get<AppDatabase>().getEmailTemplateDao() }
     single<NextStateDao> { get<AppDatabase>().getNextStateDao() }
     single<NominationAdultDetailsDao> { get<AppDatabase>().getNominationAdultDetailsDao() }
