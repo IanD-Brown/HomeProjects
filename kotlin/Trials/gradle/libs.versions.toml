@@ -11,7 +11,7 @@ material3 = "1.9.0"
 # theme prefs
 materialThemePrefs = "1.0.0"
 # JSON serialize
-kotlin-serialize = "1.12.0"
+kotlin-serialize = "1.13.0"
 # room
 room = "2.8.5"
 ksp = "2.3.9"
@@ -32,7 +32,7 @@ kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
 kotzilla = "3.0.1"
 # filekit
-filekit = "0.17.0"
+filekit = "0.17.1"
 # dataframe
 kotlinx-dataframe = "1.0.0-rc02"
 # email
@@ -89,6 +89,8 @@ filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose
 # Dataframe
 kotlin-dataframe-core = { module = "org.jetbrains.kotlinx:dataframe-core", version.ref = "kotlinx-dataframe"}
 kotlin-dataframe-excel = { module = "org.jetbrains.kotlinx:dataframe-excel", version.ref = "kotlinx-dataframe"}
+kotlin-dataframe-json = { module = "org.jetbrains.kotlinx:dataframe-json", version.ref = "kotlinx-dataframe"}
+kotlin-dataframe-csv = { module = "org.jetbrains.kotlinx:dataframe-csv", version.ref = "kotlinx-dataframe"}
 # email
 kotlinmailer-core = { module = "at.quickme.kotlinmailer:core", version.ref = "kotlinmailer" }
 kotlinmailer-smtp = { module = "at.quickme.kotlinmailer:smtp", version.ref = "kotlinmailer" }

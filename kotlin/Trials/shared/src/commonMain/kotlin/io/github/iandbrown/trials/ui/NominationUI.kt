@@ -563,10 +563,10 @@ internal fun NominationEditor(nominationId: Int, onDone: () -> Unit) {
 
                 viewTextItems(listOf("State", nomination?.state ?: "", "", ""))
             }
-            TrailingIconLazyVerticalGrid(PaddingValues(), 4, 0) {
+            WeightedIconLazyVerticalGrid(PaddingValues(), 0, 1, 2, 1, 1, 1) {
                 viewTextItems(listOf("Type", "Email", "First Name", "Surname"))
                 adultDetailsState.values().forEach {
-                    viewTextItems( listOf(it.type.displayName, it.emailAddress, it.firstName, it.surname))
+                    viewTextItems( listOf(it.type.displayName, it.emailAddress, it.firstName, it.surname, it.phone))
                 }
                 viewTextItems(listOf("", "", "", "", "Trials"))
             }

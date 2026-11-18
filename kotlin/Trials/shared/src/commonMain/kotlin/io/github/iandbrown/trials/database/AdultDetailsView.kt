@@ -13,7 +13,8 @@ private const val viewName = "AdultDetailsView"
             "d.type, " +
             "d.emailAddress, " +
             "d.firstNameOfParentOrCarer AS firstName, " +
-            "d.surnameOfParentOrCarer as surname " +
+            "d.surnameOfParentOrCarer as surname, " +
+            "d.parentOrCarerMobileNumber as phone " +
             "FROM NominationAdultDetails n, AdultDetails d " +
             "WHERE d.id = n.adultDetailsId "
 )
@@ -24,6 +25,7 @@ data class AdultDetailsView(
     val emailAddress: String,
     val firstName: String,
     val surname: String,
+    val phone: String,
 )
 
 @Dao

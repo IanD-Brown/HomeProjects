@@ -16,6 +16,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
+import io.github.iandbrown.trials.database.AdultType
 import io.github.iandbrown.trials.database.TrialDetailsView
 import io.github.iandbrown.trials.database.TrialDetailsViewDao
 import io.github.iandbrown.trials.database.TrialsView
@@ -24,6 +25,10 @@ import io.github.iandbrown.trials.logic.DayDate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.launch
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.concat
+import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
+import org.jetbrains.kotlinx.dataframe.io.writeCsv
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.parameter.parametersOf
@@ -96,6 +101,7 @@ internal fun TrialDetails(entity: TrialsView, showDetails: (Int) -> Unit, done: 
         parametersOf(entity.gender.displayName, entity.yearGroup.displayName, entity.date)
     }
     val state by viewModel.getState().collectAsState()
+    val nominationViewModel: NominationViewModel = koinViewModel()
     var confirmEdits by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var attendedEdits by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var selected by remember { mutableStateOf(setOf<Int>()) }
@@ -113,6 +119,23 @@ internal fun TrialDetails(entity: TrialsView, showDetails: (Int) -> Unit, done: 
         states = persistentListOf(state),
         bottomBar = {
             BottomBarWithButtons(
+                exportButtonSettings(viewModel.viewModelScope, "trialDetails${entity.name}", "csv") { writer ->
+                    state.values()
+                        .fold(DataFrame.emptyOf<Any?>()) {df, it ->
+                            val withAdultDetails = nominationViewModel.dao.getNominationWithAdultDetails(it.nominee)
+                            df.concat(dataFrameOf(
+                                "First name" to listOf(withAdultDetails?.nomination?.firstNameOfChild ?: ""),
+                                "Surname" to listOf(withAdultDetails?.nomination?.surnameOfChild ?: ""),
+                                "Primary" to listOf(withAdultDetails?.nomination?.primaryPosition ?: ""),
+                                "Secondary" to listOf(withAdultDetails?.nomination?.secondaryPosition ?: ""),
+                                "Foot" to listOf(withAdultDetails?.nomination?.foot ?: ""),
+                                "Medical" to listOf(withAdultDetails?.nomination?.medicalConditions ?: ""),
+                                "Parent name" to listOf(withAdultDetails?.adultDetailsList?.firstOrNull { it.type == AdultType.PARENT_OR_CARER }?.firstNameOfParentOrCarer ?: ""),
+                                "Parent surname" to listOf(withAdultDetails?.adultDetailsList?.firstOrNull { it.type == AdultType.PARENT_OR_CARER }?.surnameOfParentOrCarer ?: ""),
+                                "Phone" to listOf(withAdultDetails?.adultDetailsList?.firstOrNull { it.type == AdultType.PARENT_OR_CARER }?.parentOrCarerMobileNumber ?: ""),
+                            ))
+                        }.writeCsv(writer)
+                },
                 ButtonSettings("Action", selected.isNotEmpty()) {
                     isDialogOpen = true
                 },

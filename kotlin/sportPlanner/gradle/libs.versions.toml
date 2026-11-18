@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.0"
+agp = "9.5.1"
 android-compileSdk = "37"
 android-minSdk = "34"
 android-targetSdk = "37"
@@ -12,14 +12,14 @@ kotlin = "2.4.21"
 kotlinx-coroutines = "1.11.0"
 # navigation
 navigationCompose = "2.10.0"
-navigation3 = "1.2.0"
+navigation3 = "1.2.1"
 navigationEvent = "1.1.0"
 androidx-savedstate = "1.5.0"
 jetbraindNav3 = "1.2.0"
 # theme prefs
 materialThemePrefs = "1.0.0"
 # JSON serialize
-kotlin-serialize = "1.12.0"
+kotlin-serialize = "1.13.0"
 # room
 room = "2.8.5"
 ksp = "2.3.9"
@@ -28,18 +28,18 @@ sqliteBundled = "2.7.1"
 koin-core = "4.2.2"
 androidx-startup = "1.2.0"
 # unit-testing kotest, kover and mockery
-kotest-version = "6.2.6"
+kotest-version = "6.2.7"
 kover = "0.9.11"
 mockkery = "3.6.0"
 coroutine-test-version = "1.11.0"
 # filekit
-filekit = "0.17.0"
+filekit = "0.17.1"
 # immutable collections
 immutableCollections = "0.5.2"
 # dataframe
 kotlinx-dataframe = "1.0.0-rc02"
 # logging
-kmp-logger = "2.0.0"
+kmp-logger = "2.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

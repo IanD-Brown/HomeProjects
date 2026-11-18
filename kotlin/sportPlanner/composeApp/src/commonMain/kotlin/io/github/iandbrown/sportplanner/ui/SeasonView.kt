@@ -79,12 +79,12 @@ class SeasonViewModel(dao: SeasonDao) : BaseCRUDViewModel<SeasonDao, Season>(dao
                 update(Season(season.id, name.trim()))
             }
             val seasonId = dao.getSeasonId(name.trim())!!
-            for (competition in competitionState) {
+            for ((id) in competitionState) {
                 val seasonCompetition = SeasonCompetition(
                     seasonId = seasonId,
-                    competitionId = competition.id,
-                    startDate = startDates[competition.id] ?: 0,
-                    endDate = endDates[competition.id] ?: 0
+                    competitionId = id,
+                    startDate = startDates[id] ?: 0,
+                    endDate = endDates[id] ?: 0
                 )
                 if (seasonCompetition.isValid()) {
                     seasonCompetitionDao.insert(seasonCompetition)
@@ -475,12 +475,12 @@ private fun SeasonEditContent(
 
     remember(season, seasonCompetitionState) {
         if (season != null) {
-            for (current in seasonCompetitionState.values()) {
-                if (current.startDate > 0) {
-                    startDates[current.competitionId] = current.startDate
+            for ((_, _, competitionId, _, _, startDate, endDate) in seasonCompetitionState.values()) {
+                if (startDate > 0) {
+                    startDates[competitionId] = startDate
                 }
-                if (current.endDate > 0) {
-                    endDates[current.competitionId] = current.endDate
+                if (endDate > 0) {
+                    endDates[competitionId] = endDate
                 }
             }
         }
@@ -511,29 +511,29 @@ private fun SeasonEditContent(
                 })
             }
             viewTextItems(listOf("", "Competition", "Start", "End"))
-            for (competition in competitionList) {
-                viewTextItems(listOf(competition.name))
+            for ((id, name1) in competitionList) {
+                viewTextItems(listOf(name1))
                 item {
                     DatePickerView(
-                        current = startDates[competition.id] ?: 0,
+                        current = startDates[id] ?: 0,
                         modifier = Modifier,
                         isSelectable = {
                             val dayDate = DayDate(it)
-                            dayDate.isMonday() && dayDate.value() < (endDates[competition.id] ?: Integer.MAX_VALUE)
+                            dayDate.isMonday() && dayDate.value() < (endDates[id] ?: Integer.MAX_VALUE)
                         }) {
-                        startDates[competition.id] = it
+                        startDates[id] = it
                         dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                     }
                 }
                 item {
                     DatePickerView(
-                        current = endDates[competition.id] ?: 0,
+                        current = endDates[id] ?: 0,
                         modifier = Modifier,
                         isSelectable = {
                             val dayDate = DayDate(it)
-                            dayDate.isSunday() && dayDate.value() > (startDates[competition.id] ?: 0)
+                            dayDate.isSunday() && dayDate.value() > (startDates[id] ?: 0)
                         }) {
-                        endDates[competition.id] = it
+                        endDates[id] = it
                         dirty = checkDirty(season, name, seasonCompetitionState.values(), startDates, endDates)
                     }
                 }
@@ -556,9 +556,9 @@ private fun checkDirty(
             true
         } else {
             var result = false
-            for (current in seasonCompetitionState) {
-                if ((startDates[current.competitionId] ?: 0) != current.startDate ||
-                    (endDates[current.competitionId] ?: 0) != current.endDate
+            for ((_, _, competitionId, _, _, startDate, endDate) in seasonCompetitionState) {
+                if ((startDates[competitionId] ?: 0) != startDate ||
+                    (endDates[competitionId] ?: 0) != endDate
                 ) {
                     result = true
                     break

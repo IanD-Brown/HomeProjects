@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -89,16 +90,22 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.dialogs.openFileSaver
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.sink
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.io.buffered
+import kotlinx.io.writeString
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.koin.java.KoinJavaComponent.inject
 import java.io.InputStream
+import kotlin.use
 
 private val fontSize = 16.sp
 private val textFieldHeight = 28.dp
@@ -487,6 +494,34 @@ internal fun TrailingIconLazyVerticalGrid(paddingValues: PaddingValues,
     LazyVerticalGrid(modifier = Modifier.padding(paddingValues),
         columns = TrailingIconGridCells(dataColumnCount, trailingIconCount)) {
         content()
+    }
+}
+
+internal fun exportButtonSettings(
+    coroutineScope: CoroutineScope,
+    suggestName: String,
+    extension: String = "json",
+    transformedDataSupplier: suspend (Appendable) -> Unit
+): ButtonSettings = ButtonSettings(imageVector = Icons.Default.Download) {
+        coroutineScope.launch {
+            exportToFile(suggestName, extension, transformedDataSupplier)
+        }
+    }
+
+internal suspend fun exportToFile(
+    suggestName: String,
+    extension: String = "json",
+    transformedDataSupplier: suspend (Appendable) -> Unit
+) {
+    val file = FileKit.openFileSaver(suggestedName = suggestName, defaultExtension = extension)
+    val sink = file?.sink(append = false)?.buffered()
+
+    sink.use { bufferedSink ->
+        if (bufferedSink != null) {
+            val sb = StringBuilder()
+            transformedDataSupplier(sb)
+            bufferedSink.writeString(sb.toString())
+        }
     }
 }
 

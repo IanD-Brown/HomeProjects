@@ -93,6 +93,8 @@ kotlin {
             // dataframe
             implementation(libs.kotlin.dataframe.core)
             implementation(libs.kotlin.dataframe.excel)
+            implementation(libs.kotlin.dataframe.json)
+            implementation(libs.kotlin.dataframe.csv)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
