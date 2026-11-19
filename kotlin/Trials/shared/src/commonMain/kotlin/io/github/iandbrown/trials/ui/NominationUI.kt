@@ -55,7 +55,9 @@ import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.component.KoinComponent
@@ -733,3 +735,29 @@ private fun monthNumber(month: String) : Int {
         else -> 0
     }
 }
+
+private fun adultDetailsDataFrame(entities: List<AdultDetails>): DataFrame<Any> =
+    entities.toDataFrame {
+        "type" from { it.type.name }
+        "emailAddress" from { it.emailAddress }
+        "firstNameOfParentOrCarer" from { it.firstNameOfParentOrCarer }
+        "surnameOfParentOrCarer" from { it.surnameOfParentOrCarer }
+        "parentOrCarerMobileNumber" from { it.parentOrCarerMobileNumber }
+        "confirmEmail" from { it.confirmEmail }
+    }
+
+internal fun toDataFrame(entities: List<NominationWithAdultDetails>) : DataFrame<Any> =
+    entities.toDataFrame {
+        "State" from { it.nomination.state }
+        "First Name" from { it.nomination.firstNameOfChild }
+        "Surname" from { it.nomination.surnameOfChild }
+        "Date of Birth" from { it.nomination.childDateOfBirth }
+        "School Year" from { it.nomination.whichYearGroupIsYourChildInNow }
+        "Gender" from { it.nomination.gender }
+        "Primary Position" from { it.nomination.primaryPosition }
+        "Secondary Position" from { it.nomination.secondaryPosition }
+        "Medical Conditions" from { it.nomination.medicalConditions }
+        "Attend trials" from { it.nomination.iWishMyChildToAttendTrials }
+        "Consent for photographs" from { it.nomination.consentToTheTakingOfPhotographs }
+        "adultDetailsList" from { adultDetailsDataFrame(it.adultDetailsList) }
+    }

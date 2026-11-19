@@ -31,11 +31,6 @@ class FakeStateDao(initialStates: List<State> = emptyList()) : StateDao {
 
     override suspend fun getByName(name: String): State? = items.find { it.name == name }
 
-    override suspend fun getStateWithNextStates(name: String): StateWithNextStates? {
-        val st = getByName(name) ?: return null
-        return StateWithNextStates(st, emptyList())
-    }
-
     override suspend fun insert(entity: State): Long {
         items.removeAll { it.name == entity.name }
         items.add(entity)

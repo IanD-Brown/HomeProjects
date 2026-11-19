@@ -25,10 +25,12 @@ import io.github.iandbrown.trials.logic.DayDate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.launch
+import kotlinx.io.asOutputStream
+import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.concat
 import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
-import org.jetbrains.kotlinx.dataframe.io.writeCsv
+import org.jetbrains.kotlinx.dataframe.io.writeExcel
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.parameter.parametersOf
@@ -79,14 +81,20 @@ internal fun TrialsListView(showDetails: (TrialsView) -> Unit) {
         states = persistentListOf(state),
     ) { padding ->
         TrailingIconLazyVerticalGrid(padding, 2, 0) {
-            viewTextItems(listOf("Team Category", "Date"))
+            viewTextItems(listOf("Date", "Team Category"))
+            var previousDate = -1
             state.values()
                 .filter {it.date > 0}
                 .sortedWith(compareByDescending ( TrialsView::date ).thenBy ( TrialsView::name ))
                 .forEach { trialsView ->
-                viewTextItems(
-                    listOf(trialsView.name, DayDate(trialsView.date).toString()),
-                    Modifier.clickable {
+                    val items = when (trialsView.date == previousDate) {
+                        true -> listOf("", trialsView.name)
+                        else -> {
+                            previousDate = trialsView.date
+                            listOf(DayDate(trialsView.date).toString(), trialsView.name)
+                        }
+                    }
+                viewTextItems(items, Modifier.clickable {
                         showDetails(trialsView)
                     },
                 )
@@ -119,8 +127,9 @@ internal fun TrialDetails(entity: TrialsView, showDetails: (Int) -> Unit, done: 
         states = persistentListOf(state),
         bottomBar = {
             BottomBarWithButtons(
-                exportButtonSettings(viewModel.viewModelScope, "trialDetails${entity.name}", "csv") { writer ->
-                    state.values()
+                exportButtonSettings(viewModel.viewModelScope, "trialDetails${entity.name}", "xslx") { buffer ->
+                    val wb = WorkbookFactory.create(true)
+                    val sheet = state.values()
                         .fold(DataFrame.emptyOf<Any?>()) {df, it ->
                             val withAdultDetails = nominationViewModel.dao.getNominationWithAdultDetails(it.nominee)
                             df.concat(dataFrameOf(
@@ -134,7 +143,17 @@ internal fun TrialDetails(entity: TrialsView, showDetails: (Int) -> Unit, done: 
                                 "Parent surname" to listOf(withAdultDetails?.adultDetailsList?.firstOrNull { it.type == AdultType.PARENT_OR_CARER }?.surnameOfParentOrCarer ?: ""),
                                 "Phone" to listOf(withAdultDetails?.adultDetailsList?.firstOrNull { it.type == AdultType.PARENT_OR_CARER }?.parentOrCarerMobileNumber ?: ""),
                             ))
-                        }.writeCsv(writer)
+                        }.writeExcel(wb)
+                    val createHelper = wb.creationHelper
+                    val textStyle = sheet.workbook.createCellStyle()
+                    textStyle.dataFormat = createHelper.createDataFormat().getFormat("@")
+                    sheet.forEachIndexed { _, row ->
+                        for (cell in row) {
+                            cell.cellStyle = textStyle
+                        }
+                    }
+                    wb.write(buffer.asOutputStream())
+                    wb.close()
                 },
                 ButtonSettings("Action", selected.isNotEmpty()) {
                     isDialogOpen = true

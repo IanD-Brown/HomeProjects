@@ -12,6 +12,8 @@ import io.github.iandbrown.trials.database.TeamCategoryDao
 import io.github.iandbrown.trials.database.YearGroup
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.viewmodel.koinViewModel
 
 internal class TeamCategoryViewModel(dao: TeamCategoryDao) :
@@ -121,3 +123,14 @@ internal fun TeamCategoryEditor(
         }
     }
 }
+
+private const val NAME = "Name"
+private const val YEAR_GROUP = "YearGroup"
+private const val GENDER = "Gender"
+
+internal fun toDataFrame(competitions: List<TeamCategory>): DataFrame<TeamCategory> =
+    competitions.toDataFrame {
+        NAME from { it.name }
+        YEAR_GROUP from { it.yearGroup }
+        GENDER from {it.gender}
+    }

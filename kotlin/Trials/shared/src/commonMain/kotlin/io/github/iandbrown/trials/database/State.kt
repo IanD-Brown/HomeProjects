@@ -65,10 +65,6 @@ interface StateDao : BaseReadDao<State>, BaseWriteDao<State> {
     @Query("SELECT * FROM $statesTable WHERE name = :name")
     suspend fun getByName(name: String): State?
 
-    @Transaction
-    @Query("SELECT * FROM $statesTable WHERE name = :name")
-    suspend fun getStateWithNextStates(name: String): StateWithNextStates?
-
     @Query("DELETE FROM $statesTable")
     override suspend fun deleteAll()
 }

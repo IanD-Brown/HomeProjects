@@ -14,11 +14,14 @@ import io.github.iandbrown.trials.database.NextStateDao
 import io.github.iandbrown.trials.database.State
 import io.github.iandbrown.trials.database.StateDao
 import io.github.iandbrown.trials.database.StateType
+import io.github.iandbrown.trials.database.StateWithNextStates
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.viewmodel.koinViewModel
 
 internal class StateViewModel(
@@ -177,5 +180,29 @@ internal fun StateEditor(state: State?, currentNextStates: ImmutableSet<String>,
                 }
             }
         }
+    }
+}
+
+private const val NAME = "Name"
+private const val EMAIL = "Email"
+private const val TYPE = "Type"
+
+internal fun toDataFrame(entities: List<State>): DataFrame<State> =
+    entities.toDataFrame {
+        NAME from { it.name }
+        EMAIL from { it.entryEmail }
+        TYPE from {it.type}
+    }
+
+@JvmName("stateWithNextStatesToDataFrame")
+internal fun toDataFrame(entities: List<StateWithNextStates>): DataFrame<Any> {
+    val pairs = mutableListOf<Pair<String, String>>()
+    entities.forEach { entity ->
+        entity.nextStates.forEach { pairs.add(Pair(entity.state.name, it.name)) }
+    }
+
+    return pairs.toDataFrame {
+        "FROM" from {it.first}
+        "TO" from {it.second}
     }
 }

@@ -98,14 +98,12 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.io.buffered
-import kotlinx.io.writeString
+import kotlinx.io.Buffer
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.DataRow
 import org.jetbrains.kotlinx.dataframe.io.readExcel
 import org.koin.java.KoinJavaComponent.inject
 import java.io.InputStream
-import kotlin.use
 
 private val fontSize = 16.sp
 private val textFieldHeight = 28.dp
@@ -501,7 +499,7 @@ internal fun exportButtonSettings(
     coroutineScope: CoroutineScope,
     suggestName: String,
     extension: String = "json",
-    transformedDataSupplier: suspend (Appendable) -> Unit
+    transformedDataSupplier: suspend (Buffer) -> Unit
 ): ButtonSettings = ButtonSettings(imageVector = Icons.Default.Download) {
         coroutineScope.launch {
             exportToFile(suggestName, extension, transformedDataSupplier)
@@ -511,17 +509,14 @@ internal fun exportButtonSettings(
 internal suspend fun exportToFile(
     suggestName: String,
     extension: String = "json",
-    transformedDataSupplier: suspend (Appendable) -> Unit
+    transformedDataSupplier: suspend (Buffer) -> Unit
 ) {
     val file = FileKit.openFileSaver(suggestedName = suggestName, defaultExtension = extension)
-    val sink = file?.sink(append = false)?.buffered()
 
-    sink.use { bufferedSink ->
-        if (bufferedSink != null) {
-            val sb = StringBuilder()
-            transformedDataSupplier(sb)
-            bufferedSink.writeString(sb.toString())
-        }
+    if (file != null) {
+        val destination = Buffer()
+        transformedDataSupplier(destination)
+        file.sink(append = false).write(destination, destination.size)
     }
 }
 

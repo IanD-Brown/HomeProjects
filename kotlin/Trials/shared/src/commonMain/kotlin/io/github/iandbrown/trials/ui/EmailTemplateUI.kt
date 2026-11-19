@@ -9,6 +9,8 @@ import androidx.compose.runtime.setValue
 import io.github.iandbrown.trials.database.EmailTemplate
 import io.github.iandbrown.trials.database.EmailTemplateDao
 import kotlinx.collections.immutable.persistentListOf
+import org.jetbrains.kotlinx.dataframe.DataFrame
+import org.jetbrains.kotlinx.dataframe.api.toDataFrame
 import org.koin.compose.viewmodel.koinViewModel
 
 internal class EmailTemplateViewModel(dao: EmailTemplateDao) :
@@ -116,3 +118,12 @@ internal fun EmailTemplateEditor(template: EmailTemplate?, done: () -> Unit) {
         }
     }
 }
+
+internal fun toDataFrame(entities: List<EmailTemplate>): DataFrame<Any> =
+    entities.toDataFrame {
+        "Name" from { it.name }
+        "To" from { it.toTemplate }
+        "Copy" from {it.copyTemplate}
+        "Subject" from {it.subjectTemplate}
+        "Body" from {it.bodyTemplate}
+    }
