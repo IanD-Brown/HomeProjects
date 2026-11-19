@@ -111,41 +111,6 @@ fun HomeScreen() {
     val coroutineScope = rememberCoroutineScope()
     var exception by remember { mutableStateOf<Exception?>(null) }
 
-    HomeContent(
-        exception = exception,
-        onDismissException = { exception = null },
-        onExport = {
-            coroutineScope.launch {
-                try {
-                    export()
-                    exception = null
-                } catch (e: Exception) {
-                    logException("HomeScreen", e, "Export failed:")
-                    exception = e
-                }
-            }
-        },
-        onImport = {
-            coroutineScope.launch {
-                tryTransaction({
-                    logException("HomeScreen", it, "Import failed:")
-                    exception = it
-                }, { import() })
-            }
-        },
-        onNavigate = { appNavigator.navigate(it) }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeContent(
-    exception: Exception?,
-    onDismissException: () -> Unit,
-    onExport: () -> Unit,
-    onImport: () -> Unit,
-    onNavigate: (Route) -> Unit
-) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -157,17 +122,34 @@ private fun HomeContent(
         },
         bottomBar = {
             BottomBarWithButtons(
-                ButtonSettings(imageVector = Icons.Default.Download) { onExport() },
-                ButtonSettings(imageVector = Icons.Default.Upload) { onImport() }
+                ButtonSettings(imageVector = Icons.Default.Download) {
+                    coroutineScope.launch {
+                        try {
+                            export()
+                        } catch (e: Exception) {
+                            logException("HomeScreen", e, "Export failed:")
+                            exception = e
+                        }
+                    }
+                },
+                ButtonSettings(imageVector = Icons.Default.Upload) {
+                    coroutineScope.launch {
+                        tryTransaction({
+                            logException("HomeScreen", it, "Import failed:")
+                            exception = it
+                        }, { import() })
+                    }
+                }
             )
         }
     ) { paddingValues ->
         if (exception != null) {
+            val message = exception?.message ?: exception?.javaClass?.simpleName ?: ""
             AlertDialog(
-                onDismissRequest = onDismissException,
-                confirmButton = { Button(onClick = onDismissException) { Text("OK") } },
+                onDismissRequest = { exception = null },
+                confirmButton = { Button(onClick = { exception = null }) { Text("OK") } },
                 title = { ViewText("Error") },
-                text = { ViewText(exception.message ?: exception.javaClass.simpleName) }
+                text = { ViewText(message) }
             )
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
@@ -175,7 +157,7 @@ private fun HomeContent(
                     items = Editors.entries.filter { it.showOnHome }.toTypedArray(),
                     key = { entry -> entry.ordinal }) { editor ->
                     OutlinedTextButton(value = editor.displayName)
-                    { onNavigate(editor.viewRoute()) }
+                    { appNavigator.navigate(editor.viewRoute()) }
                 }
             }
         }
